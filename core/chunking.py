@@ -155,9 +155,7 @@ def chunk_text(
         encoding_name = config.encoding_name
 
     if overlap >= chunk_size:
-        raise ValueError(
-            f"overlap ({overlap}) must be less than chunk_size ({chunk_size})"
-        )
+        raise ValueError(f"overlap ({overlap}) must be less than chunk_size ({chunk_size})")
 
     if not text or text.isspace():
         return []

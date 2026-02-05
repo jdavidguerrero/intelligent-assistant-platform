@@ -72,7 +72,7 @@ def strip_markdown_frontmatter(text: str) -> str:
     end_match = re.search(r"\n---\s*\n", text[3:])
     if end_match:
         # Skip past the frontmatter
-        return text[3 + end_match.end():].lstrip("\n")
+        return text[3 + end_match.end() :].lstrip("\n")
 
     return text
 
