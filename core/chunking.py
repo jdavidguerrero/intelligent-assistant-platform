@@ -29,9 +29,9 @@ Token chunking is preferred over character chunking for several critical reasons
    edge cases where character boundaries create unexpected token splits.
 """
 
-from dataclasses import dataclass
 import hashlib
 import os
+from dataclasses import dataclass
 from typing import overload
 
 import tiktoken
