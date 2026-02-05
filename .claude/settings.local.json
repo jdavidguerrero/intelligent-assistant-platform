@@ -6,7 +6,8 @@
       "Bash(pip install:*)",
       "Bash(.venv/bin/python -m pytest:*)",
       "Bash(python3 -m venv:*)",
-      "Bash(.venv/bin/pip install:*)"
+      "Bash(.venv/bin/pip install:*)",
+      "Bash(git ls-tree:*)"
     ]
   }
 }
