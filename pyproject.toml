@@ -1,0 +1,8 @@
+[project]
+name = "intelligent-assistant"
+version = "0.1.0"
+description = "Production-grade AI assistant platform"
+requires-python = ">=3.12"
+
+[tool.setuptools.packages.find]
+where = ["."]
