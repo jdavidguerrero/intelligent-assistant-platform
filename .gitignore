@@ -24,3 +24,6 @@ pip-delete-this-commit.txt
 # OS generated files
 .DS_Store # macOS
 thumbs.db # Windows
+
+
+.claude/interfaces/
