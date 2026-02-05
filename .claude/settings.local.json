@@ -1,4 +1,5 @@
 {
+  "$comment": "Claude Code permission settings. Review periodically for security.",
   "permissions": {
     "allow": [
       "Bash(source:*)",
@@ -8,6 +9,13 @@
       "Bash(python3 -m venv:*)",
       "Bash(.venv/bin/pip install:*)",
       "Bash(git ls-tree:*)"
+    ],
+    "_security_notes": [
+      "source:* - Allows sourcing shell scripts (venv activation)",
+      "python:* - Allows running Python with any args",
+      "pip install:* - Allows installing any package (review deps carefully)",
+      "These permissions are broad for development convenience.",
+      "For production or sensitive environments, narrow these permissions."
     ]
   }
 }
