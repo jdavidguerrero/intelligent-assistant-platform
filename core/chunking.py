@@ -32,8 +32,11 @@ Token chunking is preferred over character chunking for several critical reasons
 from dataclasses import dataclass
 import hashlib
 import os
+from typing import overload
 
 import tiktoken
+
+from core.config import ChunkingConfig
 
 
 def _generate_doc_id(source_path: str, text: str) -> str:
@@ -74,11 +77,34 @@ class Chunk:
     token_end: int
 
 
+@overload
 def chunk_text(
     text: str,
     *,
     source_path: str,
     doc_id: str | None = None,
+    config: ChunkingConfig,
+) -> list[Chunk]: ...
+
+
+@overload
+def chunk_text(
+    text: str,
+    *,
+    source_path: str,
+    doc_id: str | None = None,
+    chunk_size: int = 512,
+    overlap: int = 50,
+    encoding_name: str = "cl100k_base",
+) -> list[Chunk]: ...
+
+
+def chunk_text(
+    text: str,
+    *,
+    source_path: str,
+    doc_id: str | None = None,
+    config: ChunkingConfig | None = None,
     chunk_size: int = 512,
     overlap: int = 50,
     encoding_name: str = "cl100k_base",
@@ -95,11 +121,15 @@ def chunk_text(
         source_path: Full path to the source document.
         doc_id: Optional unique identifier for the document. If None, a stable
             ID is derived from sha256(source_path + text).
+        config: Optional ChunkingConfig object. If provided, overrides
+            chunk_size, overlap, and encoding_name parameters.
         chunk_size: Maximum number of tokens per chunk. Defaults to 512.
+            Ignored if config is provided.
         overlap: Number of tokens to overlap between consecutive chunks.
-            Defaults to 50. Must be less than chunk_size.
+            Defaults to 50. Must be less than chunk_size. Ignored if config is provided.
         encoding_name: Name of the tiktoken encoding to use.
             Defaults to "cl100k_base" (used by GPT-4, text-embedding-ada-002).
+            Ignored if config is provided.
 
     Returns:
         List of Chunk objects. Empty list if text is empty or whitespace-only.
@@ -108,15 +138,22 @@ def chunk_text(
         ValueError: If overlap >= chunk_size.
 
     Example:
+        >>> from core.config import ChunkingConfig
+        >>> config = ChunkingConfig(chunk_size=256, overlap=25)
         >>> chunks = chunk_text(
         ...     "Your long document text here...",
         ...     source_path="/docs/manual.txt",
-        ...     chunk_size=256,
-        ...     overlap=25,
+        ...     config=config,
         ... )
         >>> len(chunks)
         3
     """
+    # Use config if provided, otherwise use individual parameters
+    if config is not None:
+        chunk_size = config.chunk_size
+        overlap = config.overlap
+        encoding_name = config.encoding_name
+
     if overlap >= chunk_size:
         raise ValueError(
             f"overlap ({overlap}) must be less than chunk_size ({chunk_size})"

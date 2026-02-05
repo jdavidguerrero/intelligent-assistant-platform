@@ -3,7 +3,10 @@
     "allow": [
       "Bash(source:*)",
       "Bash(python:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(.venv/bin/python -m pytest:*)",
+      "Bash(python3 -m venv:*)",
+      "Bash(.venv/bin/pip install:*)"
     ]
   }
 }
