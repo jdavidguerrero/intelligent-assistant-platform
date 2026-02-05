@@ -7,11 +7,11 @@ These tests verify ChunkingConfig validation and predefined configurations.
 import pytest
 
 from core.config import (
-    ChunkingConfig,
     DEFAULT_CONFIG,
-    SMALL_CHUNK_CONFIG,
     LARGE_CHUNK_CONFIG,
     NO_OVERLAP_CONFIG,
+    SMALL_CHUNK_CONFIG,
+    ChunkingConfig,
 )
 
 

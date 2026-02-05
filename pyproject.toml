@@ -6,3 +6,15 @@ requires-python = ">=3.12"
 
 [tool.setuptools.packages.find]
 where = ["."]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+ignore = ["E501"]  # opcional si no quieres guerras por líneas largas
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
