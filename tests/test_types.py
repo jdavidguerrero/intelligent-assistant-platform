@@ -6,10 +6,8 @@ These tests verify the protocol definitions and conversion utilities.
 
 from dataclasses import dataclass
 
-import pytest
-
+from core.chunking import chunk_text
 from core.types import ChunkDict, ChunkProtocol, chunk_to_dict
-from core.chunking import Chunk, chunk_text
 
 
 class TestChunkProtocol:

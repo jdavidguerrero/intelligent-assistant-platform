@@ -29,9 +29,9 @@ Token chunking is preferred over character chunking for several critical reasons
    edge cases where character boundaries create unexpected token splits.
 """
 
-from dataclasses import dataclass
 import hashlib
 import os
+from dataclasses import dataclass
 from typing import overload
 
 import tiktoken
@@ -155,9 +155,7 @@ def chunk_text(
         encoding_name = config.encoding_name
 
     if overlap >= chunk_size:
-        raise ValueError(
-            f"overlap ({overlap}) must be less than chunk_size ({chunk_size})"
-        )
+        raise ValueError(f"overlap ({overlap}) must be less than chunk_size ({chunk_size})")
 
     if not text or text.isspace():
         return []

@@ -4,16 +4,14 @@ Tests for core.text module.
 These tests verify the pure text extraction and normalization functions.
 """
 
-import pytest
-
 from core.text import (
-    normalize_whitespace,
-    strip_markdown_frontmatter,
-    strip_markdown_code_blocks,
-    strip_markdown_links,
-    strip_markdown_formatting,
     extract_markdown_text,
     extract_plaintext,
+    normalize_whitespace,
+    strip_markdown_code_blocks,
+    strip_markdown_formatting,
+    strip_markdown_frontmatter,
+    strip_markdown_links,
 )
 
 

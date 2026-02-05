@@ -8,8 +8,7 @@ deterministic, and handles edge cases properly.
 import pytest
 import tiktoken
 
-from core.chunking import Chunk, chunk_text
-
+from core.chunking import chunk_text
 
 ENCODING_NAME = "cl100k_base"
 ENCODING = tiktoken.get_encoding(ENCODING_NAME)
@@ -58,9 +57,9 @@ class TestTokenInvariant:
         for chunk in chunks:
             chunk_tokens = ENCODING.encode(chunk.text)
             expected_tokens = doc_tokens[chunk.token_start : chunk.token_end]
-            assert chunk_tokens == expected_tokens, (
-                f"Chunk {chunk.chunk_index}: tokens mismatch at [{chunk.token_start}:{chunk.token_end}]"
-            )
+            assert (
+                chunk_tokens == expected_tokens
+            ), f"Chunk {chunk.chunk_index}: tokens mismatch at [{chunk.token_start}:{chunk.token_end}]"
 
 
 class TestOverlapCorrectness:
