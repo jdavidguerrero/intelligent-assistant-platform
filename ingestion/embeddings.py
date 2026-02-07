@@ -6,6 +6,9 @@ the OpenAI embeddings API.  Lives in ingestion/ because it
 performs network I/O (core/ must remain pure).
 """
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import os
 
 import openai

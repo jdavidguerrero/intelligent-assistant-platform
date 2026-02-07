@@ -1,0 +1,22 @@
+Retrieval-Augmented Generation (RAG) is a system design pattern that combines
+semantic search with large language models.
+
+The pipeline typically follows:
+
+1. Load documents
+2. Chunk into token windows
+3. Generate embeddings
+4. Store vectors
+5. Retrieve top-k matches
+6. Inject into prompt
+
+Chunking Strategy Matters.
+
+Small chunks increase recall but reduce context.
+Large chunks increase context but risk semantic dilution.
+
+Overlap helps preserve meaning across boundaries but excessive overlap
+creates redundancy and increases storage costs.
+
+Embedding models map text into high-dimensional vector space where
+semantic similarity corresponds to geometric proximity.

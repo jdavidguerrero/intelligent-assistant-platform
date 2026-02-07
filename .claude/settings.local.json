@@ -11,7 +11,8 @@
       "Bash(/Users/juandavidguerrerocastro/Documents/PROJECTS/AI/Intelligent-systems-lab/intelligent-assistant-platform/.venv/bin/python:*)",
       "Bash(/Users/juandavidguerrerocastro/Documents/PROJECTS/AI/Intelligent-systems-lab/intelligent-assistant-platform/.venv/bin/pip install:*)",
       "Bash(.venv/bin/ruff check:*)",
-      "Bash(.venv/bin/ruff format:*)"
+      "Bash(.venv/bin/ruff format:*)",
+      "Bash(find:*)"
     ],
     "_security_notes": [
       "source:* - Allows sourcing shell scripts (venv activation)",
