@@ -1,15 +1,19 @@
-import os
+"""
+FastAPI dependency providers.
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+Reuses the canonical session factory from ``db.session`` to avoid
+duplicate engine/sessionmaker definitions.
+"""
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg://ia:ia@localhost:5432/ia")
+from collections.abc import Generator
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+from sqlalchemy.orm import Session
+
+from db.session import SessionLocal
 
 
-def get_db():
+def get_db() -> Generator[Session, None, None]:
+    """Yield a SQLAlchemy session for FastAPI dependency injection."""
     db = SessionLocal()
     try:
         yield db
