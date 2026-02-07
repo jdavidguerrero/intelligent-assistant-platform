@@ -1,5 +1,4 @@
 {
-  "$comment": "Claude Code permission settings. Review periodically for security.",
   "permissions": {
     "allow": [
       "Bash(source:*)",
@@ -8,7 +7,11 @@
       "Bash(.venv/bin/python -m pytest:*)",
       "Bash(python3 -m venv:*)",
       "Bash(.venv/bin/pip install:*)",
-      "Bash(git ls-tree:*)"
+      "Bash(git ls-tree:*)",
+      "Bash(/Users/juandavidguerrerocastro/Documents/PROJECTS/AI/Intelligent-systems-lab/intelligent-assistant-platform/.venv/bin/python:*)",
+      "Bash(/Users/juandavidguerrerocastro/Documents/PROJECTS/AI/Intelligent-systems-lab/intelligent-assistant-platform/.venv/bin/pip install:*)",
+      "Bash(.venv/bin/ruff check:*)",
+      "Bash(.venv/bin/ruff format:*)"
     ],
     "_security_notes": [
       "source:* - Allows sourcing shell scripts (venv activation)",
@@ -17,5 +20,6 @@
       "These permissions are broad for development convenience.",
       "For production or sensitive environments, narrow these permissions."
     ]
-  }
+  },
+  "$comment": "Claude Code permission settings. Review periodically for security."
 }
