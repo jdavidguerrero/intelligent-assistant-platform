@@ -1,12 +1,17 @@
 certifi==2026.1.4
 charset-normalizer==3.4.4
+fastapi>=0.115.0
 idna==3.11
 iniconfig==2.3.0
+openai>=1.60.0
 packaging==26.0
+pgvector>=0.3.6
 pluggy==1.6.0
+psycopg[binary]>=3.2.0
 Pygments==2.19.2
 pytest==9.0.2
 regex==2026.1.15
 requests==2.32.5
+sqlalchemy>=2.0.36
 tiktoken==0.12.0
 urllib3==2.6.3
