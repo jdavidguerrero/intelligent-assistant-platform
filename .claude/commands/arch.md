@@ -1,11 +1,6 @@
 Invoke the Architect agent.
 
-Load:
-- .claude/bootstrap.md
-- .claude/rules.md
-- .claude/agents/architect.md
-- .claude/playbooks/architect.md
+Perform an architecture scan of the current repo state aligned to the active roadmap phase.
 
-Then perform an architecture scan of the current repo state aligned to the active roadmap step.
+Focus on: boundaries, naming consistency, integration path for the current phase.
 Do not expand scope. Do not propose new subsystems.
-Focus on: boundaries, naming, integration path for the next 1-2 days.

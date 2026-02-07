@@ -1,36 +1,54 @@
-# .claude/ Directory Structure
+# .claude/ — AI Collaboration Layer
 
-This directory contains configuration and prompts for Claude Code AI assistant.
+Sub-agent infrastructure for AI-assisted development. Uses the official Claude Code sub-agent standard.
 
-## Structure
+## Agents
 
+All agents live in `agents/` with YAML frontmatter. Run `/agents` to discover and manage them.
+
+| Agent | Role | Tools | Model |
+|-------|------|-------|-------|
+| `architect` | Architecture review, layer boundaries | Read, Glob, Grep, Bash | sonnet |
+| `pr-reviewer` | PR review, correctness, test quality | Read, Glob, Grep, Bash | sonnet |
+| `explainer` | Code explanation, understanding | Read, Glob, Grep | sonnet |
+| `implementer` | Build features, ship code | Read, Glob, Grep, Bash, Edit, Write | inherit |
+| `test-guardian` | Test coverage, quality enforcement | Read, Glob, Grep, Bash, Edit, Write | sonnet |
+| `refactorer` | Safe structural improvements | Read, Glob, Grep, Bash, Edit, Write | inherit |
+
+## Rules
+
+Auto-loaded constraints in `rules/`. All agents respect these.
+
+| Rule | File |
+|------|------|
+| Architecture & layer boundaries | `rules/architecture.md` |
+| Review & code quality standards | `rules/review-standards.md` |
+| Decision log (DL-###) | `rules/decision-log.md` |
+
+## Commands
+
+| Command | Purpose |
+|---------|---------|
+| `/arch` | Invoke Architect agent |
+| `/explain` | Invoke Explainer agent |
+| `/pr-review` | Invoke PR Reviewer agent |
+
+## Adding a New Agent
+
+Create `agents/<name>.md` with YAML frontmatter:
+
+```yaml
+---
+name: <kebab-case>
+description: <when to delegate to this agent>
+tools: <comma-separated tool list>
+model: <sonnet | opus | haiku | inherit>
+permissionMode: <plan | acceptEdits | default>
+memory: project
+---
 ```
-.claude/
-├── README.md          # This file
-├── bootstrap.md       # Entry point - Claude reads this first
-├── rules.md           # Repository-specific coding rules
-├── settings.local.json # Local Claude Code settings
-├── agents/            # Agent definitions (personas, capabilities)
-├── playbooks/         # Step-by-step workflows for common tasks
-└── interfaces/        # Reusable prompts for invoking agents
-    └── prompts/       # Prompt templates
-```
 
-## How It Works
+## Security
 
-1. **bootstrap.md** - Entry point that tells Claude where to find context
-2. **rules.md** - Coding standards and constraints for this repo
-3. **agents/** - Define specialized agent behaviors (e.g., PR reviewer)
-4. **playbooks/** - Procedural guides for multi-step tasks
-5. **interfaces/prompts/** - Reusable prompt templates for invoking agents
-
-## Adding New Agents
-
-1. Create agent definition in `agents/<agent_name>.md`
-2. Create invocation prompt in `interfaces/prompts/<agent_name>_prompt.md`
-3. Optionally create playbook in `playbooks/<task>.md`
-
-## Security Note
-
-`settings.local.json` contains permission settings for Claude Code.
-Review these settings periodically to ensure they match your security requirements.
+`settings.local.json` grants Claude Code permission to run shell commands.
+Review when onboarding new team members or tightening CI.

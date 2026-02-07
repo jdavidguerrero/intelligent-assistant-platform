@@ -64,3 +64,32 @@ ruff check . && ruff format .
 | `core/types.py` | Protocols and type definitions |
 | `db/models.py` | SQLAlchemy ORM models |
 | `api/main.py` | FastAPI application |
+
+## Sub-Agents
+
+This repo uses Claude Code sub-agents (`.claude/agents/`). Run `/agents` to see all available agents.
+
+| Agent | Role | Model | Permissions |
+|-------|------|-------|-------------|
+| `architect` | Architecture review, layer boundaries | sonnet | read-only |
+| `pr-reviewer` | PR review, correctness, test quality | sonnet | read-only |
+| `explainer` | Code explanation, understanding | sonnet | read-only |
+| `implementer` | Build features, ship code | inherit | read-write |
+| `test-guardian` | Test coverage, quality enforcement | sonnet | read-write |
+| `refactorer` | Safe structural improvements | inherit | read-write |
+
+## Standard Workflows
+
+Reference patterns for multi-agent task sequences.
+
+**Feature Development**: Architect → Implementer → Test Guardian → PR Reviewer
+
+**PR Lifecycle**: Explainer → PR Reviewer → (fix if needed) → re-review
+
+**Architecture Change**: Architect → Refactorer → Test Guardian → Architect → PR Reviewer
+
+**Rules**:
+- Max 2 review cycles before human escalation.
+- Never skip Test Guardian after implementation.
+- If Architect says NEEDS ADJUSTMENT, fix design before writing code.
+- Never combine architecture changes with feature work in the same PR.
