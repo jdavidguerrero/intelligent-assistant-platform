@@ -22,7 +22,15 @@
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nfix: resolve 3 architecture blockers before search endpoint\n\n- Remove os import from core/chunking.py \\(DL-001 purity violation\\)\n- Add HNSW index on chunk_records.embedding for cosine similarity\n- Consolidate session management: api/deps.py reuses db.session\n- Add 4 edge-case tests for pure string basename extraction\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")",
       "Bash(git checkout:*)",
-      "Bash(echo:*)"
+      "Bash(echo:*)",
+      "Bash(.venv/bin/pytest -q)",
+      "Bash(.venv/bin/pytest tests/test_search.py -v)",
+      "Bash(git -C /Users/juandavidguerrerocastro/Documents/PROJECTS/AI/intelligent-assistant-platform status)",
+      "Bash(git -C /Users/juandavidguerrerocastro/Documents/PROJECTS/AI/intelligent-assistant-platform diff --stat)",
+      "Bash(git -C /Users/juandavidguerrerocastro/Documents/PROJECTS/AI/intelligent-assistant-platform log --oneline -5)",
+      "Bash(git -C /Users/juandavidguerrerocastro/Documents/PROJECTS/AI/intelligent-assistant-platform diff)",
+      "Bash(git -C /Users/juandavidguerrerocastro/Documents/PROJECTS/AI/intelligent-assistant-platform diff --cached --stat)",
+      "Bash(git -C /Users/juandavidguerrerocastro/Documents/PROJECTS/AI/intelligent-assistant-platform commit -m \"$\\(cat <<''EOF''\nfeat: add POST /search semantic search endpoint\n\nImplement retrieval step of the RAG pipeline: embed query via OpenAI,\nrun cosine similarity against pgvector HNSW index, return ranked chunks\nwith scores and full traceability metadata.\n\nNew files:\n- db/search.py: search_chunks\\(\\) with pgvector cosine distance\n- api/schemas/search.py: SearchRequest, SearchResult, SearchResponse\n- api/routes/search.py: POST /search thin controller\n- tests/test_search.py: 22 deterministic tests\n\nModified:\n- api/deps.py: add get_embedding_provider\\(\\) cached singleton\n- api/main.py: register search router, add return type to health\\(\\)\n- ingestion/embeddings.py: fix lint \\(move load_dotenv into __init__\\)\n\nCo-Authored-By: Claude Opus 4.6 <noreply@anthropic.com>\nEOF\n\\)\")"
     ],
     "_security_notes": [
       "source:* - Allows sourcing shell scripts (venv activation)",
