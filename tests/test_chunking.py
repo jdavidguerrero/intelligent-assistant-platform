@@ -191,6 +191,38 @@ class TestMetadata:
         )
         assert chunks[0].source_name == "document.pdf"
 
+    def test_source_name_with_trailing_slash(self) -> None:
+        """Test that trailing slashes are stripped before extracting basename."""
+        chunks = chunk_text(
+            "Some content.",
+            source_path="/path/to/file.txt/",
+        )
+        assert chunks[0].source_name == "file.txt"
+
+    def test_source_name_with_multiple_trailing_slashes(self) -> None:
+        """Test that multiple trailing slashes are handled correctly."""
+        chunks = chunk_text(
+            "Some content.",
+            source_path="/path/to/file.txt///",
+        )
+        assert chunks[0].source_name == "file.txt"
+
+    def test_source_name_without_path_separator(self) -> None:
+        """Test that a filename without path separator is returned as-is."""
+        chunks = chunk_text(
+            "Some content.",
+            source_path="file.txt",
+        )
+        assert chunks[0].source_name == "file.txt"
+
+    def test_source_name_root_path(self) -> None:
+        """Test edge case of root path returns empty string."""
+        chunks = chunk_text(
+            "Some content.",
+            source_path="/",
+        )
+        assert chunks[0].source_name == ""
+
     def test_source_path_preserved(self) -> None:
         path = "/path/to/file.txt"
         chunks = chunk_text("Content.", source_path=path)
