@@ -6,12 +6,10 @@ the OpenAI embeddings API.  Lives in ingestion/ because it
 performs network I/O (core/ must remain pure).
 """
 
-from dotenv import load_dotenv
-load_dotenv()
-
 import os
 
 import openai
+from dotenv import load_dotenv
 
 
 class OpenAIEmbeddingProvider:
@@ -30,6 +28,7 @@ class OpenAIEmbeddingProvider:
         *,
         api_key: str | None = None,
     ) -> None:
+        load_dotenv()
         resolved_key = api_key or os.environ.get("OPENAI_API_KEY", "")
         if not resolved_key:
             raise ValueError("OPENAI_API_KEY must be set in the environment or passed explicitly")

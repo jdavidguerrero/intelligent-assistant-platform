@@ -1,0 +1,51 @@
+"""
+Pydantic schemas for the ``/search`` endpoint.
+
+Defines request validation and response serialization models.
+"""
+
+from pydantic import BaseModel, Field, field_validator
+
+
+class SearchRequest(BaseModel):
+    """Request body for ``POST /search``."""
+
+    query: str = Field(
+        ..., max_length=4000, description="The search query text. Must be non-empty."
+    )
+    top_k: int = Field(
+        default=5,
+        ge=1,
+        le=100,
+        description="Number of results to return (1–100).",
+    )
+
+    @field_validator("query")
+    @classmethod
+    def query_must_not_be_empty(cls, v: str) -> str:
+        """Validate that query is not empty or whitespace-only."""
+        if not v.strip():
+            raise ValueError("query must be a non-empty string")
+        return v
+
+
+class SearchResult(BaseModel):
+    """A single search result with similarity score and chunk metadata."""
+
+    score: float = Field(..., description="Cosine similarity score (0–1).")
+    text: str = Field(..., description="Chunk text content.")
+    source_name: str = Field(..., description="Source document filename.")
+    source_path: str = Field(..., description="Full path to the source document.")
+    chunk_index: int = Field(..., description="Zero-based chunk index within the document.")
+    token_start: int = Field(
+        ..., description="Starting token index in original document (inclusive)."
+    )
+    token_end: int = Field(..., description="Ending token index in original document (exclusive).")
+
+
+class SearchResponse(BaseModel):
+    """Response body for ``POST /search``."""
+
+    query: str = Field(..., description="The original search query.")
+    top_k: int = Field(..., description="Number of results requested.")
+    results: list[SearchResult] = Field(..., description="Ranked search results.")
