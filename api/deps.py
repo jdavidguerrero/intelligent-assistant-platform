@@ -1,17 +1,39 @@
-import os
+"""
+FastAPI dependency providers.
 
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+Reuses the canonical session factory from ``db.session`` to avoid
+duplicate engine/sessionmaker definitions.
+"""
 
-DATABASE_URL = os.getenv("DATABASE_URL", "postgresql+psycopg://ia:ia@localhost:5432/ia")
+from collections.abc import Generator
 
-engine = create_engine(DATABASE_URL, pool_pre_ping=True)
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+from sqlalchemy.orm import Session
+
+from db.session import SessionLocal
+from ingestion.embeddings import OpenAIEmbeddingProvider
 
 
-def get_db():
+def get_db() -> Generator[Session, None, None]:
+    """Yield a SQLAlchemy session for FastAPI dependency injection."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+
+
+_embedding_provider: OpenAIEmbeddingProvider | None = None
+
+
+def get_embedding_provider() -> OpenAIEmbeddingProvider:
+    """
+    Return a cached ``OpenAIEmbeddingProvider`` singleton.
+
+    The provider is created on first call and reused thereafter.
+    This avoids re-reading env vars and re-creating the OpenAI client
+    on every request.
+    """
+    global _embedding_provider  # noqa: PLW0603
+    if _embedding_provider is None:
+        _embedding_provider = OpenAIEmbeddingProvider()
+    return _embedding_provider

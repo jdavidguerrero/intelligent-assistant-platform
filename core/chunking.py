@@ -30,7 +30,6 @@ Token chunking is preferred over character chunking for several critical reasons
 """
 
 import hashlib
-import os
 from dataclasses import dataclass
 from typing import overload
 
@@ -171,7 +170,7 @@ def chunk_text(
     resolved_doc_id = doc_id if doc_id is not None else _generate_doc_id(source_path, text)
 
     stride = chunk_size - overlap
-    source_name = os.path.basename(source_path)
+    source_name = source_path.rstrip("/").split("/")[-1]
 
     chunks: list[Chunk] = []
     chunk_index = 0
