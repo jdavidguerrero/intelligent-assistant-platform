@@ -51,7 +51,10 @@ def search(
             detail="Search query failed.",
         ) from exc
 
-    # 3. Build response
+    # 3. Filter by minimum similarity score
+    above_threshold = [(rec, sc) for rec, sc in results if sc >= body.min_score]
+
+    # 4. Build response
     search_results = [
         SearchResult(
             score=round(score, 6),
@@ -62,11 +65,14 @@ def search(
             token_start=record.token_start,
             token_end=record.token_end,
         )
-        for record, score in results
+        for record, score in above_threshold
     ]
+
+    reason = "low_confidence" if results and not above_threshold else None
 
     return SearchResponse(
         query=body.query,
         top_k=body.top_k,
         results=search_results,
+        reason=reason,
     )
