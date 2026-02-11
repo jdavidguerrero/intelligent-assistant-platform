@@ -28,6 +28,14 @@
 6. Check dependency directions with automated script
 7. Evaluate against architecture rules
 
+## Multi-Round Review Protocol
+
+- Round 1: Identify all blockers (uncommitted files, lint, architecture, missing tests)
+- Round 2: Verify blockers resolved, spot any NEW issues introduced by fixes
+- Round 3 (final): Confirm clean state (git status, lint, tests pass, no regressions)
+- Always verify `git status` is clean before APPROVE
+- Never approve if search/feature code exists but is not committed
+
 ## Edge Cases to Test
 
 ### String-based basename extraction

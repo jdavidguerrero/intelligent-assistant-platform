@@ -16,8 +16,14 @@ class SearchRequest(BaseModel):
     top_k: int = Field(
         default=5,
         ge=1,
-        le=100,
-        description="Number of results to return (1–100).",
+        le=20,
+        description="Number of results to return (1–20).",
+    )
+    min_score: float = Field(
+        default=0.3,
+        ge=0.0,
+        le=1.0,
+        description="Minimum cosine similarity threshold (0–1). Results below this are discarded.",
     )
 
     @field_validator("query")
@@ -49,3 +55,7 @@ class SearchResponse(BaseModel):
     query: str = Field(..., description="The original search query.")
     top_k: int = Field(..., description="Number of results requested.")
     results: list[SearchResult] = Field(..., description="Ranked search results.")
+    reason: str | None = Field(
+        default=None,
+        description="Set to 'low_confidence' when all results were below min_score.",
+    )
