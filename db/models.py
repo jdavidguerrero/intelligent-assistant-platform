@@ -5,7 +5,7 @@ Uses pgvector for embedding storage and similarity search.
 """
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, Index, Integer, String, Text, func
+from sqlalchemy import DateTime, Index, Integer, String, Text, UniqueConstraint, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -40,6 +40,7 @@ class ChunkRecord(Base):
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     __table_args__ = (
+        UniqueConstraint("source_path", "chunk_index", name="uq_chunk_source_index"),
         Index(
             "idx_chunk_embedding_hnsw",
             "embedding",
