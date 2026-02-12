@@ -29,3 +29,5 @@ thumbs.db # Windows
 .claude/interfaces/
 
 .env
+
+data/
