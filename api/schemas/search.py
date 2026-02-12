@@ -13,6 +13,7 @@ class ResponseMeta(BaseModel):
     embedding_ms: float = Field(..., description="Time to generate query embedding (milliseconds).")
     search_ms: float = Field(..., description="Time for database search (milliseconds).")
     total_ms: float = Field(..., description="Total request duration (milliseconds).")
+    cache_hit: bool = Field(..., description="True if embedding was retrieved from cache, False if API call was made.")
 
 
 class SearchRequest(BaseModel):
