@@ -104,9 +104,11 @@ def run_pipeline(
     records = _chunks_to_records(all_chunks, all_embeddings)
     session = SessionLocal()
     try:
-        session.add_all(records)
+        # Use merge() for idempotent ingestion - skips duplicates via UniqueConstraint
+        for record in records:
+            session.merge(record)
         session.commit()
-        print(f"Inserted {len(records)} chunk record(s) into Postgres.")
+        print(f"Upserted {len(records)} chunk record(s) into Postgres.")
     except Exception:
         session.rollback()
         raise
