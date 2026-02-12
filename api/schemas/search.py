@@ -7,6 +7,14 @@ Defines request validation and response serialization models.
 from pydantic import BaseModel, Field, field_validator
 
 
+class ResponseMeta(BaseModel):
+    """Performance timing metadata."""
+
+    embedding_ms: float = Field(..., description="Time to generate query embedding (milliseconds).")
+    search_ms: float = Field(..., description="Time for database search (milliseconds).")
+    total_ms: float = Field(..., description="Total request duration (milliseconds).")
+
+
 class SearchRequest(BaseModel):
     """Request body for ``POST /search``."""
 
@@ -59,3 +67,4 @@ class SearchResponse(BaseModel):
         default=None,
         description="Set to 'low_confidence' when all results were below min_score.",
     )
+    meta: ResponseMeta = Field(..., description="Performance timing metadata.")
