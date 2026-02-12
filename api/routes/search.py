@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 
 from api.deps import get_db, get_embedding_provider
 from api.schemas.search import ResponseMeta, SearchRequest, SearchResponse, SearchResult
+from core.query_expansion import detect_mastering_intent, expand_query
+from db.rerank import rerank_results
 from db.search import search_chunks
 from ingestion.embeddings import OpenAIEmbeddingProvider
 
@@ -35,11 +37,16 @@ def search(
     """
     t_start = time.perf_counter()
 
-    # 1. Embed the query text
+    # 1. Query expansion: detect intent and expand if needed
+    intent = detect_mastering_intent(body.query)
+    expanded_query = expand_query(body.query, intent)
+
+    # 2. Embed the (possibly expanded) query text (with caching)
     t_embed = time.perf_counter()
     try:
-        embeddings = embedder.embed_texts([body.query])
+        embeddings = embedder.embed_texts([expanded_query])
         query_embedding = embeddings[0]
+        cache_hit = embedder.last_cache_hit
     except Exception as exc:
         raise HTTPException(
             status_code=500,
@@ -47,21 +54,38 @@ def search(
         ) from exc
     embedding_ms = (time.perf_counter() - t_embed) * 1000
 
-    # 2. Search the database
+    # 3. Search the database (fetch 3x for reranking diversity)
     t_search = time.perf_counter()
     try:
-        results = search_chunks(db, query_embedding, top_k=body.top_k)
+        raw_results = search_chunks(db, query_embedding, top_k=body.top_k * 3)
     except Exception as exc:
         raise HTTPException(
             status_code=500,
             detail="Search query failed.",
         ) from exc
+
+    # 4. Apply reranking: authority boost + filename boost + document diversity
+    # Add filename boosting for mastering/mixing queries
+    filename_keywords = None
+    if intent.category in ("mastering", "mixing"):
+        filename_keywords = ["mastering", "mixing", "masterclass", "mix-mastering"]
+
+    reranked = rerank_results(
+        raw_results,
+        top_k=body.top_k,
+        max_per_document=1,  # Full diversity: 1 chunk per document
+        course_boost=1.15,   # +15% boost for course content
+        youtube_boost=1.0,   # No boost for YouTube
+        filename_keywords=filename_keywords,
+        filename_boost=1.20,  # +20% boost for filename matches
+    )
+
     search_ms = (time.perf_counter() - t_search) * 1000
 
-    # 3. Filter by minimum similarity score
-    above_threshold = [(rec, sc) for rec, sc in results if sc >= body.min_score]
+    # 5. Filter by minimum similarity score
+    above_threshold = [(rec, sc) for rec, sc in reranked if sc >= body.min_score]
 
-    # 4. Build response
+    # 6. Build response
     search_results = [
         SearchResult(
             score=round(score, 6),
@@ -75,7 +99,7 @@ def search(
         for record, score in above_threshold
     ]
 
-    reason = "low_confidence" if results and not above_threshold else None
+    reason = "low_confidence" if reranked and not above_threshold else None
     total_ms = (time.perf_counter() - t_start) * 1000
 
     return SearchResponse(
@@ -87,5 +111,6 @@ def search(
             embedding_ms=round(embedding_ms, 2),
             search_ms=round(search_ms, 2),
             total_ms=round(total_ms, 2),
+            cache_hit=cache_hit,
         ),
     )

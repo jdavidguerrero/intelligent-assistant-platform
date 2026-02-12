@@ -39,7 +39,10 @@
       "Bash(PYTHONPATH=/Users/juandavidguerrerocastro/Documents/PROJECTS/AI/intelligent-assistant-platform python:*)",
       "Bash(pkill:*)",
       "Bash(psql:*)",
-      "Bash(PYTHONPATH=. python:*)"
+      "Bash(PYTHONPATH=. python:*)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/run_eval.sh:*)",
+      "Bash(python3:*)"
     ],
     "_security_notes": [
       "source:* - Allows sourcing shell scripts (venv activation)",

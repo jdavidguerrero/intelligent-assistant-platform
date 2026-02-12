@@ -37,6 +37,11 @@ class _FakeEmbeddingProvider:
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         return [FAKE_EMBEDDING for _ in texts]
 
+    @property
+    def last_cache_hit(self) -> bool:
+        """Always return False for tests (no cache)."""
+        return False
+
 
 @pytest.fixture()
 def client():
@@ -163,7 +168,7 @@ class TestSearchResponse:
                     token_end=100,
                 )
             ],
-            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0),
+            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0, cache_hit=False),
         )
         assert response.query == "test"
         assert len(response.results) == 1
@@ -174,7 +179,7 @@ class TestSearchResponse:
             query="test",
             top_k=5,
             results=[],
-            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0),
+            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0, cache_hit=False),
         )
         assert response.results == []
         assert response.reason is None
@@ -185,7 +190,7 @@ class TestSearchResponse:
             top_k=5,
             results=[],
             reason="low_confidence",
-            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0),
+            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0, cache_hit=False),
         )
         assert response.reason == "low_confidence"
 
@@ -194,7 +199,7 @@ class TestSearchResponse:
             query="test",
             top_k=5,
             results=[],
-            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0),
+            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0, cache_hit=False),
         )
         assert response.reason is None
 
