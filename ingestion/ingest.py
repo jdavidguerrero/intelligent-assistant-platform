@@ -104,9 +104,22 @@ def run_pipeline(
     records = _chunks_to_records(all_chunks, all_embeddings)
     session = SessionLocal()
     try:
-        session.add_all(records)
+        # Use INSERT ... ON CONFLICT DO NOTHING for true idempotent ingestion
+        # session.merge() doesn't work without primary key, so use bulk insert with conflict handling
+        inserted = 0
+        for record in records:
+            # Check if exists first to avoid conflict errors flooding logs
+            existing = session.query(ChunkRecord).filter_by(
+                source_path=record.source_path,
+                chunk_index=record.chunk_index
+            ).first()
+
+            if not existing:
+                session.add(record)
+                inserted += 1
+
         session.commit()
-        print(f"Inserted {len(records)} chunk record(s) into Postgres.")
+        print(f"Inserted {inserted} new chunk(s), skipped {len(records) - inserted} existing.")
     except Exception:
         session.rollback()
         raise
