@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from api.deps import get_db, get_embedding_provider
 from api.main import app
-from api.schemas.search import SearchRequest, SearchResponse, SearchResult
+from api.schemas.search import ResponseMeta, SearchRequest, SearchResponse, SearchResult
 from db.search import search_chunks
 
 # ---------------------------------------------------------------------------
@@ -36,6 +36,11 @@ class _FakeEmbeddingProvider:
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         return [FAKE_EMBEDDING for _ in texts]
+
+    @property
+    def last_cache_hit(self) -> bool:
+        """Always return False for tests (no cache)."""
+        return False
 
 
 @pytest.fixture()
@@ -163,21 +168,39 @@ class TestSearchResponse:
                     token_end=100,
                 )
             ],
+            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0, cache_hit=False),
         )
         assert response.query == "test"
         assert len(response.results) == 1
+        assert response.meta.total_ms == 15.0
 
     def test_empty_results(self) -> None:
-        response = SearchResponse(query="test", top_k=5, results=[])
+        response = SearchResponse(
+            query="test",
+            top_k=5,
+            results=[],
+            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0, cache_hit=False),
+        )
         assert response.results == []
         assert response.reason is None
 
     def test_reason_low_confidence(self) -> None:
-        response = SearchResponse(query="test", top_k=5, results=[], reason="low_confidence")
+        response = SearchResponse(
+            query="test",
+            top_k=5,
+            results=[],
+            reason="low_confidence",
+            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0, cache_hit=False),
+        )
         assert response.reason == "low_confidence"
 
     def test_reason_defaults_to_none(self) -> None:
-        response = SearchResponse(query="test", top_k=5, results=[])
+        response = SearchResponse(
+            query="test",
+            top_k=5,
+            results=[],
+            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0, cache_hit=False),
+        )
         assert response.reason is None
 
 

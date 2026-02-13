@@ -34,7 +34,15 @@
       "Bash(.venv/bin/pytest tests/test_search.py -v --tb=short)",
       "Bash(.venv/bin/pytest:*)",
       "Bash(git commit:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(curl:*)",
+      "Bash(PYTHONPATH=/Users/juandavidguerrerocastro/Documents/PROJECTS/AI/intelligent-assistant-platform python:*)",
+      "Bash(pkill:*)",
+      "Bash(psql:*)",
+      "Bash(PYTHONPATH=. python:*)",
+      "Bash(chmod:*)",
+      "Bash(./scripts/run_eval.sh:*)",
+      "Bash(python3:*)"
     ],
     "_security_notes": [
       "source:* - Allows sourcing shell scripts (venv activation)",
