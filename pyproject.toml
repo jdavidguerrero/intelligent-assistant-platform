@@ -18,3 +18,30 @@ ignore = ["E501"]  # opcional si no quieres guerras por líneas largas
 [tool.ruff.format]
 quote-style = "double"
 indent-style = "space"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers --tb=short"
+markers = [
+    "unit: Pure unit tests — no I/O, no mocks (default for core/)",
+    "integration: Tests that use FastAPI TestClient or mock external services",
+    "slow: Tests with time.sleep or heavy computation",
+]
+filterwarnings = [
+    "error",              # Turn warnings into errors
+    "ignore::DeprecationWarning:tiktoken",  # tiktoken internal deprecation
+]
+
+[tool.coverage.run]
+source = ["core", "db", "api", "ingestion"]
+omit = ["*/tests/*", "*/__pycache__/*"]
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+fail_under = 60
+exclude_lines = [
+    "pragma: no cover",
+    "if TYPE_CHECKING:",
+    "if __name__ ==",
+]

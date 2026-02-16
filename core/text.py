@@ -200,3 +200,41 @@ def extract_plaintext(content: str) -> str:
         Normalized text.
     """
     return normalize_whitespace(content)
+
+
+_EXTENSION_EXTRACTORS: dict[str, str] = {
+    ".md": "markdown",
+    ".txt": "plaintext",
+}
+
+
+def extract_text(content: str, *, extension: str) -> str:
+    """
+    Dispatch text extraction based on file extension.
+
+    Pure dispatcher that selects the right extraction strategy
+    without requiring filesystem access.
+
+    Args:
+        content: Raw file content.
+        extension: File extension including the dot (e.g. ``".md"``, ``".txt"``).
+
+    Returns:
+        Normalized plain text ready for chunking.
+
+    Raises:
+        ValueError: If the extension is not supported.
+
+    Example:
+        >>> extract_text("# Hello **world**", extension=".md")
+        '# Hello world'
+    """
+    ext = extension.lower()
+    strategy = _EXTENSION_EXTRACTORS.get(ext)
+    if strategy is None:
+        raise ValueError(
+            f"Unsupported extension {ext!r}, " f"supported: {sorted(_EXTENSION_EXTRACTORS)}"
+        )
+    if strategy == "markdown":
+        return extract_markdown_text(content)
+    return extract_plaintext(content)

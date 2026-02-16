@@ -7,6 +7,19 @@ making it easier to define standard configurations and reuse them across pipelin
 
 from dataclasses import dataclass
 
+# Allowlist of valid tiktoken encodings.
+# Kept as a module constant so core/ stays pure (no tiktoken import at config time).
+VALID_ENCODINGS: frozenset[str] = frozenset(
+    {
+        "cl100k_base",
+        "p50k_base",
+        "p50k_edit",
+        "r50k_base",
+        "gpt2",
+        "o200k_base",
+    }
+)
+
 
 @dataclass(frozen=True)
 class ChunkingConfig:
@@ -42,6 +55,11 @@ class ChunkingConfig:
         if self.overlap >= self.chunk_size:
             raise ValueError(
                 f"overlap ({self.overlap}) must be less than chunk_size ({self.chunk_size})"
+            )
+        if self.encoding_name not in VALID_ENCODINGS:
+            raise ValueError(
+                f"Unknown encoding_name {self.encoding_name!r}, "
+                f"valid options: {sorted(VALID_ENCODINGS)}"
             )
 
 

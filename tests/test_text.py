@@ -4,9 +4,12 @@ Tests for core.text module.
 These tests verify the pure text extraction and normalization functions.
 """
 
+import pytest
+
 from core.text import (
     extract_markdown_text,
     extract_plaintext,
+    extract_text,
     normalize_whitespace,
     strip_markdown_code_blocks,
     strip_markdown_formatting,
@@ -174,3 +177,31 @@ class TestExtractPlaintext:
         text = "Hello    world\n\n\n\nNew paragraph"
         result = extract_plaintext(text)
         assert result == "Hello world\n\nNew paragraph"
+
+
+class TestExtractTextDispatcher:
+    """Test the extension-based extract_text dispatcher."""
+
+    def test_markdown_extension(self) -> None:
+        md = "This is **bold** and *italic*"
+        result = extract_text(md, extension=".md")
+        assert "**" not in result
+        assert "bold" in result
+
+    def test_txt_extension(self) -> None:
+        text = "Hello    world"
+        result = extract_text(text, extension=".txt")
+        assert result == "Hello world"
+
+    def test_case_insensitive_extension(self) -> None:
+        md = "**bold**"
+        result = extract_text(md, extension=".MD")
+        assert "**" not in result
+
+    def test_unsupported_extension_raises(self) -> None:
+        with pytest.raises(ValueError, match="Unsupported extension"):
+            extract_text("content", extension=".pdf")
+
+    def test_unsupported_extension_py_raises(self) -> None:
+        with pytest.raises(ValueError, match="Unsupported extension"):
+            extract_text("print(1)", extension=".py")

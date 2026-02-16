@@ -11,6 +11,7 @@ from core.config import (
     LARGE_CHUNK_CONFIG,
     NO_OVERLAP_CONFIG,
     SMALL_CHUNK_CONFIG,
+    VALID_ENCODINGS,
     ChunkingConfig,
 )
 
@@ -53,6 +54,15 @@ class TestChunkingConfigValidation:
     def test_zero_overlap_is_valid(self) -> None:
         config = ChunkingConfig(chunk_size=100, overlap=0)
         assert config.overlap == 0
+
+    def test_invalid_encoding_name_raises(self) -> None:
+        with pytest.raises(ValueError, match="Unknown encoding_name"):
+            ChunkingConfig(encoding_name="totally_fake_encoding")
+
+    def test_all_valid_encodings_accepted(self) -> None:
+        for enc in VALID_ENCODINGS:
+            config = ChunkingConfig(encoding_name=enc)
+            assert config.encoding_name == enc
 
 
 class TestChunkingConfigImmutability:
