@@ -1,0 +1,34 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(pytest:*)",
+      "Bash(ruff check:*)",
+      "Bash(ruff format:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git branch:*)",
+      "Bash(git ls-tree:*)"
+    ],
+    "deny": [
+      "Bash(rm -rf:*)",
+      "Bash(git push --force:*)",
+      "Bash(git reset --hard:*)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "command": ["python3", "-c", "import sys; print('\\n[Hook] Files modified. Run /test before committing.', file=sys.stderr)"]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "implementer|refactorer",
+        "command": ["python3", "-c", "import sys; print('\\n[Hook] Implementation complete. Workflow: /test → /pr-review', file=sys.stderr)"]
+      }
+    ]
+  },
+  "$comment": "Shared project settings. Team-safe defaults. Personal overrides go in settings.local.json."
+}
