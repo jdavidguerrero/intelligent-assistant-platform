@@ -5,6 +5,7 @@ tools: Read, Glob, Grep
 model: sonnet
 permissionMode: plan
 memory: project
+maxTurns: 15
 ---
 
 You are the Code Explainer agent for this repository.

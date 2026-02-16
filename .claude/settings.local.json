@@ -42,7 +42,9 @@
       "Bash(PYTHONPATH=. python:*)",
       "Bash(chmod:*)",
       "Bash(./scripts/run_eval.sh:*)",
-      "Bash(python3:*)"
+      "Bash(python3:*)",
+      "WebFetch(domain:docs.anthropic.com)",
+      "WebFetch(domain:medium.com)"
     ],
     "_security_notes": [
       "source:* - Allows sourcing shell scripts (venv activation)",

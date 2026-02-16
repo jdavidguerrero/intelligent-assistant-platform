@@ -5,18 +5,18 @@
 ## Aggregate Metrics
 
 ### Relevance (Graded)
-- **Hit@5 (Strict)**: 80.0% (16/20) — exact category match
+- **Hit@5 (Strict)**: 75.0% (15/20) — exact category match
 - **Hit@5 (Acceptable)**: 30.0% (6/20) — related category
-- **Hit@5 (Total)**: 95.0% (19/20) — any relevant match
+- **Hit@5 (Total)**: 90.0% (18/20) — any relevant match
 
 ### Document Diversity
 - **Avg Unique Docs in Top-5**: 5.00 / 5
 - **Interpretation**: Higher is better (5.0 = no repetition)
 
 ### Latency
-- **p50**: 364.7ms
-- **p95**: 751.4ms
-- **max**: 754.5ms
+- **p50**: 313.3ms
+- **p95**: 540577.9ms
+- **max**: 568995.0ms
 
 ## Per-Query Results
 
@@ -25,7 +25,7 @@
 - **Acceptable**: `youtube-tutorials`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 755ms
+- **Latency**: 568995ms
 - **Top Results**:
   1. [0.627] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/010-kick-golden-rules-adsr.md
   2. [0.623] `bass` — data/music/courses/pete-tong-producer-academy/bass/055-kick-bass-10-steps.md
@@ -37,7 +37,7 @@
 - **Expected**: `the-kick`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 434ms
+- **Latency**: 653ms
 - **Top Results**:
   1. [0.737] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/021-parisi-kick-design.md
   2. [0.608] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/010-kick-golden-rules-adsr.md
@@ -50,7 +50,7 @@
 - **Acceptable**: `youtube-tutorials`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 645ms
+- **Latency**: 387ms
 - **Top Results**:
   1. [0.636] `drums` — data/music/courses/pete-tong-producer-academy/drums/029-drums-golden-rules.md
   2. [0.633] `drums` — data/music/courses/pete-tong-producer-academy/drums/034-parisi-drums-writing.md
@@ -63,131 +63,131 @@
 - **Acceptable**: `youtube-tutorials`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 423ms
+- **Latency**: 438ms
 - **Top Results**:
   1. [0.736] `drums` — data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md
-  2. [0.587] `bass` — data/music/courses/pete-tong-producer-academy/bass/052-bass-golden-rules.md
-  3. [0.575] `bass` — data/music/courses/pete-tong-producer-academy/bass/058-parisi-sub-bass.md
-  4. [0.559] `bass` — data/music/courses/pete-tong-producer-academy/bass/056-diplo-bass-writing.md
-  5. [0.545] `youtube-tutorials` — data/music/youtube/tutorials/t7Y-m6KdFQk-20-progressive-house-bass-patterns-tricks-that-changed-my-life.md
+  2. [0.685] `bass-synths-and-fx` — data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md
+  3. [0.611] `mix-mastering` — data/music/courses/pete-tong-producer-academy/mix-mastering/136-mix-part2-mix-matrix.md
+  4. [0.586] `bass` — data/music/courses/pete-tong-producer-academy/bass/052-bass-golden-rules.md
+  5. [0.575] `bass` — data/music/courses/pete-tong-producer-academy/bass/058-parisi-sub-bass.md
 
 ### 5. producer mindset and workflow
 - **Expected**: `mindset`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 397ms
+- **Latency**: 277ms
 - **Top Results**:
-  1. [0.498] `mindset` — data/music/courses/pete-tong-producer-academy/mindset/003-right-mindset-producer.md
-  2. [0.467] `mindset` — data/music/courses/pete-tong-producer-academy/mindset/004-unique-artist-identity.md
-  3. [0.454] `bass` — data/music/courses/pete-tong-producer-academy/bass/057-ame-bass-writing.md
-  4. [0.450] `drums` — data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md
-  5. [0.404] `youtube-tutorials` — data/music/youtube/tutorials/zMJbsCt80bU-organic-house-from-scratch-in-30-minutes-ableton-tutorial-yannek-maunz.md
+  1. [0.551] `session-setup-and-workflow` — data/music/courses/pete-tong-mix-mastering/session-setup-and-workflow/004-welcome-to-the-course-what-you-ll-learn.md
+  2. [0.534] `studio-workflow` — data/music/courses/pete-tong-producer-academy/studio-workflow/111-parisi-studio-day.md
+  3. [0.511] `studio-workflow` — data/music/courses/pete-tong-producer-academy/studio-workflow/112-ame-studio-day.md
+  4. [0.506] `studio-workflow` — data/music/courses/pete-tong-producer-academy/studio-workflow/110-diplo-studio-day.md
+  5. [0.498] `mindset` — data/music/courses/pete-tong-producer-academy/mindset/003-right-mindset-producer.md
 
 ### 6. subtractive synthesis basics
 - **Expected**: `synthesis`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 281ms
+- **Latency**: 288ms
 - **Top Results**:
   1. [0.612] `synthesis` — data/music/courses/pete-tong-producer-academy/synthesis/067-subtractive-synthesis.md
   2. [0.594] `synthesis` — data/music/courses/pete-tong-producer-academy/synthesis/069-synth-anatomy-adsr-lfo.md
   3. [0.579] `synthesis` — data/music/courses/pete-tong-producer-academy/synthesis/065-synthesis-fundamentals-additive.md
   4. [0.495] `bass` — data/music/courses/pete-tong-producer-academy/bass/058-parisi-sub-bass.md
-  5. [0.465] `bass` — data/music/courses/pete-tong-producer-academy/bass/056-diplo-bass-writing.md
+  5. [0.476] `bass-synths-and-fx` — data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/018-mixing-low-synths.md
 
 ### 7. mixing kick and bass together
 - **Expected**: `mix-mastering`
 - **Acceptable**: `the-kick`, `bass`, `youtube-tutorials`
 - **Hit**: ~ Acceptable
 - **Unique Docs**: 5/5
-- **Latency**: 321ms
+- **Latency**: 447ms
 - **Top Results**:
-  1. [0.782] `drums` — data/music/courses/pete-tong-producer-academy/drums/043-mix-masterclass-drum-bus.md
-  2. [0.714] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/010-kick-golden-rules-adsr.md
-  3. [0.709] `bass` — data/music/courses/pete-tong-producer-academy/bass/060-parisi-kick-bass.md
-  4. [0.693] `bass` — data/music/courses/pete-tong-producer-academy/bass/055-kick-bass-10-steps.md
-  5. [0.689] `bass` — data/music/courses/pete-tong-producer-academy/bass/050-mix-room-bass-placement.md
+  1. [0.802] `bass-synths-and-fx` — data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md
+  2. [0.782] `drums` — data/music/courses/pete-tong-producer-academy/drums/043-mix-masterclass-drum-bus.md
+  3. [0.714] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/010-kick-golden-rules-adsr.md
+  4. [0.709] `bass` — data/music/courses/pete-tong-producer-academy/bass/060-parisi-kick-bass.md
+  5. [0.693] `bass` — data/music/courses/pete-tong-producer-academy/bass/055-kick-bass-10-steps.md
 
 ### 8. mastering chain setup
 - **Expected**: `mix-mastering`
-- **Hit**: ✗ Miss
+- **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 287ms
+- **Latency**: 254ms
 - **Top Results**:
-  1. [0.753] `drums` — data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md
-  2. [0.720] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/024-mix-masterclass-gain-staging.md
-  3. [0.672] `drums` — data/music/courses/pete-tong-producer-academy/drums/043-mix-masterclass-drum-bus.md
-  4. [0.641] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/017-mix-masterclass-kick-phase.md
-  5. [0.596] `bass` — data/music/courses/pete-tong-producer-academy/bass/060-parisi-kick-bass.md
+  1. [0.839] `mastering` — data/music/courses/pete-tong-mix-mastering/mastering/030-mastering-mindset.md
+  2. [0.759] `mastering` — data/music/courses/pete-tong-mix-mastering/mastering/029-final-tuning-before-the-mastering.md
+  3. [0.753] `drums` — data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md
+  4. [0.730] `mix-mastering` — data/music/courses/pete-tong-producer-academy/mix-mastering/138-mastering-8-steps.md
+  5. [0.667] `mix-mastering` — data/music/courses/pete-tong-producer-academy/mix-mastering/128-mix-part1-vs-master.md
 
 ### 9. sidechain compression tutorial
 - **Expected**: `mix-mastering`
 - **Acceptable**: `bass`, `youtube-tutorials`
 - **Hit**: ~ Acceptable
 - **Unique Docs**: 5/5
-- **Latency**: 424ms
+- **Latency**: 249ms
 - **Top Results**:
-  1. [0.663] `bass` — data/music/courses/pete-tong-producer-academy/bass/060-parisi-kick-bass.md
-  2. [0.661] `drums` — data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md
-  3. [0.643] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/026-mix-masterclass-compressor.md
-  4. [0.549] `drums` — data/music/courses/pete-tong-producer-academy/drums/034-parisi-drums-writing.md
-  5. [0.543] `drums` — data/music/courses/pete-tong-producer-academy/drums/044-parisi-drum-bus.md
+  1. [0.682] `bass-synths-and-fx` — data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md
+  2. [0.677] `bass-synths-and-fx` — data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/018-mixing-low-synths.md
+  3. [0.663] `bass` — data/music/courses/pete-tong-producer-academy/bass/060-parisi-kick-bass.md
+  4. [0.616] `bass-synths-and-fx` — data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/019-high-frequency-synth-processing.md
+  5. [0.594] `vocals` — data/music/courses/pete-tong-producer-academy/vocals/098-diplo-vocal-tricks.md
 
 ### 10. how to choose kick samples
 - **Expected**: `the-kick`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 267ms
+- **Latency**: 269ms
 - **Top Results**:
   1. [0.662] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/021-parisi-kick-design.md
   2. [0.662] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/010-kick-golden-rules-adsr.md
-  3. [0.594] `bass` — data/music/courses/pete-tong-producer-academy/bass/060-parisi-kick-bass.md
-  4. [0.585] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/013-kick-phase.md
-  5. [0.571] `bass` — data/music/courses/pete-tong-producer-academy/bass/055-kick-bass-10-steps.md
+  3. [0.618] `mixing-the-beat` — data/music/courses/pete-tong-mix-mastering/mixing-the-beat/012-shaping-the-kick.md
+  4. [0.594] `bass` — data/music/courses/pete-tong-producer-academy/bass/060-parisi-kick-bass.md
+  5. [0.585] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/013-kick-phase.md
 
 ### 11. drum mixing tips
 - **Expected**: `drums`
 - **Acceptable**: `mix-mastering`, `youtube-tutorials`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 347ms
+- **Latency**: 254ms
 - **Top Results**:
-  1. [0.805] `drums` — data/music/courses/pete-tong-producer-academy/drums/043-mix-masterclass-drum-bus.md
-  2. [0.791] `drums` — data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md
-  3. [0.642] `drums` — data/music/courses/pete-tong-producer-academy/drums/032-mix-room-drums-placement.md
-  4. [0.618] `bass` — data/music/courses/pete-tong-producer-academy/bass/057-ame-bass-writing.md
-  5. [0.617] `drums` — data/music/courses/pete-tong-producer-academy/drums/034-parisi-drums-writing.md
+  1. [0.806] `session-setup-and-workflow` — data/music/courses/pete-tong-mix-mastering/session-setup-and-workflow/006-analyzing-the-track-before-mixing.md
+  2. [0.805] `drums` — data/music/courses/pete-tong-producer-academy/drums/043-mix-masterclass-drum-bus.md
+  3. [0.791] `drums` — data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md
+  4. [0.671] `mix-mastering` — data/music/courses/pete-tong-producer-academy/mix-mastering/130-mix-part1-process.md
+  5. [0.658] `starting-the-mix` — data/music/courses/pete-tong-mix-mastering/starting-the-mix/009-shaping-the-mix-on-the-stereo-bus-part-1.md
 
 ### 12. bass layering techniques
 - **Expected**: `bass`
 - **Acceptable**: `youtube-tutorials`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 321ms
+- **Latency**: 235ms
 - **Top Results**:
   1. [0.641] `youtube-tutorials` — data/music/youtube/tutorials/Kxhh8ni4GVU-how-to-make-organic-deep-house-like-kora-gab-rhome-all-day-i-dream-anjunadeep-pr.md
   2. [0.638] `bass` — data/music/courses/pete-tong-producer-academy/bass/056-diplo-bass-writing.md
   3. [0.623] `bass` — data/music/courses/pete-tong-producer-academy/bass/052-bass-golden-rules.md
-  4. [0.577] `youtube-tutorials` — data/music/youtube/tutorials/t7Y-m6KdFQk-20-progressive-house-bass-patterns-tricks-that-changed-my-life.md
-  5. [0.564] `youtube-tutorials` — data/music/youtube/tutorials/TTIon9_pRHQ-how-to-make-organic-house-bass-warm-wide-all-day-i-dream-style.md
+  4. [0.620] `bass-synths-and-fx` — data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md
+  5. [0.577] `youtube-tutorials` — data/music/youtube/tutorials/t7Y-m6KdFQk-20-progressive-house-bass-patterns-tricks-that-changed-my-life.md
 
 ### 13. staying motivated as producer
 - **Expected**: `mindset`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 348ms
+- **Latency**: 231ms
 - **Top Results**:
   1. [0.691] `mindset` — data/music/courses/pete-tong-producer-academy/mindset/003-right-mindset-producer.md
-  2. [0.530] `mindset` — data/music/courses/pete-tong-producer-academy/mindset/004-unique-artist-identity.md
-  3. [0.507] `drums` — data/music/courses/pete-tong-producer-academy/drums/028-music-mind-brain-sound.md
-  4. [0.429] `youtube-tutorials` — data/music/youtube/tutorials/FyBYJf9MTD8-11-tips-for-writing-organic-house-deep-house-free-sample-pack.md
-  5. [0.422] `youtube-tutorials` — data/music/youtube/tutorials/zMJbsCt80bU-organic-house-from-scratch-in-30-minutes-ableton-tutorial-yannek-maunz.md
+  2. [0.663] `studio-workflow` — data/music/courses/pete-tong-producer-academy/studio-workflow/110-diplo-studio-day.md
+  3. [0.564] `wellbeing` — data/music/courses/pete-tong-producer-academy/wellbeing/161-parisi-work-life-balance.md
+  4. [0.540] `creativity` — data/music/courses/pete-tong-producer-academy/creativity/125-ame-staying-inspired.md
+  5. [0.538] `career` — data/music/courses/pete-tong-producer-academy/career/154-diplo-measure-success.md
 
 ### 14. FM synthesis explained
 - **Expected**: `synthesis`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 691ms
+- **Latency**: 276ms
 - **Top Results**:
   1. [0.615] `drums` — data/music/courses/pete-tong-producer-academy/drums/035-ame-drums-approach.md
   2. [0.590] `synthesis` — data/music/courses/pete-tong-producer-academy/synthesis/065-synthesis-fundamentals-additive.md
@@ -200,72 +200,72 @@
 - **Acceptable**: `the-kick`, `youtube-tutorials`
 - **Hit**: ~ Acceptable
 - **Unique Docs**: 5/5
-- **Latency**: 491ms
+- **Latency**: 337ms
 - **Top Results**:
   1. [0.837] `drums` — data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md
-  2. [0.788] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/025-mix-masterclass-eq.md
-  3. [0.653] `youtube-tutorials` — data/music/youtube/tutorials/T6lMuu_KzYU-mixing-and-perceived-loudness-3-reasons-some-mixes-seem-louder.md
-  4. [0.620] `youtube-tutorials` — data/music/youtube/tutorials/x1fYPKGrKBs-psychoacoustic-secrets-for-mixing-music-learn-how-to-hear-what-s-really-there.md
-  5. [0.534] `youtube-tutorials` — data/music/youtube/tutorials/Aha_7purQQo-psychoacoustics-pt-2-the-logarithmic-ear.md
+  2. [0.807] `mastering` — data/music/courses/pete-tong-mix-mastering/mastering/031-surgical-mastering-phase-eq-and-mid-side-balancing.md
+  3. [0.788] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/025-mix-masterclass-eq.md
+  4. [0.685] `bass-synths-and-fx` — data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/019-high-frequency-synth-processing.md
+  5. [0.670] `starting-the-mix` — data/music/courses/pete-tong-mix-mastering/starting-the-mix/009-shaping-the-mix-on-the-stereo-bus-part-1.md
 
 ### 16. kick drum frequency range
 - **Expected**: `the-kick`
 - **Acceptable**: `bass`, `youtube-tutorials`
-- **Hit**: ✓ Strict
+- **Hit**: ✗ Miss
 - **Unique Docs**: 5/5
-- **Latency**: 355ms
+- **Latency**: 385ms
 - **Top Results**:
   1. [0.784] `drums` — data/music/courses/pete-tong-producer-academy/drums/043-mix-masterclass-drum-bus.md
-  2. [0.691] `drums` — data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md
-  3. [0.594] `drums` — data/music/courses/pete-tong-producer-academy/drums/032-mix-room-drums-placement.md
-  4. [0.590] `the-kick` — data/music/courses/pete-tong-producer-academy/the-kick/020-diplo-kick-creation.md
-  5. [0.586] `bass` — data/music/courses/pete-tong-producer-academy/bass/055-kick-bass-10-steps.md
+  2. [0.730] `session-setup-and-workflow` — data/music/courses/pete-tong-mix-mastering/session-setup-and-workflow/006-analyzing-the-track-before-mixing.md
+  3. [0.708] `bass-synths-and-fx` — data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md
+  4. [0.633] `mix-mastering` — data/music/courses/pete-tong-producer-academy/mix-mastering/136-mix-part2-mix-matrix.md
+  5. [0.608] `mixing-the-beat` — data/music/courses/pete-tong-mix-mastering/mixing-the-beat/015-glue-and-punch-crafting-the-drum-buss.md
 
 ### 17. snare drum processing
 - **Expected**: `drums`
 - **Acceptable**: `mix-mastering`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 272ms
+- **Latency**: 382ms
 - **Top Results**:
   1. [0.739] `drums` — data/music/courses/pete-tong-producer-academy/drums/043-mix-masterclass-drum-bus.md
-  2. [0.698] `drums` — data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md
-  3. [0.582] `bass` — data/music/courses/pete-tong-producer-academy/bass/057-ame-bass-writing.md
-  4. [0.577] `drums` — data/music/courses/pete-tong-producer-academy/drums/034-parisi-drums-writing.md
-  5. [0.549] `drums` — data/music/courses/pete-tong-producer-academy/drums/044-parisi-drum-bus.md
+  2. [0.714] `bass-synths-and-fx` — data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md
+  3. [0.698] `drums` — data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md
+  4. [0.616] `mix-mastering` — data/music/courses/pete-tong-producer-academy/mix-mastering/136-mix-part2-mix-matrix.md
+  5. [0.587] `mixing-the-beat` — data/music/courses/pete-tong-mix-mastering/mixing-the-beat/015-glue-and-punch-crafting-the-drum-buss.md
 
 ### 18. sub bass vs mid bass
 - **Expected**: `bass`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 508ms
+- **Latency**: 356ms
 - **Top Results**:
   1. [0.625] `bass` — data/music/courses/pete-tong-producer-academy/bass/052-bass-golden-rules.md
   2. [0.594] `bass` — data/music/courses/pete-tong-producer-academy/bass/049-bass-low-frequencies.md
   3. [0.585] `bass` — data/music/courses/pete-tong-producer-academy/bass/050-mix-room-bass-placement.md
   4. [0.583] `bass` — data/music/courses/pete-tong-producer-academy/bass/058-parisi-sub-bass.md
-  5. [0.531] `youtube-tutorials` — data/music/youtube/tutorials/DfHf97U4-Fk-david-guetta-breaks-down-his-secret-to-the-perfect-kick-bass.md
+  5. [0.564] `bass-synths-and-fx` — data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md
 
 ### 19. overcoming creative blocks
 - **Expected**: `mindset`
-- **Hit**: ✓ Strict
+- **Hit**: ✗ Miss
 - **Unique Docs**: 5/5
-- **Latency**: 374ms
+- **Latency**: 355ms
 - **Top Results**:
-  1. [0.472] `mindset` — data/music/courses/pete-tong-producer-academy/mindset/003-right-mindset-producer.md
-  2. [0.440] `mindset` — data/music/courses/pete-tong-producer-academy/mindset/004-unique-artist-identity.md
-  3. [0.403] `drums` — data/music/courses/pete-tong-producer-academy/drums/028-music-mind-brain-sound.md
-  4. [0.375] `drums` — data/music/courses/pete-tong-producer-academy/drums/035-ame-drums-approach.md
-  5. [0.362] `drums` — data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md
+  1. [0.696] `creativity` — data/music/courses/pete-tong-producer-academy/creativity/119-parisi-creative-blocks.md
+  2. [0.638] `creativity` — data/music/courses/pete-tong-producer-academy/creativity/118-diplo-creative-blocks.md
+  3. [0.576] `creativity` — data/music/courses/pete-tong-producer-academy/creativity/120-ame-creative-blocks.md
+  4. [0.541] `industry-collaboration` — data/music/courses/pete-tong-producer-academy/industry-collaboration/144-diplo-creative-disagreements.md
+  5. [0.504] `creativity` — data/music/courses/pete-tong-producer-academy/creativity/125-ame-staying-inspired.md
 
 ### 20. wavetable synthesis guide
 - **Expected**: `synthesis`
 - **Hit**: ✓ Strict
 - **Unique Docs**: 5/5
-- **Latency**: 332ms
+- **Latency**: 290ms
 - **Top Results**:
   1. [0.570] `synthesis` — data/music/courses/pete-tong-producer-academy/synthesis/065-synthesis-fundamentals-additive.md
   2. [0.503] `synthesis` — data/music/courses/pete-tong-producer-academy/synthesis/069-synth-anatomy-adsr-lfo.md
   3. [0.491] `synthesis` — data/music/courses/pete-tong-producer-academy/synthesis/067-subtractive-synthesis.md
   4. [0.478] `youtube-tutorials` — data/music/youtube/tutorials/bRmPK3d9Cmw-the-science-of-modern-sub-bass-essential-knowledge-for-every-music-producer.md
-  5. [0.459] `youtube-tutorials` — data/music/youtube/tutorials/oJq4D9OrRsI-how-to-make-melodic-techno-like-brian-cid-lost-found-project-download.md
+  5. [0.467] `youtube-tutorials` — data/music/youtube/tutorials/DbkKaj5DnsI-sound-design-challenge-s-bastien-l-ger-live-at-giza.md
