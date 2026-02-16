@@ -6,6 +6,8 @@ These tests verify the protocol definitions and conversion utilities.
 
 from dataclasses import dataclass
 
+import pytest
+
 from core.chunking import chunk_text
 from core.types import ChunkDict, ChunkProtocol, chunk_to_dict
 
@@ -86,6 +88,64 @@ class TestChunkToDict:
         assert result["chunk_index"] == 5
         assert result["text"] == "minimal text"
         assert result["source_path"] == "/provided/path.txt"
+
+    def test_missing_source_path_raises(self) -> None:
+        """Fail-fast when source_path is missing from chunk and not provided."""
+
+        @dataclass
+        class BareChunk:
+            doc_id: str
+            chunk_index: int
+            text: str
+
+        bare = BareChunk(doc_id="x", chunk_index=0, text="hi")
+        with pytest.raises(ValueError, match="source_path is required"):
+            chunk_to_dict(bare, source_name="n", token_start=0, token_end=1)
+
+    def test_missing_source_name_raises(self) -> None:
+        """Fail-fast when source_name is missing from chunk and not provided."""
+
+        @dataclass
+        class BareChunk:
+            doc_id: str
+            chunk_index: int
+            text: str
+            source_path: str = "/path"
+
+        bare = BareChunk(doc_id="x", chunk_index=0, text="hi")
+        with pytest.raises(ValueError, match="source_name is required"):
+            chunk_to_dict(bare, token_start=0, token_end=1)
+
+    def test_missing_token_start_raises(self) -> None:
+        """Fail-fast when token_start is missing from chunk and not provided."""
+
+        @dataclass
+        class BareChunk:
+            doc_id: str
+            chunk_index: int
+            text: str
+            source_path: str = "/path"
+            source_name: str = "name"
+
+        bare = BareChunk(doc_id="x", chunk_index=0, text="hi")
+        with pytest.raises(ValueError, match="token_start is required"):
+            chunk_to_dict(bare, token_end=1)
+
+    def test_missing_token_end_raises(self) -> None:
+        """Fail-fast when token_end is missing from chunk and not provided."""
+
+        @dataclass
+        class BareChunk:
+            doc_id: str
+            chunk_index: int
+            text: str
+            source_path: str = "/path"
+            source_name: str = "name"
+            token_start: int = 0
+
+        bare = BareChunk(doc_id="x", chunk_index=0, text="hi")
+        with pytest.raises(ValueError, match="token_end is required"):
+            chunk_to_dict(bare)
 
 
 class TestChunkDict:

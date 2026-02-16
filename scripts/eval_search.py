@@ -37,7 +37,11 @@ QUERIES = [
         "expected_category": "the-kick",
         "acceptable_categories": ["youtube-tutorials"],  # YouTube kick tutorials are OK
     },
-    {"query": "layering kick samples", "expected_category": "the-kick", "acceptable_categories": []},
+    {
+        "query": "layering kick samples",
+        "expected_category": "the-kick",
+        "acceptable_categories": [],
+    },
     {
         "query": "drum programming techniques",
         "expected_category": "drums",
@@ -48,8 +52,16 @@ QUERIES = [
         "expected_category": "bass",
         "acceptable_categories": ["youtube-tutorials"],
     },
-    {"query": "producer mindset and workflow", "expected_category": "mindset", "acceptable_categories": []},
-    {"query": "subtractive synthesis basics", "expected_category": "synthesis", "acceptable_categories": []},
+    {
+        "query": "producer mindset and workflow",
+        "expected_category": "mindset",
+        "acceptable_categories": [],
+    },
+    {
+        "query": "subtractive synthesis basics",
+        "expected_category": "synthesis",
+        "acceptable_categories": [],
+    },
     {
         "query": "mixing kick and bass together",
         "expected_category": "mix-mastering",
@@ -65,7 +77,11 @@ QUERIES = [
         "expected_category": "mix-mastering",
         "acceptable_categories": ["bass", "youtube-tutorials"],
     },
-    {"query": "how to choose kick samples", "expected_category": "the-kick", "acceptable_categories": []},
+    {
+        "query": "how to choose kick samples",
+        "expected_category": "the-kick",
+        "acceptable_categories": [],
+    },
     {
         "query": "drum mixing tips",
         "expected_category": "drums",
@@ -76,8 +92,16 @@ QUERIES = [
         "expected_category": "bass",
         "acceptable_categories": ["youtube-tutorials"],
     },
-    {"query": "staying motivated as producer", "expected_category": "mindset", "acceptable_categories": []},
-    {"query": "FM synthesis explained", "expected_category": "synthesis", "acceptable_categories": []},
+    {
+        "query": "staying motivated as producer",
+        "expected_category": "mindset",
+        "acceptable_categories": [],
+    },
+    {
+        "query": "FM synthesis explained",
+        "expected_category": "synthesis",
+        "acceptable_categories": [],
+    },
     {
         "query": "EQ tips for mixing",
         "expected_category": "mix-mastering",
@@ -94,8 +118,16 @@ QUERIES = [
         "acceptable_categories": ["mix-mastering"],
     },
     {"query": "sub bass vs mid bass", "expected_category": "bass", "acceptable_categories": []},
-    {"query": "overcoming creative blocks", "expected_category": "mindset", "acceptable_categories": []},
-    {"query": "wavetable synthesis guide", "expected_category": "synthesis", "acceptable_categories": []},
+    {
+        "query": "overcoming creative blocks",
+        "expected_category": "mindset",
+        "acceptable_categories": [],
+    },
+    {
+        "query": "wavetable synthesis guide",
+        "expected_category": "synthesis",
+        "acceptable_categories": [],
+    },
 ]
 
 
@@ -147,7 +179,9 @@ def run_evaluation():
 
         # Progress indicator
         status_icon = "✓" if hit_strict else ("~" if hit_acceptable else "✗")
-        print(f"  [{i:2d}/20] {status_icon} {q['query'][:50]:50s} ({data['meta']['total_ms']:.0f}ms) [{unique_docs} docs]")
+        print(
+            f"  [{i:2d}/20] {status_icon} {q['query'][:50]:50s} ({data['meta']['total_ms']:.0f}ms) [{unique_docs} docs]"
+        )
 
     # Compute aggregate metrics
     hit_strict_count = sum(r["hit_strict"] for r in results)
@@ -233,13 +267,17 @@ def run_evaluation():
         md_lines.append(f"### {i}. {r['query']}")
         md_lines.append(f"- **Expected**: `{r['expected_category']}`")
         if r["acceptable_categories"]:
-            md_lines.append(f"- **Acceptable**: {', '.join(f'`{c}`' for c in r['acceptable_categories'])}")
+            md_lines.append(
+                f"- **Acceptable**: {', '.join(f'`{c}`' for c in r['acceptable_categories'])}"
+            )
         md_lines.append(f"- **Hit**: {status}")
         md_lines.append(f"- **Unique Docs**: {r['unique_docs']}/5")
         md_lines.append(f"- **Latency**: {r['latency_ms']:.0f}ms")
         md_lines.append("- **Top Results**:")
         for j, res in enumerate(r["top_results"][:5], 1):
-            md_lines.append(f"  {j}. [{res['score']:.3f}] `{res['category']}` — {res['source_path']}")
+            md_lines.append(
+                f"  {j}. [{res['score']:.3f}] `{res['category']}` — {res['source_path']}"
+            )
         md_lines.append("")
 
     md_path = SCRIPT_DIR / "eval_results.md"

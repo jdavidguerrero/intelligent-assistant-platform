@@ -13,7 +13,10 @@ class ResponseMeta(BaseModel):
     embedding_ms: float = Field(..., description="Time to generate query embedding (milliseconds).")
     search_ms: float = Field(..., description="Time for database search (milliseconds).")
     total_ms: float = Field(..., description="Total request duration (milliseconds).")
-    cache_hit: bool = Field(..., description="True if embedding was retrieved from cache, False if API call was made.")
+    cache_hit: bool = Field(
+        ..., description="True if embedding was retrieved from cache, False if API call was made."
+    )
+    request_id: str = Field(..., description="Unique identifier for this request (UUID4).")
 
 
 class SearchRequest(BaseModel):
@@ -33,6 +36,16 @@ class SearchRequest(BaseModel):
         ge=0.0,
         le=1.0,
         description="Minimum cosine similarity threshold (0–1). Results below this are discarded.",
+    )
+    use_mmr: bool = Field(
+        default=False,
+        description="Use Maximal Marginal Relevance for diversity instead of document-count filter.",
+    )
+    mmr_lambda: float = Field(
+        default=0.7,
+        ge=0.0,
+        le=1.0,
+        description="MMR trade-off: 1.0 = pure relevance, 0.0 = pure diversity. Only used when use_mmr=True.",
     )
 
     @field_validator("query")
@@ -67,5 +80,9 @@ class SearchResponse(BaseModel):
     reason: str | None = Field(
         default=None,
         description="Set to 'low_confidence' when all results were below min_score.",
+    )
+    warnings: list[str] = Field(
+        default_factory=list,
+        description="Non-fatal warnings (e.g. reranking fallback).",
     )
     meta: ResponseMeta = Field(..., description="Performance timing metadata.")

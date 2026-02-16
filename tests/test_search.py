@@ -5,6 +5,8 @@ Covers:
 - db/search.py: search_chunks input validation
 - api/schemas/search.py: Pydantic validation
 - api/routes/search.py: POST /search endpoint integration
+- Response headers for observability
+- Resilient reranking (graceful degradation)
 
 All tests are deterministic — no network calls, no real database.
 """
@@ -25,6 +27,7 @@ from db.search import search_chunks
 # ---------------------------------------------------------------------------
 
 FAKE_EMBEDDING = [0.1] * 1536
+FAKE_REQUEST_ID = "00000000-0000-4000-8000-000000000000"
 
 
 class _FakeEmbeddingProvider:
@@ -168,18 +171,31 @@ class TestSearchResponse:
                     token_end=100,
                 )
             ],
-            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0, cache_hit=False),
+            meta=ResponseMeta(
+                embedding_ms=10.0,
+                search_ms=5.0,
+                total_ms=15.0,
+                cache_hit=False,
+                request_id=FAKE_REQUEST_ID,
+            ),
         )
         assert response.query == "test"
         assert len(response.results) == 1
         assert response.meta.total_ms == 15.0
+        assert response.meta.request_id == FAKE_REQUEST_ID
 
     def test_empty_results(self) -> None:
         response = SearchResponse(
             query="test",
             top_k=5,
             results=[],
-            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0, cache_hit=False),
+            meta=ResponseMeta(
+                embedding_ms=10.0,
+                search_ms=5.0,
+                total_ms=15.0,
+                cache_hit=False,
+                request_id=FAKE_REQUEST_ID,
+            ),
         )
         assert response.results == []
         assert response.reason is None
@@ -190,7 +206,13 @@ class TestSearchResponse:
             top_k=5,
             results=[],
             reason="low_confidence",
-            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0, cache_hit=False),
+            meta=ResponseMeta(
+                embedding_ms=10.0,
+                search_ms=5.0,
+                total_ms=15.0,
+                cache_hit=False,
+                request_id=FAKE_REQUEST_ID,
+            ),
         )
         assert response.reason == "low_confidence"
 
@@ -199,9 +221,49 @@ class TestSearchResponse:
             query="test",
             top_k=5,
             results=[],
-            meta=ResponseMeta(embedding_ms=10.0, search_ms=5.0, total_ms=15.0, cache_hit=False),
+            meta=ResponseMeta(
+                embedding_ms=10.0,
+                search_ms=5.0,
+                total_ms=15.0,
+                cache_hit=False,
+                request_id=FAKE_REQUEST_ID,
+            ),
         )
         assert response.reason is None
+
+    def test_warnings_default_empty(self) -> None:
+        """Warnings list defaults to empty."""
+        response = SearchResponse(
+            query="test",
+            top_k=5,
+            results=[],
+            meta=ResponseMeta(
+                embedding_ms=10.0,
+                search_ms=5.0,
+                total_ms=15.0,
+                cache_hit=False,
+                request_id=FAKE_REQUEST_ID,
+            ),
+        )
+        assert response.warnings == []
+
+    def test_warnings_with_content(self) -> None:
+        """Warnings can carry messages."""
+        response = SearchResponse(
+            query="test",
+            top_k=5,
+            results=[],
+            warnings=["reranking_failed: results returned without reranking"],
+            meta=ResponseMeta(
+                embedding_ms=10.0,
+                search_ms=5.0,
+                total_ms=15.0,
+                cache_hit=False,
+                request_id=FAKE_REQUEST_ID,
+            ),
+        )
+        assert len(response.warnings) == 1
+        assert "reranking_failed" in response.warnings[0]
 
 
 # ---------------------------------------------------------------------------
@@ -279,13 +341,126 @@ class TestSearchEndpoint:
         assert "top_k" in data
         assert "results" in data
         assert "reason" in data
+        assert "warnings" in data
         assert isinstance(data["results"], list)
+        assert isinstance(data["warnings"], list)
 
     def test_reason_is_null_for_empty_db(self, client: TestClient) -> None:
         """Empty DB returns no results but reason should be None (not low_confidence)."""
         response = client.post("/search", json={"query": "hello"})
         assert response.status_code == 200
         assert response.json()["reason"] is None
+
+
+# ---------------------------------------------------------------------------
+# Response headers (observability)
+# ---------------------------------------------------------------------------
+
+
+class TestResponseHeaders:
+    """Tests for observability response headers."""
+
+    def test_request_id_header_present(self, client: TestClient) -> None:
+        """X-Request-Id header is set on every response."""
+        resp = client.post("/search", json={"query": "test"})
+        assert "x-request-id" in resp.headers
+        assert len(resp.headers["x-request-id"]) == 36  # UUID4 format
+
+    def test_timing_headers_present(self, client: TestClient) -> None:
+        """X-Embedding-Ms, X-Search-Ms, X-Total-Ms are set."""
+        resp = client.post("/search", json={"query": "test"})
+        assert "x-embedding-ms" in resp.headers
+        assert "x-search-ms" in resp.headers
+        assert "x-total-ms" in resp.headers
+        # Values should be parseable as floats
+        float(resp.headers["x-embedding-ms"])
+        float(resp.headers["x-search-ms"])
+        float(resp.headers["x-total-ms"])
+
+    def test_cache_hit_header_present(self, client: TestClient) -> None:
+        """X-Cache-Hit header is set."""
+        resp = client.post("/search", json={"query": "test"})
+        assert "x-cache-hit" in resp.headers
+        assert resp.headers["x-cache-hit"] in ("true", "false")
+
+    def test_request_id_matches_meta(self, client: TestClient) -> None:
+        """Header X-Request-Id matches body meta.request_id."""
+        resp = client.post("/search", json={"query": "test"})
+        header_id = resp.headers["x-request-id"]
+        body_id = resp.json()["meta"]["request_id"]
+        assert header_id == body_id
+
+
+# ---------------------------------------------------------------------------
+# Resilient reranking
+# ---------------------------------------------------------------------------
+
+
+class TestResilientReranking:
+    """Tests for graceful degradation when reranking fails."""
+
+    def test_reranking_failure_returns_raw_results_with_warning(self) -> None:
+        """When rerank_results raises, raw results are returned + warning."""
+        record = _make_mock_record()
+        mock_results = [(record, 0.85)]
+
+        def _override_db():
+            yield MagicMock(spec=Session)
+
+        def _override_embedder() -> _FakeEmbeddingProvider:
+            return _FakeEmbeddingProvider()
+
+        app.dependency_overrides[get_db] = _override_db
+        app.dependency_overrides[get_embedding_provider] = _override_embedder
+
+        with (
+            patch("api.routes.search.search_chunks", return_value=mock_results),
+            patch(
+                "api.routes.search.rerank_results",
+                side_effect=RuntimeError("MMR dimension mismatch"),
+            ),
+            TestClient(app) as c,
+        ):
+            resp = c.post("/search", json={"query": "test", "min_score": 0.3})
+
+        app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        data = resp.json()
+        # Results should still be present (raw fallback)
+        assert len(data["results"]) == 1
+        assert data["results"][0]["score"] == 0.85
+        # Warning should be present
+        assert len(data["warnings"]) == 1
+        assert "reranking_failed" in data["warnings"][0]
+
+    def test_reranking_failure_respects_top_k(self) -> None:
+        """Fallback slices raw results to top_k."""
+        records = [(_make_mock_record(chunk_index=i), 0.9 - i * 0.01) for i in range(10)]
+
+        def _override_db():
+            yield MagicMock(spec=Session)
+
+        def _override_embedder() -> _FakeEmbeddingProvider:
+            return _FakeEmbeddingProvider()
+
+        app.dependency_overrides[get_db] = _override_db
+        app.dependency_overrides[get_embedding_provider] = _override_embedder
+
+        with (
+            patch("api.routes.search.search_chunks", return_value=records),
+            patch(
+                "api.routes.search.rerank_results",
+                side_effect=RuntimeError("boom"),
+            ),
+            TestClient(app) as c,
+        ):
+            resp = c.post("/search", json={"query": "test", "top_k": 3, "min_score": 0.0})
+
+        app.dependency_overrides.clear()
+
+        assert resp.status_code == 200
+        assert len(resp.json()["results"]) == 3
 
 
 # ---------------------------------------------------------------------------
