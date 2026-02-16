@@ -1,25 +1,25 @@
 {
   "total_queries": 20,
   "hit_strict": {
-    "rate": 0.8,
-    "count": 16
+    "rate": 0.75,
+    "count": 15
   },
   "hit_acceptable": {
     "rate": 0.3,
     "count": 6
   },
   "hit_total": {
-    "rate": 0.95,
-    "count": 19
+    "rate": 0.9,
+    "count": 18
   },
   "diversity": {
     "avg_unique_docs": 5,
     "max_possible": 5
   },
   "latency": {
-    "p50_ms": 364.7,
-    "p95_ms": 751.4,
-    "max_ms": 754.5
+    "p50_ms": 313.3,
+    "p95_ms": 540577.9,
+    "max_ms": 568995.0
   },
   "per_query": [
     {
@@ -34,32 +34,32 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.626937,
+          "score": 0.627018,
           "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/010-kick-golden-rules-adsr.md",
           "category": "the-kick"
         },
         {
-          "score": 0.622771,
+          "score": 0.62282,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/055-kick-bass-10-steps.md",
           "category": "bass"
         },
         {
-          "score": 0.619242,
+          "score": 0.619246,
           "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/021-parisi-kick-design.md",
           "category": "the-kick"
         },
         {
-          "score": 0.618438,
+          "score": 0.618486,
           "source_path": "data/music/courses/pete-tong-producer-academy/drums/043-mix-masterclass-drum-bus.md",
           "category": "drums"
         },
         {
-          "score": 0.611746,
+          "score": 0.611806,
           "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/013-kick-phase.md",
           "category": "the-kick"
         }
       ],
-      "latency_ms": 754.54
+      "latency_ms": 568995.01
     },
     {
       "query": "layering kick samples",
@@ -71,32 +71,32 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.737119,
+          "score": 0.737149,
           "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/021-parisi-kick-design.md",
           "category": "the-kick"
         },
         {
-          "score": 0.607539,
+          "score": 0.607541,
           "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/010-kick-golden-rules-adsr.md",
           "category": "the-kick"
         },
         {
-          "score": 0.579234,
+          "score": 0.57925,
           "source_path": "data/music/youtube/tutorials/Kxhh8ni4GVU-how-to-make-organic-deep-house-like-kora-gab-rhome-all-day-i-dream-anjunadeep-pr.md",
           "category": "youtube-tutorials"
         },
         {
-          "score": 0.566238,
+          "score": 0.566289,
           "source_path": "data/music/youtube/tutorials/z1VXnMt1xpU-how-to-make-organic-house-like-all-day-i-dream-project-download.md",
           "category": "youtube-tutorials"
         },
         {
-          "score": 0.562177,
+          "score": 0.562185,
           "source_path": "data/music/youtube/tutorials/21Uba78g-D4-how-to-make-organic-house-deep-house-like-s-bastien-l-ger-all-day-i-dream-projec.md",
           "category": "youtube-tutorials"
         }
       ],
-      "latency_ms": 433.97
+      "latency_ms": 653.31
     },
     {
       "query": "drum programming techniques",
@@ -110,32 +110,32 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.635749,
+          "score": 0.63577,
           "source_path": "data/music/courses/pete-tong-producer-academy/drums/029-drums-golden-rules.md",
           "category": "drums"
         },
         {
-          "score": 0.633376,
+          "score": 0.633342,
           "source_path": "data/music/courses/pete-tong-producer-academy/drums/034-parisi-drums-writing.md",
           "category": "drums"
         },
         {
-          "score": 0.625851,
+          "score": 0.625795,
           "source_path": "data/music/courses/pete-tong-producer-academy/drums/037-skrillex-tricks-sound-design.md",
           "category": "drums"
         },
         {
-          "score": 0.620696,
+          "score": 0.620649,
           "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/009-groove-elements-overview.md",
           "category": "the-kick"
         },
         {
-          "score": 0.605146,
+          "score": 0.605141,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/057-ame-bass-writing.md",
           "category": "bass"
         }
       ],
-      "latency_ms": 644.86
+      "latency_ms": 387.17
     },
     {
       "query": "808 bass processing",
@@ -144,37 +144,37 @@
         "youtube-tutorials"
       ],
       "hit_strict": true,
-      "hit_acceptable": true,
+      "hit_acceptable": false,
       "hit": true,
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.736341,
+          "score": 0.736421,
           "source_path": "data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md",
           "category": "drums"
         },
         {
-          "score": 0.586545,
+          "score": 0.685043,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md",
+          "category": "bass-synths-and-fx"
+        },
+        {
+          "score": 0.61055,
+          "source_path": "data/music/courses/pete-tong-producer-academy/mix-mastering/136-mix-part2-mix-matrix.md",
+          "category": "mix-mastering"
+        },
+        {
+          "score": 0.586482,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/052-bass-golden-rules.md",
           "category": "bass"
         },
         {
-          "score": 0.574834,
+          "score": 0.574958,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/058-parisi-sub-bass.md",
           "category": "bass"
-        },
-        {
-          "score": 0.559007,
-          "source_path": "data/music/courses/pete-tong-producer-academy/bass/056-diplo-bass-writing.md",
-          "category": "bass"
-        },
-        {
-          "score": 0.544865,
-          "source_path": "data/music/youtube/tutorials/t7Y-m6KdFQk-20-progressive-house-bass-patterns-tricks-that-changed-my-life.md",
-          "category": "youtube-tutorials"
         }
       ],
-      "latency_ms": 422.75
+      "latency_ms": 438.09
     },
     {
       "query": "producer mindset and workflow",
@@ -186,32 +186,32 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.497568,
+          "score": 0.550574,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/session-setup-and-workflow/004-welcome-to-the-course-what-you-ll-learn.md",
+          "category": "session-setup-and-workflow"
+        },
+        {
+          "score": 0.53436,
+          "source_path": "data/music/courses/pete-tong-producer-academy/studio-workflow/111-parisi-studio-day.md",
+          "category": "studio-workflow"
+        },
+        {
+          "score": 0.51078,
+          "source_path": "data/music/courses/pete-tong-producer-academy/studio-workflow/112-ame-studio-day.md",
+          "category": "studio-workflow"
+        },
+        {
+          "score": 0.505825,
+          "source_path": "data/music/courses/pete-tong-producer-academy/studio-workflow/110-diplo-studio-day.md",
+          "category": "studio-workflow"
+        },
+        {
+          "score": 0.4976,
           "source_path": "data/music/courses/pete-tong-producer-academy/mindset/003-right-mindset-producer.md",
           "category": "mindset"
-        },
-        {
-          "score": 0.466864,
-          "source_path": "data/music/courses/pete-tong-producer-academy/mindset/004-unique-artist-identity.md",
-          "category": "mindset"
-        },
-        {
-          "score": 0.453933,
-          "source_path": "data/music/courses/pete-tong-producer-academy/bass/057-ame-bass-writing.md",
-          "category": "bass"
-        },
-        {
-          "score": 0.450263,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md",
-          "category": "drums"
-        },
-        {
-          "score": 0.403578,
-          "source_path": "data/music/youtube/tutorials/zMJbsCt80bU-organic-house-from-scratch-in-30-minutes-ableton-tutorial-yannek-maunz.md",
-          "category": "youtube-tutorials"
         }
       ],
-      "latency_ms": 396.69
+      "latency_ms": 277.33
     },
     {
       "query": "subtractive synthesis basics",
@@ -223,12 +223,12 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.612429,
+          "score": 0.612382,
           "source_path": "data/music/courses/pete-tong-producer-academy/synthesis/067-subtractive-synthesis.md",
           "category": "synthesis"
         },
         {
-          "score": 0.593744,
+          "score": 0.593685,
           "source_path": "data/music/courses/pete-tong-producer-academy/synthesis/069-synth-anatomy-adsr-lfo.md",
           "category": "synthesis"
         },
@@ -243,12 +243,12 @@
           "category": "bass"
         },
         {
-          "score": 0.464697,
-          "source_path": "data/music/courses/pete-tong-producer-academy/bass/056-diplo-bass-writing.md",
-          "category": "bass"
+          "score": 0.475784,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/018-mixing-low-synths.md",
+          "category": "bass-synths-and-fx"
         }
       ],
-      "latency_ms": 280.67
+      "latency_ms": 288.28
     },
     {
       "query": "mixing kick and bass together",
@@ -264,12 +264,17 @@
       "unique_docs": 5,
       "top_results": [
         {
+          "score": 0.802491,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md",
+          "category": "bass-synths-and-fx"
+        },
+        {
           "score": 0.781558,
           "source_path": "data/music/courses/pete-tong-producer-academy/drums/043-mix-masterclass-drum-bus.md",
           "category": "drums"
         },
         {
-          "score": 0.713543,
+          "score": 0.713569,
           "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/010-kick-golden-rules-adsr.md",
           "category": "the-kick"
         },
@@ -282,51 +287,46 @@
           "score": 0.692598,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/055-kick-bass-10-steps.md",
           "category": "bass"
-        },
-        {
-          "score": 0.688996,
-          "source_path": "data/music/courses/pete-tong-producer-academy/bass/050-mix-room-bass-placement.md",
-          "category": "bass"
         }
       ],
-      "latency_ms": 321.14
+      "latency_ms": 446.66
     },
     {
       "query": "mastering chain setup",
       "expected_category": "mix-mastering",
       "acceptable_categories": [],
-      "hit_strict": false,
+      "hit_strict": true,
       "hit_acceptable": false,
-      "hit": false,
+      "hit": true,
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.752911,
+          "score": 0.83904,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/mastering/030-mastering-mindset.md",
+          "category": "mastering"
+        },
+        {
+          "score": 0.759218,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/mastering/029-final-tuning-before-the-mastering.md",
+          "category": "mastering"
+        },
+        {
+          "score": 0.752989,
           "source_path": "data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md",
           "category": "drums"
         },
         {
-          "score": 0.720318,
-          "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/024-mix-masterclass-gain-staging.md",
-          "category": "the-kick"
+          "score": 0.730287,
+          "source_path": "data/music/courses/pete-tong-producer-academy/mix-mastering/138-mastering-8-steps.md",
+          "category": "mix-mastering"
         },
         {
-          "score": 0.671977,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/043-mix-masterclass-drum-bus.md",
-          "category": "drums"
-        },
-        {
-          "score": 0.641298,
-          "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/017-mix-masterclass-kick-phase.md",
-          "category": "the-kick"
-        },
-        {
-          "score": 0.596333,
-          "source_path": "data/music/courses/pete-tong-producer-academy/bass/060-parisi-kick-bass.md",
-          "category": "bass"
+          "score": 0.666756,
+          "source_path": "data/music/courses/pete-tong-producer-academy/mix-mastering/128-mix-part1-vs-master.md",
+          "category": "mix-mastering"
         }
       ],
-      "latency_ms": 286.79
+      "latency_ms": 253.87
     },
     {
       "query": "sidechain compression tutorial",
@@ -341,32 +341,32 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.662824,
+          "score": 0.681605,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md",
+          "category": "bass-synths-and-fx"
+        },
+        {
+          "score": 0.676605,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/018-mixing-low-synths.md",
+          "category": "bass-synths-and-fx"
+        },
+        {
+          "score": 0.662907,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/060-parisi-kick-bass.md",
           "category": "bass"
         },
         {
-          "score": 0.661148,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md",
-          "category": "drums"
+          "score": 0.616216,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/019-high-frequency-synth-processing.md",
+          "category": "bass-synths-and-fx"
         },
         {
-          "score": 0.642562,
-          "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/026-mix-masterclass-compressor.md",
-          "category": "the-kick"
-        },
-        {
-          "score": 0.548703,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/034-parisi-drums-writing.md",
-          "category": "drums"
-        },
-        {
-          "score": 0.542746,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/044-parisi-drum-bus.md",
-          "category": "drums"
+          "score": 0.593733,
+          "source_path": "data/music/courses/pete-tong-producer-academy/vocals/098-diplo-vocal-tricks.md",
+          "category": "vocals"
         }
       ],
-      "latency_ms": 424.19
+      "latency_ms": 248.62
     },
     {
       "query": "how to choose kick samples",
@@ -378,32 +378,32 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.662434,
+          "score": 0.662438,
           "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/021-parisi-kick-design.md",
           "category": "the-kick"
         },
         {
-          "score": 0.662243,
+          "score": 0.662416,
           "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/010-kick-golden-rules-adsr.md",
           "category": "the-kick"
         },
         {
-          "score": 0.593973,
+          "score": 0.617577,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/mixing-the-beat/012-shaping-the-kick.md",
+          "category": "mixing-the-beat"
+        },
+        {
+          "score": 0.593957,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/060-parisi-kick-bass.md",
           "category": "bass"
         },
         {
-          "score": 0.584872,
+          "score": 0.584878,
           "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/013-kick-phase.md",
           "category": "the-kick"
-        },
-        {
-          "score": 0.570909,
-          "source_path": "data/music/courses/pete-tong-producer-academy/bass/055-kick-bass-10-steps.md",
-          "category": "bass"
         }
       ],
-      "latency_ms": 266.58
+      "latency_ms": 269.38
     },
     {
       "query": "drum mixing tips",
@@ -413,10 +413,15 @@
         "youtube-tutorials"
       ],
       "hit_strict": true,
-      "hit_acceptable": false,
+      "hit_acceptable": true,
       "hit": true,
       "unique_docs": 5,
       "top_results": [
+        {
+          "score": 0.806066,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/session-setup-and-workflow/006-analyzing-the-track-before-mixing.md",
+          "category": "session-setup-and-workflow"
+        },
         {
           "score": 0.805464,
           "source_path": "data/music/courses/pete-tong-producer-academy/drums/043-mix-masterclass-drum-bus.md",
@@ -428,22 +433,17 @@
           "category": "drums"
         },
         {
-          "score": 0.641522,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/032-mix-room-drums-placement.md",
-          "category": "drums"
+          "score": 0.670975,
+          "source_path": "data/music/courses/pete-tong-producer-academy/mix-mastering/130-mix-part1-process.md",
+          "category": "mix-mastering"
         },
         {
-          "score": 0.618064,
-          "source_path": "data/music/courses/pete-tong-producer-academy/bass/057-ame-bass-writing.md",
-          "category": "bass"
-        },
-        {
-          "score": 0.61691,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/034-parisi-drums-writing.md",
-          "category": "drums"
+          "score": 0.658034,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/starting-the-mix/009-shaping-the-mix-on-the-stereo-bus-part-1.md",
+          "category": "starting-the-mix"
         }
       ],
-      "latency_ms": 346.9
+      "latency_ms": 253.78
     },
     {
       "query": "bass layering techniques",
@@ -457,32 +457,32 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.640588,
+          "score": 0.64069,
           "source_path": "data/music/youtube/tutorials/Kxhh8ni4GVU-how-to-make-organic-deep-house-like-kora-gab-rhome-all-day-i-dream-anjunadeep-pr.md",
           "category": "youtube-tutorials"
         },
         {
-          "score": 0.637715,
+          "score": 0.637652,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/056-diplo-bass-writing.md",
           "category": "bass"
         },
         {
-          "score": 0.622724,
+          "score": 0.622643,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/052-bass-golden-rules.md",
           "category": "bass"
         },
         {
-          "score": 0.576807,
-          "source_path": "data/music/youtube/tutorials/t7Y-m6KdFQk-20-progressive-house-bass-patterns-tricks-that-changed-my-life.md",
-          "category": "youtube-tutorials"
+          "score": 0.620475,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md",
+          "category": "bass-synths-and-fx"
         },
         {
-          "score": 0.563812,
-          "source_path": "data/music/youtube/tutorials/TTIon9_pRHQ-how-to-make-organic-house-bass-warm-wide-all-day-i-dream-style.md",
+          "score": 0.576722,
+          "source_path": "data/music/youtube/tutorials/t7Y-m6KdFQk-20-progressive-house-bass-patterns-tricks-that-changed-my-life.md",
           "category": "youtube-tutorials"
         }
       ],
-      "latency_ms": 321.41
+      "latency_ms": 234.73
     },
     {
       "query": "staying motivated as producer",
@@ -494,32 +494,32 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.691378,
+          "score": 0.691364,
           "source_path": "data/music/courses/pete-tong-producer-academy/mindset/003-right-mindset-producer.md",
           "category": "mindset"
         },
         {
-          "score": 0.530135,
-          "source_path": "data/music/courses/pete-tong-producer-academy/mindset/004-unique-artist-identity.md",
-          "category": "mindset"
+          "score": 0.663011,
+          "source_path": "data/music/courses/pete-tong-producer-academy/studio-workflow/110-diplo-studio-day.md",
+          "category": "studio-workflow"
         },
         {
-          "score": 0.50729,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/028-music-mind-brain-sound.md",
-          "category": "drums"
+          "score": 0.563961,
+          "source_path": "data/music/courses/pete-tong-producer-academy/wellbeing/161-parisi-work-life-balance.md",
+          "category": "wellbeing"
         },
         {
-          "score": 0.428743,
-          "source_path": "data/music/youtube/tutorials/FyBYJf9MTD8-11-tips-for-writing-organic-house-deep-house-free-sample-pack.md",
-          "category": "youtube-tutorials"
+          "score": 0.540491,
+          "source_path": "data/music/courses/pete-tong-producer-academy/creativity/125-ame-staying-inspired.md",
+          "category": "creativity"
         },
         {
-          "score": 0.422356,
-          "source_path": "data/music/youtube/tutorials/zMJbsCt80bU-organic-house-from-scratch-in-30-minutes-ableton-tutorial-yannek-maunz.md",
-          "category": "youtube-tutorials"
+          "score": 0.537783,
+          "source_path": "data/music/courses/pete-tong-producer-academy/career/154-diplo-measure-success.md",
+          "category": "career"
         }
       ],
-      "latency_ms": 348.1
+      "latency_ms": 230.94
     },
     {
       "query": "FM synthesis explained",
@@ -531,32 +531,32 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.614533,
+          "score": 0.614614,
           "source_path": "data/music/courses/pete-tong-producer-academy/drums/035-ame-drums-approach.md",
           "category": "drums"
         },
         {
-          "score": 0.589564,
+          "score": 0.589624,
           "source_path": "data/music/courses/pete-tong-producer-academy/synthesis/065-synthesis-fundamentals-additive.md",
           "category": "synthesis"
         },
         {
-          "score": 0.585336,
+          "score": 0.585359,
           "source_path": "data/music/courses/pete-tong-producer-academy/synthesis/069-synth-anatomy-adsr-lfo.md",
           "category": "synthesis"
         },
         {
-          "score": 0.524216,
+          "score": 0.524219,
           "source_path": "data/music/courses/pete-tong-producer-academy/synthesis/067-subtractive-synthesis.md",
           "category": "synthesis"
         },
         {
-          "score": 0.451118,
+          "score": 0.451213,
           "source_path": "data/music/youtube/tutorials/TTIon9_pRHQ-how-to-make-organic-house-bass-warm-wide-all-day-i-dream-style.md",
           "category": "youtube-tutorials"
         }
       ],
-      "latency_ms": 691.38
+      "latency_ms": 276.43
     },
     {
       "query": "EQ tips for mixing",
@@ -571,32 +571,32 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.836687,
+          "score": 0.836797,
           "source_path": "data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md",
           "category": "drums"
         },
         {
-          "score": 0.787849,
+          "score": 0.806773,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/mastering/031-surgical-mastering-phase-eq-and-mid-side-balancing.md",
+          "category": "mastering"
+        },
+        {
+          "score": 0.78794,
           "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/025-mix-masterclass-eq.md",
           "category": "the-kick"
         },
         {
-          "score": 0.653097,
-          "source_path": "data/music/youtube/tutorials/T6lMuu_KzYU-mixing-and-perceived-loudness-3-reasons-some-mixes-seem-louder.md",
-          "category": "youtube-tutorials"
+          "score": 0.68451,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/019-high-frequency-synth-processing.md",
+          "category": "bass-synths-and-fx"
         },
         {
-          "score": 0.619768,
-          "source_path": "data/music/youtube/tutorials/x1fYPKGrKBs-psychoacoustic-secrets-for-mixing-music-learn-how-to-hear-what-s-really-there.md",
-          "category": "youtube-tutorials"
-        },
-        {
-          "score": 0.534368,
-          "source_path": "data/music/youtube/tutorials/Aha_7purQQo-psychoacoustics-pt-2-the-logarithmic-ear.md",
-          "category": "youtube-tutorials"
+          "score": 0.670069,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/starting-the-mix/009-shaping-the-mix-on-the-stereo-bus-part-1.md",
+          "category": "starting-the-mix"
         }
       ],
-      "latency_ms": 490.96
+      "latency_ms": 336.79
     },
     {
       "query": "kick drum frequency range",
@@ -605,38 +605,38 @@
         "bass",
         "youtube-tutorials"
       ],
-      "hit_strict": true,
-      "hit_acceptable": true,
-      "hit": true,
+      "hit_strict": false,
+      "hit_acceptable": false,
+      "hit": false,
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.783549,
+          "score": 0.783543,
           "source_path": "data/music/courses/pete-tong-producer-academy/drums/043-mix-masterclass-drum-bus.md",
           "category": "drums"
         },
         {
-          "score": 0.691025,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md",
-          "category": "drums"
+          "score": 0.730173,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/session-setup-and-workflow/006-analyzing-the-track-before-mixing.md",
+          "category": "session-setup-and-workflow"
         },
         {
-          "score": 0.594499,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/032-mix-room-drums-placement.md",
-          "category": "drums"
+          "score": 0.707523,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md",
+          "category": "bass-synths-and-fx"
         },
         {
-          "score": 0.589865,
-          "source_path": "data/music/courses/pete-tong-producer-academy/the-kick/020-diplo-kick-creation.md",
-          "category": "the-kick"
+          "score": 0.63275,
+          "source_path": "data/music/courses/pete-tong-producer-academy/mix-mastering/136-mix-part2-mix-matrix.md",
+          "category": "mix-mastering"
         },
         {
-          "score": 0.586249,
-          "source_path": "data/music/courses/pete-tong-producer-academy/bass/055-kick-bass-10-steps.md",
-          "category": "bass"
+          "score": 0.608014,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/mixing-the-beat/015-glue-and-punch-crafting-the-drum-buss.md",
+          "category": "mixing-the-beat"
         }
       ],
-      "latency_ms": 355.47
+      "latency_ms": 384.56
     },
     {
       "query": "snare drum processing",
@@ -645,7 +645,7 @@
         "mix-mastering"
       ],
       "hit_strict": true,
-      "hit_acceptable": false,
+      "hit_acceptable": true,
       "hit": true,
       "unique_docs": 5,
       "top_results": [
@@ -655,27 +655,27 @@
           "category": "drums"
         },
         {
-          "score": 0.698189,
+          "score": 0.714174,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md",
+          "category": "bass-synths-and-fx"
+        },
+        {
+          "score": 0.69819,
           "source_path": "data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md",
           "category": "drums"
         },
         {
-          "score": 0.581647,
-          "source_path": "data/music/courses/pete-tong-producer-academy/bass/057-ame-bass-writing.md",
-          "category": "bass"
+          "score": 0.615631,
+          "source_path": "data/music/courses/pete-tong-producer-academy/mix-mastering/136-mix-part2-mix-matrix.md",
+          "category": "mix-mastering"
         },
         {
-          "score": 0.576796,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/034-parisi-drums-writing.md",
-          "category": "drums"
-        },
-        {
-          "score": 0.548747,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/044-parisi-drum-bus.md",
-          "category": "drums"
+          "score": 0.5873,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/mixing-the-beat/015-glue-and-punch-crafting-the-drum-buss.md",
+          "category": "mixing-the-beat"
         }
       ],
-      "latency_ms": 271.8
+      "latency_ms": 382.12
     },
     {
       "query": "sub bass vs mid bass",
@@ -687,69 +687,69 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.625485,
+          "score": 0.625491,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/052-bass-golden-rules.md",
           "category": "bass"
         },
         {
-          "score": 0.593835,
+          "score": 0.593866,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/049-bass-low-frequencies.md",
           "category": "bass"
         },
         {
-          "score": 0.584579,
+          "score": 0.584858,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/050-mix-room-bass-placement.md",
           "category": "bass"
         },
         {
-          "score": 0.583442,
+          "score": 0.583399,
           "source_path": "data/music/courses/pete-tong-producer-academy/bass/058-parisi-sub-bass.md",
           "category": "bass"
         },
         {
-          "score": 0.530874,
-          "source_path": "data/music/youtube/tutorials/DfHf97U4-Fk-david-guetta-breaks-down-his-secret-to-the-perfect-kick-bass.md",
-          "category": "youtube-tutorials"
+          "score": 0.563717,
+          "source_path": "data/music/courses/pete-tong-mix-mastering/bass-synths-and-fx/017-crafting-a-solid-low-end-mixing-the-bass.md",
+          "category": "bass-synths-and-fx"
         }
       ],
-      "latency_ms": 508.46
+      "latency_ms": 356.18
     },
     {
       "query": "overcoming creative blocks",
       "expected_category": "mindset",
       "acceptable_categories": [],
-      "hit_strict": true,
+      "hit_strict": false,
       "hit_acceptable": false,
-      "hit": true,
+      "hit": false,
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.472023,
-          "source_path": "data/music/courses/pete-tong-producer-academy/mindset/003-right-mindset-producer.md",
-          "category": "mindset"
+          "score": 0.696067,
+          "source_path": "data/music/courses/pete-tong-producer-academy/creativity/119-parisi-creative-blocks.md",
+          "category": "creativity"
         },
         {
-          "score": 0.440039,
-          "source_path": "data/music/courses/pete-tong-producer-academy/mindset/004-unique-artist-identity.md",
-          "category": "mindset"
+          "score": 0.63843,
+          "source_path": "data/music/courses/pete-tong-producer-academy/creativity/118-diplo-creative-blocks.md",
+          "category": "creativity"
         },
         {
-          "score": 0.402569,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/028-music-mind-brain-sound.md",
-          "category": "drums"
+          "score": 0.575545,
+          "source_path": "data/music/courses/pete-tong-producer-academy/creativity/120-ame-creative-blocks.md",
+          "category": "creativity"
         },
         {
-          "score": 0.375039,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/035-ame-drums-approach.md",
-          "category": "drums"
+          "score": 0.541326,
+          "source_path": "data/music/courses/pete-tong-producer-academy/industry-collaboration/144-diplo-creative-disagreements.md",
+          "category": "industry-collaboration"
         },
         {
-          "score": 0.362106,
-          "source_path": "data/music/courses/pete-tong-producer-academy/drums/040-mix-masterclass-sound-shaping.md",
-          "category": "drums"
+          "score": 0.504248,
+          "source_path": "data/music/courses/pete-tong-producer-academy/creativity/125-ame-staying-inspired.md",
+          "category": "creativity"
         }
       ],
-      "latency_ms": 373.84
+      "latency_ms": 354.75
     },
     {
       "query": "wavetable synthesis guide",
@@ -761,32 +761,32 @@
       "unique_docs": 5,
       "top_results": [
         {
-          "score": 0.569937,
+          "score": 0.569694,
           "source_path": "data/music/courses/pete-tong-producer-academy/synthesis/065-synthesis-fundamentals-additive.md",
           "category": "synthesis"
         },
         {
-          "score": 0.503282,
+          "score": 0.503303,
           "source_path": "data/music/courses/pete-tong-producer-academy/synthesis/069-synth-anatomy-adsr-lfo.md",
           "category": "synthesis"
         },
         {
-          "score": 0.491437,
+          "score": 0.49137,
           "source_path": "data/music/courses/pete-tong-producer-academy/synthesis/067-subtractive-synthesis.md",
           "category": "synthesis"
         },
         {
-          "score": 0.477991,
+          "score": 0.477993,
           "source_path": "data/music/youtube/tutorials/bRmPK3d9Cmw-the-science-of-modern-sub-bass-essential-knowledge-for-every-music-producer.md",
           "category": "youtube-tutorials"
         },
         {
-          "score": 0.459312,
-          "source_path": "data/music/youtube/tutorials/oJq4D9OrRsI-how-to-make-melodic-techno-like-brian-cid-lost-found-project-download.md",
+          "score": 0.467167,
+          "source_path": "data/music/youtube/tutorials/DbkKaj5DnsI-sound-design-challenge-s-bastien-l-ger-live-at-giza.md",
           "category": "youtube-tutorials"
         }
       ],
-      "latency_ms": 332.09
+      "latency_ms": 289.84
     }
   ]
 }

@@ -5,6 +5,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 model: inherit
 permissionMode: acceptEdits
 memory: project
+maxTurns: 30
 ---
 
 You are a senior backend engineer implementing roadmap tasks for this repository.
