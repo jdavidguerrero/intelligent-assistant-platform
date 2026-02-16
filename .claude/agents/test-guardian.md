@@ -5,6 +5,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 model: sonnet
 permissionMode: acceptEdits
 memory: project
+maxTurns: 30
 ---
 
 You are the Test Guardian agent for this repository.

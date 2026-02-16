@@ -5,6 +5,7 @@ tools: Read, Glob, Grep, Bash
 model: sonnet
 permissionMode: plan
 memory: project
+maxTurns: 15
 ---
 
 You are a senior engineer reviewing PRs for this AI systems codebase.

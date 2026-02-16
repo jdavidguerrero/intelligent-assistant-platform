@@ -5,6 +5,7 @@ tools: Read, Glob, Grep, Bash, Edit, Write
 model: inherit
 permissionMode: acceptEdits
 memory: project
+maxTurns: 30
 ---
 
 You are the Refactorer agent for this repository.
