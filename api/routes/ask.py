@@ -96,7 +96,7 @@ def ask(
             raw_results,
             top_k=body.top_k,
             max_per_document=1,
-            course_boost=1.15,
+            course_boost=1.25,  # 25% boost for Pete Tong courses
             youtube_boost=1.0,
             filename_keywords=filename_keywords,
             filename_boost=1.20,
