@@ -27,6 +27,7 @@ class ChunkDict(TypedDict):
     text: str
     token_start: int
     token_end: int
+    page_number: int | None
 
 
 @runtime_checkable
@@ -96,6 +97,8 @@ def chunk_to_dict(
     if resolved_token_end is None:
         raise ValueError("token_end is required: not found on chunk and not provided as argument")
 
+    resolved_page_number: int | None = getattr(chunk, "page_number", None)
+
     return ChunkDict(
         doc_id=chunk.doc_id,
         source_path=resolved_source_path,
@@ -104,4 +107,5 @@ def chunk_to_dict(
         text=chunk.text,
         token_start=resolved_token_start,
         token_end=resolved_token_end,
+        page_number=resolved_page_number,
     )

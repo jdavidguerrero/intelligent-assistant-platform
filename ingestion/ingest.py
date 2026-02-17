@@ -16,11 +16,11 @@ import time
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from core.chunking import Chunk, chunk_text
-from core.text import extract_text
+from core.text import extract_pdf_text, extract_text
 from db.models import Base, ChunkRecord
 from db.session import SessionLocal, engine
 from ingestion.embeddings import OpenAIEmbeddingProvider
-from ingestion.loaders import LoadedDocument, load_documents
+from ingestion.loaders import LoadedDocument, load_documents, load_pdf_pages
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +42,45 @@ def _extract_text(doc: LoadedDocument) -> str:
     return extract_text(doc.content, extension=extension)
 
 
+def _chunk_pdf_document(doc: LoadedDocument) -> list[Chunk]:
+    """Chunk a PDF document page by page, preserving page numbers.
+
+    Each PDF page is extracted via :func:`load_pdf_pages`, its text is
+    normalised with :func:`extract_pdf_text`, and then chunked
+    independently.  Every resulting :class:`Chunk` carries the
+    originating ``page_number`` so downstream citations can reference
+    the exact page.
+
+    ``chunk_index`` is globally sequential across all pages of the
+    document (not reset per page).
+    """
+    pages = load_pdf_pages(doc.path)
+    all_chunks: list[Chunk] = []
+    global_chunk_index = 0
+
+    for page in pages:
+        text = extract_pdf_text(page.text)
+        if not text.strip():
+            continue
+        page_chunks = chunk_text(text, source_path=doc.path)
+        # Re-number chunk_index globally and stamp page_number
+        for chunk in page_chunks:
+            patched = Chunk(
+                doc_id=chunk.doc_id,
+                source_path=chunk.source_path,
+                source_name=chunk.source_name,
+                chunk_index=global_chunk_index,
+                text=chunk.text,
+                token_start=chunk.token_start,
+                token_end=chunk.token_end,
+                page_number=page.page_number,
+            )
+            all_chunks.append(patched)
+            global_chunk_index += 1
+
+    return all_chunks
+
+
 def _chunks_to_records(
     chunks: list[Chunk],
     embeddings: list[list[float]],
@@ -58,6 +97,7 @@ def _chunks_to_records(
                 token_start=chunk.token_start,
                 token_end=chunk.token_end,
                 text=chunk.text,
+                page_number=chunk.page_number,
                 embedding=emb,
             )
         )
@@ -142,6 +182,7 @@ def _bulk_upsert(session: SessionLocal, records: list[ChunkRecord]) -> int:  # t
             "token_start": r.token_start,
             "token_end": r.token_end,
             "text": r.text,
+            "page_number": r.page_number,
             "embedding": r.embedding,
         }
         for r in records
@@ -166,9 +207,11 @@ def run_pipeline(
     """
     Execute the full ingestion pipeline.
 
-    1. Load ``.md`` / ``.txt`` files from *data_dir*.
+    1. Load ``.md`` / ``.txt`` / ``.pdf`` files from *data_dir*.
     2. Extract and normalize text.
     3. Chunk each document (skip chunks below ``MIN_CHUNK_TOKENS``).
+       For PDFs, chunking is page-aware: each page is chunked separately
+       and the resulting ``Chunk`` objects carry a ``page_number``.
     4. Skip chunks already in the database (resume support).
     5. Embed new chunk texts via OpenAI (with retry).
     6. Persist ``ChunkRecord`` rows to Postgres via ``ON CONFLICT DO NOTHING``.
@@ -180,7 +223,7 @@ def run_pipeline(
     # --- 1. Load ---
     docs = load_documents(data_dir, limit=limit)
     if not docs:
-        print(f"No .md/.txt files found in {data_dir}")
+        print(f"No supported files found in {data_dir}")
         return
 
     print(f"Loaded {len(docs)} document(s) from {data_dir}")
@@ -189,11 +232,18 @@ def run_pipeline(
     all_chunks: list[Chunk] = []
     skipped_small = 0
     for doc in docs:
-        text = _extract_text(doc)
-        if not text.strip():
-            print(f"  [skip] {doc.name}: empty after extraction")
-            continue
-        doc_chunks = chunk_text(text, source_path=doc.path)
+        extension = pathlib.PurePosixPath(doc.name).suffix.lower()
+
+        if extension == ".pdf":
+            # Page-aware chunking for PDFs
+            doc_chunks = _chunk_pdf_document(doc)
+        else:
+            text = _extract_text(doc)
+            if not text.strip():
+                print(f"  [skip] {doc.name}: empty after extraction")
+                continue
+            doc_chunks = chunk_text(text, source_path=doc.path)
+
         # Quality gate: drop chunks below MIN_CHUNK_TOKENS
         quality_chunks = [
             c for c in doc_chunks if (c.token_end - c.token_start) >= MIN_CHUNK_TOKENS
@@ -260,7 +310,7 @@ def run_pipeline(
 def main() -> None:
     """Parse CLI arguments and run the pipeline."""
     parser = argparse.ArgumentParser(
-        description="Ingest .md/.txt documents into Postgres with pgvector embeddings.",
+        description="Ingest .md/.txt/.pdf documents into Postgres with pgvector embeddings.",
     )
     parser.add_argument(
         "--data-dir",
