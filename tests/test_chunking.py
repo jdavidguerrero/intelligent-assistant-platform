@@ -229,6 +229,60 @@ class TestMetadata:
         assert chunks[0].source_path == path
 
 
+class TestPageNumber:
+    """Test that page_number field works correctly on Chunk."""
+
+    def test_page_number_default_is_none(self) -> None:
+        """Without page_number, default is None (backward-compatible)."""
+        chunks = chunk_text("Some content.", source_path="/docs/test.txt")
+        assert chunks[0].page_number is None
+
+    def test_page_number_preserved_when_set(self) -> None:
+        """Chunk constructed with page_number retains it."""
+        from core.chunking import Chunk
+
+        chunk = Chunk(
+            doc_id="abc",
+            source_path="/docs/guide.pdf",
+            source_name="guide.pdf",
+            chunk_index=0,
+            text="Content from page 5",
+            token_start=0,
+            token_end=10,
+            page_number=5,
+        )
+        assert chunk.page_number == 5
+
+    def test_page_number_is_frozen(self) -> None:
+        """page_number cannot be mutated on a frozen Chunk."""
+        from core.chunking import Chunk
+
+        chunk = Chunk(
+            doc_id="abc",
+            source_path="/test.pdf",
+            source_name="test.pdf",
+            chunk_index=0,
+            text="text",
+            token_start=0,
+            token_end=5,
+            page_number=3,
+        )
+        with pytest.raises(AttributeError):
+            chunk.page_number = 7  # type: ignore[misc]
+
+    def test_chunks_without_page_number_still_work(self) -> None:
+        """Existing code creating Chunks without page_number is unaffected."""
+        chunks = chunk_text(
+            "word " * 100,
+            source_path="/docs/test.txt",
+            chunk_size=50,
+            overlap=10,
+        )
+        assert len(chunks) > 1
+        for chunk in chunks:
+            assert chunk.page_number is None
+
+
 class TestEncodingParameter:
     """Test that encoding_name affects tokenization."""
 

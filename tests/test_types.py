@@ -6,6 +6,8 @@ These tests verify the protocol definitions and conversion utilities.
 
 from dataclasses import dataclass
 
+import pytest
+
 from core.chunking import chunk_text
 from core.types import ChunkDict, ChunkProtocol, chunk_to_dict
 
@@ -47,6 +49,30 @@ class TestChunkToDict:
         assert result["text"] == "Hello world"
         assert result["token_start"] == 0
         assert result["token_end"] > 0
+        assert result["page_number"] is None
+
+    def test_page_number_from_chunk(self) -> None:
+        """page_number is read from chunk when available."""
+        from core.chunking import Chunk
+
+        chunk = Chunk(
+            doc_id="pdf-doc",
+            source_path="/docs/guide.pdf",
+            source_name="guide.pdf",
+            chunk_index=2,
+            text="Content from page 5",
+            token_start=100,
+            token_end=200,
+            page_number=5,
+        )
+        result = chunk_to_dict(chunk)
+        assert result["page_number"] == 5
+
+    def test_page_number_none_for_non_pdf(self) -> None:
+        """Chunks without page_number get None in dict."""
+        chunks = chunk_text("Hello", source_path="/test.txt")
+        result = chunk_to_dict(chunks[0])
+        assert result["page_number"] is None
 
     def test_override_fields(self) -> None:
         chunks = chunk_text("Hello", source_path="/test.txt")
@@ -87,6 +113,64 @@ class TestChunkToDict:
         assert result["text"] == "minimal text"
         assert result["source_path"] == "/provided/path.txt"
 
+    def test_missing_source_path_raises(self) -> None:
+        """Fail-fast when source_path is missing from chunk and not provided."""
+
+        @dataclass
+        class BareChunk:
+            doc_id: str
+            chunk_index: int
+            text: str
+
+        bare = BareChunk(doc_id="x", chunk_index=0, text="hi")
+        with pytest.raises(ValueError, match="source_path is required"):
+            chunk_to_dict(bare, source_name="n", token_start=0, token_end=1)
+
+    def test_missing_source_name_raises(self) -> None:
+        """Fail-fast when source_name is missing from chunk and not provided."""
+
+        @dataclass
+        class BareChunk:
+            doc_id: str
+            chunk_index: int
+            text: str
+            source_path: str = "/path"
+
+        bare = BareChunk(doc_id="x", chunk_index=0, text="hi")
+        with pytest.raises(ValueError, match="source_name is required"):
+            chunk_to_dict(bare, token_start=0, token_end=1)
+
+    def test_missing_token_start_raises(self) -> None:
+        """Fail-fast when token_start is missing from chunk and not provided."""
+
+        @dataclass
+        class BareChunk:
+            doc_id: str
+            chunk_index: int
+            text: str
+            source_path: str = "/path"
+            source_name: str = "name"
+
+        bare = BareChunk(doc_id="x", chunk_index=0, text="hi")
+        with pytest.raises(ValueError, match="token_start is required"):
+            chunk_to_dict(bare, token_end=1)
+
+    def test_missing_token_end_raises(self) -> None:
+        """Fail-fast when token_end is missing from chunk and not provided."""
+
+        @dataclass
+        class BareChunk:
+            doc_id: str
+            chunk_index: int
+            text: str
+            source_path: str = "/path"
+            source_name: str = "name"
+            token_start: int = 0
+
+        bare = BareChunk(doc_id="x", chunk_index=0, text="hi")
+        with pytest.raises(ValueError, match="token_end is required"):
+            chunk_to_dict(bare)
+
 
 class TestChunkDict:
     """Test ChunkDict TypedDict structure."""
@@ -101,6 +185,7 @@ class TestChunkDict:
             "text": "content",
             "token_start": 0,
             "token_end": 10,
+            "page_number": None,
         }
 
         assert "doc_id" in chunk_dict
@@ -110,3 +195,17 @@ class TestChunkDict:
         assert "text" in chunk_dict
         assert "token_start" in chunk_dict
         assert "token_end" in chunk_dict
+        assert "page_number" in chunk_dict
+
+    def test_chunk_dict_with_page_number(self) -> None:
+        chunk_dict: ChunkDict = {
+            "doc_id": "test",
+            "source_path": "/path",
+            "source_name": "name",
+            "chunk_index": 0,
+            "text": "content",
+            "token_start": 0,
+            "token_end": 10,
+            "page_number": 7,
+        }
+        assert chunk_dict["page_number"] == 7

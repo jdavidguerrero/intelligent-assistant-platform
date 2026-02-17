@@ -1,11 +1,32 @@
 """
 Result reranking for search quality improvements.
 
-Implements document diversity and authority-based boosting
-to improve perceived search quality and business value.
+Implements document diversity, authority-based boosting, and MMR
+(Maximal Marginal Relevance) to improve perceived search quality
+and business value.
 """
 
+import numpy as np
+
 from db.models import ChunkRecord
+
+
+def _cosine_similarity(a: list[float], b: list[float]) -> float:
+    """Compute cosine similarity between two vectors.
+
+    Args:
+        a: First vector.
+        b: Second vector.
+
+    Returns:
+        Cosine similarity in the range [-1, 1].
+    """
+    va = np.asarray(a, dtype=np.float64)
+    vb = np.asarray(b, dtype=np.float64)
+    denom = np.linalg.norm(va) * np.linalg.norm(vb)
+    if denom == 0.0:
+        return 0.0
+    return float(np.dot(va, vb) / denom)
 
 
 def infer_content_type(source_path: str) -> str:
@@ -29,18 +50,18 @@ def infer_content_type(source_path: str) -> str:
 
 def apply_authority_boost(
     results: list[tuple[ChunkRecord, float]],
-    course_boost: float = 1.1,
+    course_boost: float = 1.25,
     youtube_boost: float = 1.0,
 ) -> list[tuple[ChunkRecord, float]]:
     """
     Apply authority-based score boosting.
 
-    Business rule: Prefer structured course content over YouTube
-    when similarity scores are comparable.
+    Business rule: Prefer structured course content (Pete Tong Academy)
+    over PDFs and YouTube when similarity scores are comparable.
 
     Args:
         results: List of (ChunkRecord, similarity_score) from search
-        course_boost: Multiplier for course content (default: 1.1 = +10%)
+        course_boost: Multiplier for course content (default: 1.25 = +25%)
         youtube_boost: Multiplier for YouTube content (default: 1.0 = no boost)
 
     Returns:
@@ -144,26 +165,92 @@ def enforce_document_diversity(
     return diverse_results
 
 
+def mmr_rerank(
+    results: list[tuple[ChunkRecord, float]],
+    query_embedding: list[float],
+    *,
+    lambda_: float = 0.7,
+    top_k: int = 5,
+) -> list[tuple[ChunkRecord, float]]:
+    """Select results via Maximal Marginal Relevance (MMR).
+
+    MMR balances **relevance** (similarity to query) against
+    **diversity** (dissimilarity to already-selected results).
+
+    ``score_mmr = lambda_ * relevance - (1 - lambda_) * max_redundancy``
+
+    Args:
+        results: Candidate ``(ChunkRecord, similarity_score)`` pairs.
+            Each ``ChunkRecord`` must have a populated ``embedding`` attribute.
+        query_embedding: The query's embedding vector.
+        lambda_: Trade-off parameter (0–1).  1.0 = pure relevance,
+            0.0 = pure diversity.  Default 0.7.
+        top_k: Number of results to return.
+
+    Returns:
+        Up to *top_k* ``(ChunkRecord, score)`` tuples reranked by MMR.
+    """
+    if not results:
+        return []
+
+    candidates = list(results)
+    selected: list[tuple[ChunkRecord, float]] = []
+
+    while len(selected) < top_k and candidates:
+        best_mmr = float("-inf")
+        best_idx = 0
+
+        for i, (record, relevance) in enumerate(candidates):
+            # Max similarity to any already-selected result
+            if selected:
+                redundancy = max(
+                    _cosine_similarity(record.embedding, sel_rec.embedding)
+                    for sel_rec, _ in selected
+                )
+            else:
+                redundancy = 0.0
+
+            mmr_score = lambda_ * relevance - (1.0 - lambda_) * redundancy
+
+            if mmr_score > best_mmr:
+                best_mmr = mmr_score
+                best_idx = i
+
+        chosen_record, chosen_score = candidates.pop(best_idx)
+        selected.append((chosen_record, chosen_score))
+
+    return selected
+
+
 def rerank_results(
     results: list[tuple[ChunkRecord, float]],
     top_k: int = 5,
     max_per_document: int = 1,
-    course_boost: float = 1.1,
+    course_boost: float = 1.25,
     youtube_boost: float = 1.0,
     filename_keywords: list[str] | None = None,
     filename_boost: float = 1.10,
+    query_embedding: list[float] | None = None,
+    mmr_lambda: float = 0.7,
+    use_mmr: bool = False,
 ) -> list[tuple[ChunkRecord, float]]:
     """
-    Full reranking pipeline: authority boost + filename boost + document diversity.
+    Full reranking pipeline: authority boost + filename boost + diversity.
+
+    When ``use_mmr`` is True and ``query_embedding`` is provided, the
+    diversity step uses MMR instead of the simpler document-count filter.
 
     Args:
         results: Raw results from search_chunks
         top_k: Desired number of final results
         max_per_document: Max chunks per document (1 = full diversity)
-        course_boost: Authority multiplier for course content
+        course_boost: Authority multiplier for course content (default: 1.25 = +25%)
         youtube_boost: Authority multiplier for YouTube content
         filename_keywords: Optional keywords to boost in filenames
         filename_boost: Multiplier for filename keyword matches
+        query_embedding: Query vector (required when ``use_mmr=True``)
+        mmr_lambda: MMR trade-off parameter (0=diversity, 1=relevance)
+        use_mmr: If True, use MMR for diversity instead of document-count
 
     Returns:
         Reranked results optimized for quality and diversity
@@ -175,7 +262,15 @@ def rerank_results(
     if filename_keywords:
         boosted = apply_filename_boost(boosted, filename_keywords, filename_boost)
 
-    # Step 3: Enforce document diversity
-    diverse = enforce_document_diversity(boosted, max_per_document, top_k)
+    # Step 3: Enforce diversity (MMR or document-count)
+    if use_mmr and query_embedding is not None:
+        diverse = mmr_rerank(
+            boosted,
+            query_embedding,
+            lambda_=mmr_lambda,
+            top_k=top_k,
+        )
+    else:
+        diverse = enforce_document_diversity(boosted, max_per_document, top_k)
 
     return diverse

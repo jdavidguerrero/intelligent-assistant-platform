@@ -27,6 +27,7 @@ class ChunkDict(TypedDict):
     text: str
     token_start: int
     token_end: int
+    page_number: int | None
 
 
 @runtime_checkable
@@ -73,13 +74,38 @@ def chunk_to_dict(
 
     Returns:
         ChunkDict with all required fields.
+
+    Raises:
+        ValueError: If a required field is missing from both the chunk
+            object and the explicit keyword arguments.
     """
+    resolved_source_path = source_path or getattr(chunk, "source_path", None)
+    if resolved_source_path is None:
+        raise ValueError("source_path is required: not found on chunk and not provided as argument")
+
+    resolved_source_name = source_name or getattr(chunk, "source_name", None)
+    if resolved_source_name is None:
+        raise ValueError("source_name is required: not found on chunk and not provided as argument")
+
+    resolved_token_start = (
+        token_start if token_start is not None else getattr(chunk, "token_start", None)
+    )
+    if resolved_token_start is None:
+        raise ValueError("token_start is required: not found on chunk and not provided as argument")
+
+    resolved_token_end = token_end if token_end is not None else getattr(chunk, "token_end", None)
+    if resolved_token_end is None:
+        raise ValueError("token_end is required: not found on chunk and not provided as argument")
+
+    resolved_page_number: int | None = getattr(chunk, "page_number", None)
+
     return ChunkDict(
         doc_id=chunk.doc_id,
-        source_path=source_path or getattr(chunk, "source_path", ""),
-        source_name=source_name or getattr(chunk, "source_name", ""),
+        source_path=resolved_source_path,
+        source_name=resolved_source_name,
         chunk_index=chunk.chunk_index,
         text=chunk.text,
-        token_start=token_start if token_start is not None else getattr(chunk, "token_start", 0),
-        token_end=token_end if token_end is not None else getattr(chunk, "token_end", 0),
+        token_start=resolved_token_start,
+        token_end=resolved_token_end,
+        page_number=resolved_page_number,
     )
