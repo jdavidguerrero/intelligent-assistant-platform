@@ -65,6 +65,8 @@ class Chunk:
         text: The actual text content of this chunk.
         token_start: Starting token index in the original document (inclusive).
         token_end: Ending token index in the original document (exclusive).
+        page_number: Page number in the source PDF (1-based). ``None`` for
+            non-paginated formats like Markdown or plain text.
     """
 
     doc_id: str
@@ -74,6 +76,7 @@ class Chunk:
     text: str
     token_start: int
     token_end: int
+    page_number: int | None = None
 
 
 @overload

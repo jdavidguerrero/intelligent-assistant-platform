@@ -49,6 +49,30 @@ class TestChunkToDict:
         assert result["text"] == "Hello world"
         assert result["token_start"] == 0
         assert result["token_end"] > 0
+        assert result["page_number"] is None
+
+    def test_page_number_from_chunk(self) -> None:
+        """page_number is read from chunk when available."""
+        from core.chunking import Chunk
+
+        chunk = Chunk(
+            doc_id="pdf-doc",
+            source_path="/docs/guide.pdf",
+            source_name="guide.pdf",
+            chunk_index=2,
+            text="Content from page 5",
+            token_start=100,
+            token_end=200,
+            page_number=5,
+        )
+        result = chunk_to_dict(chunk)
+        assert result["page_number"] == 5
+
+    def test_page_number_none_for_non_pdf(self) -> None:
+        """Chunks without page_number get None in dict."""
+        chunks = chunk_text("Hello", source_path="/test.txt")
+        result = chunk_to_dict(chunks[0])
+        assert result["page_number"] is None
 
     def test_override_fields(self) -> None:
         chunks = chunk_text("Hello", source_path="/test.txt")
@@ -161,6 +185,7 @@ class TestChunkDict:
             "text": "content",
             "token_start": 0,
             "token_end": 10,
+            "page_number": None,
         }
 
         assert "doc_id" in chunk_dict
@@ -170,3 +195,17 @@ class TestChunkDict:
         assert "text" in chunk_dict
         assert "token_start" in chunk_dict
         assert "token_end" in chunk_dict
+        assert "page_number" in chunk_dict
+
+    def test_chunk_dict_with_page_number(self) -> None:
+        chunk_dict: ChunkDict = {
+            "doc_id": "test",
+            "source_path": "/path",
+            "source_name": "name",
+            "chunk_index": 0,
+            "text": "content",
+            "token_start": 0,
+            "token_end": 10,
+            "page_number": 7,
+        }
+        assert chunk_dict["page_number"] == 7

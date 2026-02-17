@@ -8,6 +8,7 @@ import pytest
 
 from core.text import (
     extract_markdown_text,
+    extract_pdf_text,
     extract_plaintext,
     extract_text,
     normalize_whitespace,
@@ -198,10 +199,62 @@ class TestExtractTextDispatcher:
         result = extract_text(md, extension=".MD")
         assert "**" not in result
 
-    def test_unsupported_extension_raises(self) -> None:
-        with pytest.raises(ValueError, match="Unsupported extension"):
-            extract_text("content", extension=".pdf")
+    def test_pdf_extension(self) -> None:
+        text = "The e\ufb00ect of   compression"
+        result = extract_text(text, extension=".pdf")
+        assert "effect" in result
+        assert "  " not in result
+
+    def test_pdf_extension_case_insensitive(self) -> None:
+        result = extract_text("Hello world", extension=".PDF")
+        assert result == "Hello world"
 
     def test_unsupported_extension_py_raises(self) -> None:
         with pytest.raises(ValueError, match="Unsupported extension"):
             extract_text("print(1)", extension=".py")
+
+    def test_unsupported_extension_docx_raises(self) -> None:
+        with pytest.raises(ValueError, match="Unsupported extension"):
+            extract_text("content", extension=".docx")
+
+
+class TestExtractPdfText:
+    """Test PDF text normalization."""
+
+    def test_replaces_fi_ligature(self) -> None:
+        text = "The \ufb01lter is \ufb01ne"
+        result = extract_pdf_text(text)
+        assert result == "The filter is fine"
+
+    def test_replaces_fl_ligature(self) -> None:
+        text = "a \ufb02ow of \ufb02uid"
+        result = extract_pdf_text(text)
+        assert result == "a flow of fluid"
+
+    def test_replaces_ff_ligature(self) -> None:
+        text = "the e\ufb00ect"
+        result = extract_pdf_text(text)
+        assert result == "the effect"
+
+    def test_replaces_ffi_ligature(self) -> None:
+        text = "o\ufb03ce work"
+        result = extract_pdf_text(text)
+        assert result == "office work"
+
+    def test_replaces_ffl_ligature(self) -> None:
+        text = "ba\ufb04e zone"
+        result = extract_pdf_text(text)
+        assert result == "baffle zone"
+
+    def test_normalizes_whitespace(self) -> None:
+        text = "Lots   of    spaces\n\n\n\n\nand lines"
+        result = extract_pdf_text(text)
+        assert result == "Lots of spaces\n\nand lines"
+
+    def test_empty_string(self) -> None:
+        assert extract_pdf_text("") == ""
+
+    def test_combined_ligatures_and_whitespace(self) -> None:
+        text = "  The  e\ufb00ective \ufb01lter  \ufb02ow  "
+        result = extract_pdf_text(text)
+        assert result == "The effective filter flow"

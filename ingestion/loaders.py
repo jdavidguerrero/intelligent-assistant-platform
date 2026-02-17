@@ -1,13 +1,16 @@
 """
 File loaders for the ingestion pipeline.
 
-Recursively discovers and reads ``.md`` and ``.txt`` files from a directory.
+Recursively discovers and reads ``.md``, ``.txt``, and ``.pdf`` files
+from a directory.
 """
 
 from dataclasses import dataclass
 from pathlib import Path
 
-SUPPORTED_EXTENSIONS: frozenset[str] = frozenset({".md", ".txt"})
+import pdfplumber
+
+SUPPORTED_EXTENSIONS: frozenset[str] = frozenset({".md", ".txt", ".pdf"})
 
 
 @dataclass(frozen=True)
@@ -19,13 +22,60 @@ class LoadedDocument:
     content: str
 
 
+@dataclass(frozen=True)
+class LoadedPage:
+    """A single page extracted from a PDF file.
+
+    Attributes:
+        page_number: 1-based page number within the PDF.
+        text: Raw text extracted from the page by pdfplumber.
+    """
+
+    page_number: int
+    text: str
+
+
+def load_pdf_pages(file_path: str | Path) -> list[LoadedPage]:
+    """
+    Extract text from each page of a PDF using pdfplumber.
+
+    Args:
+        file_path: Path to the PDF file.
+
+    Returns:
+        List of ``LoadedPage`` objects, one per page with non-empty text.
+        Pages that yield no text (e.g. scanned images without OCR) are
+        skipped.
+
+    Raises:
+        FileNotFoundError: If *file_path* does not exist.
+        ValueError: If *file_path* is not a ``.pdf`` file.
+    """
+    path = Path(file_path)
+    if not path.exists():
+        raise FileNotFoundError(f"PDF file does not exist: {path}")
+    if path.suffix.lower() != ".pdf":
+        raise ValueError(f"Expected a .pdf file, got: {path.suffix!r}")
+
+    pages: list[LoadedPage] = []
+    with pdfplumber.open(path) as pdf:
+        for i, page in enumerate(pdf.pages, start=1):
+            text = page.extract_text() or ""
+            if text.strip():
+                pages.append(LoadedPage(page_number=i, text=text))
+    return pages
+
+
 def load_documents(
     data_dir: str | Path,
     *,
     limit: int | None = None,
 ) -> list[LoadedDocument]:
     """
-    Recursively load ``.md`` and ``.txt`` files from *data_dir*.
+    Recursively load ``.md``, ``.txt``, and ``.pdf`` files from *data_dir*.
+
+    For PDF files, all pages are concatenated into a single ``content``
+    string (page-aware chunking is handled downstream in the pipeline).
 
     Args:
         data_dir: Root directory to scan.
@@ -50,7 +100,13 @@ def load_documents(
             continue
         if not path.is_file():
             continue
-        content = path.read_text(encoding="utf-8")
+
+        if path.suffix.lower() == ".pdf":
+            pages = load_pdf_pages(path)
+            content = "\n\n".join(p.text for p in pages)
+        else:
+            content = path.read_text(encoding="utf-8")
+
         documents.append(
             LoadedDocument(
                 path=str(path),

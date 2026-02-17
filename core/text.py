@@ -202,9 +202,49 @@ def extract_plaintext(content: str) -> str:
     return normalize_whitespace(content)
 
 
+# Common PDF ligatures that pdfplumber may extract as single characters.
+_PDF_LIGATURES: dict[str, str] = {
+    "\ufb00": "ff",
+    "\ufb01": "fi",
+    "\ufb02": "fl",
+    "\ufb03": "ffi",
+    "\ufb04": "ffl",
+}
+
+
+def extract_pdf_text(content: str) -> str:
+    """
+    Normalize text extracted from a PDF page.
+
+    Handles common PDF extraction artefacts:
+
+    * **Ligatures** — ``fi``, ``fl``, ``ff``, ``ffi``, ``ffl`` encoded as
+      single Unicode codepoints are expanded to their ASCII equivalents.
+    * **Whitespace** — delegates to :func:`normalize_whitespace` for
+      consistent paragraph structure.
+
+    This is a pure function: it receives a *string* (already extracted from
+    the binary PDF by the ingestion layer) and returns a cleaned string.
+
+    Args:
+        content: Raw text extracted from a PDF page.
+
+    Returns:
+        Normalized plain text ready for chunking.
+
+    Example:
+        >>> extract_pdf_text("The e\\ufb00ect of \\ufb01ltering")
+        'The effect of filtering'
+    """
+    for ligature, replacement in _PDF_LIGATURES.items():
+        content = content.replace(ligature, replacement)
+    return normalize_whitespace(content)
+
+
 _EXTENSION_EXTRACTORS: dict[str, str] = {
     ".md": "markdown",
     ".txt": "plaintext",
+    ".pdf": "pdf",
 }
 
 
@@ -217,7 +257,8 @@ def extract_text(content: str, *, extension: str) -> str:
 
     Args:
         content: Raw file content.
-        extension: File extension including the dot (e.g. ``".md"``, ``".txt"``).
+        extension: File extension including the dot (e.g. ``".md"``, ``".txt"``,
+            ``".pdf"``).
 
     Returns:
         Normalized plain text ready for chunking.
@@ -237,4 +278,6 @@ def extract_text(content: str, *, extension: str) -> str:
         )
     if strategy == "markdown":
         return extract_markdown_text(content)
+    if strategy == "pdf":
+        return extract_pdf_text(content)
     return extract_plaintext(content)
