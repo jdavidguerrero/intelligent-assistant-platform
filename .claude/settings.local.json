@@ -49,7 +49,14 @@
       "Bash(du -sh:*)",
       "Bash(lsof:*)",
       "Bash(docker compose:*)",
-      "Bash(docker ps:*)"
+      "Bash(docker ps:*)",
+      "Bash(pyenv which:*)",
+      "Bash(pyenv exec python:*)",
+      "Bash(pip3 show:*)",
+      "Bash(pip3 install:*)",
+      "Bash(export PATH=\"/Users/juandavidguerrerocastro/Library/Python/3.9/bin:$PATH\")",
+      "Bash(export PATH:*)",
+      "Bash(export:*)"
     ],
     "_security_notes": [
       "source:* - Allows sourcing shell scripts (venv activation)",
