@@ -30,6 +30,9 @@ markers = [
 filterwarnings = [
     "error",              # Turn warnings into errors
     "ignore::DeprecationWarning:tiktoken",  # tiktoken internal deprecation
+    "ignore::DeprecationWarning:librosa",   # librosa audioread path
+    "ignore::FutureWarning:librosa",        # librosa internal future warnings
+    "ignore::UserWarning:librosa",          # librosa numba cache warnings
 ]
 
 [tool.coverage.run]

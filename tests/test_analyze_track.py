@@ -15,8 +15,9 @@ class TestAnalyzeTrack:
         assert tool.name == "analyze_track"
         assert "BPM" in tool.description
         assert "key" in tool.description
-        assert len(tool.parameters) == 1
+        assert len(tool.parameters) == 2
         assert tool.parameters[0].name == "file_path"
+        assert tool.parameters[1].name == "analyze_audio"
 
     def test_extract_bpm_from_filename(self):
         """Should extract BPM from various filename patterns."""
