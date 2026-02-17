@@ -50,18 +50,18 @@ def infer_content_type(source_path: str) -> str:
 
 def apply_authority_boost(
     results: list[tuple[ChunkRecord, float]],
-    course_boost: float = 1.1,
+    course_boost: float = 1.25,
     youtube_boost: float = 1.0,
 ) -> list[tuple[ChunkRecord, float]]:
     """
     Apply authority-based score boosting.
 
-    Business rule: Prefer structured course content over YouTube
-    when similarity scores are comparable.
+    Business rule: Prefer structured course content (Pete Tong Academy)
+    over PDFs and YouTube when similarity scores are comparable.
 
     Args:
         results: List of (ChunkRecord, similarity_score) from search
-        course_boost: Multiplier for course content (default: 1.1 = +10%)
+        course_boost: Multiplier for course content (default: 1.25 = +25%)
         youtube_boost: Multiplier for YouTube content (default: 1.0 = no boost)
 
     Returns:
@@ -226,7 +226,7 @@ def rerank_results(
     results: list[tuple[ChunkRecord, float]],
     top_k: int = 5,
     max_per_document: int = 1,
-    course_boost: float = 1.1,
+    course_boost: float = 1.25,
     youtube_boost: float = 1.0,
     filename_keywords: list[str] | None = None,
     filename_boost: float = 1.10,
@@ -244,7 +244,7 @@ def rerank_results(
         results: Raw results from search_chunks
         top_k: Desired number of final results
         max_per_document: Max chunks per document (1 = full diversity)
-        course_boost: Authority multiplier for course content
+        course_boost: Authority multiplier for course content (default: 1.25 = +25%)
         youtube_boost: Authority multiplier for YouTube content
         filename_keywords: Optional keywords to boost in filenames
         filename_boost: Multiplier for filename keyword matches
