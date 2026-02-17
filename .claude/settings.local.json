@@ -56,7 +56,9 @@
       "Bash(pip3 install:*)",
       "Bash(export PATH=\"/Users/juandavidguerrerocastro/Library/Python/3.9/bin:$PATH\")",
       "Bash(export PATH:*)",
-      "Bash(export:*)"
+      "Bash(export:*)",
+      "Bash(ls:*)",
+      "Bash(/Users/juandavidguerrerocastro/Documents/PROJECTS/AI/intelligent-assistant-platform/.venv/bin/python:*)"
     ],
     "_security_notes": [
       "source:* - Allows sourcing shell scripts (venv activation)",
