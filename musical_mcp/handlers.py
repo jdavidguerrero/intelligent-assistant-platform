@@ -13,6 +13,7 @@ Handler categories:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from typing import Any
@@ -275,7 +276,28 @@ def _register_tools(mcp: FastMCP) -> None:
             from tools.music.analyze_track import AnalyzeTrack
 
             tool = AnalyzeTrack()
-            result = tool(file_path=file_path, analyze_audio=analyze_audio)
+
+            # librosa audio analysis is CPU-bound and can take 60-120s on large files.
+            # Run it in a thread pool so the async event loop stays responsive,
+            # and cap it at 45s — if it exceeds that, fall back to filename parsing.
+            _AUDIO_TIMEOUT = 45.0
+
+            def _run_sync(use_audio: bool) -> object:
+                return tool(file_path=file_path, analyze_audio=use_audio)
+
+            try:
+                result = await asyncio.wait_for(
+                    asyncio.to_thread(_run_sync, analyze_audio),
+                    timeout=_AUDIO_TIMEOUT,
+                )
+            except TimeoutError:
+                logger.warning(
+                    "analyze_track: audio analysis timed out after %.0fs, "
+                    "falling back to filename parsing",
+                    _AUDIO_TIMEOUT,
+                )
+                result = await asyncio.to_thread(_run_sync, False)
+
             latency_ms = (time.perf_counter() - t_start) * 1000
 
             if result.success:
