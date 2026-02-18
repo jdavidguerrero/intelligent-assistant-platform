@@ -22,6 +22,7 @@ indent-style = "space"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers --tb=short"
+asyncio_mode = "auto"
 markers = [
     "unit: Pure unit tests — no I/O, no mocks (default for core/)",
     "integration: Tests that use FastAPI TestClient or mock external services",
