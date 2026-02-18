@@ -255,16 +255,21 @@ def _register_tools(mcp: FastMCP) -> None:
         analyze_audio: bool = True,
     ) -> str:
         """
-        Extract BPM, musical key, and energy level from an audio file.
+        Extract BPM, musical key, and energy level from an audio file on disk.
+
+        IMPORTANT: file_path must be the REAL absolute path on the local filesystem
+        (e.g. /Users/juan/Music/track.mp3). Do NOT upload the file — ask the user
+        for the full path if you don't have it. Uploaded file paths (/mnt/...) will
+        not work because the server runs locally and cannot access upload sandboxes.
 
         Uses audio signal analysis (librosa) when the file exists, falls back
         to filename pattern matching otherwise. Useful for track preparation,
         DJ set planning, and harmonic mixing decisions.
 
         Args:
-            file_path: Absolute path to audio file (mp3, wav, flac, etc.)
-                       or a filename string for filename-only parsing
-            analyze_audio: Set False to skip librosa and use filename only
+            file_path: Absolute local path to audio file (mp3, wav, flac, etc.)
+                       e.g. /Users/juan/Music/track.mp3
+            analyze_audio: Set False to skip librosa and use filename only (instant)
 
         Returns:
             Formatted string with BPM, key, energy, and confidence
