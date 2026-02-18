@@ -301,9 +301,11 @@ class TestSuggestChordProgressionSchema:
     def test_mood_has_enum(self) -> None:
         props = self._schema()["input_schema"]["properties"]
         mood_enum = props["mood"]["enum"]
-        assert "melancholic" in mood_enum
-        assert "uplifting" in mood_enum
         assert "dark" in mood_enum
+        assert "dreamy" in mood_enum
+        assert "euphoric" in mood_enum
+        assert "neutral" in mood_enum
+        assert "tense" in mood_enum
 
     def test_bars_enum_is_4_8_16(self) -> None:
         props = self._schema()["input_schema"]["properties"]
