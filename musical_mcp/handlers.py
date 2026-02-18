@@ -584,6 +584,111 @@ def _register_tools(mcp: FastMCP) -> None:
             )
             return f"✗ Unexpected error: {exc}"
 
+    # ------------------------------------------------------------------
+    # ableton_insert_chords
+    # ------------------------------------------------------------------
+
+    @mcp.tool()
+    async def ableton_insert_chords(
+        chords: str,
+        beats_per_chord: float = 4.0,
+        velocity: int = 90,
+        octave: int = 4,
+        bpm: float = 120.0,
+    ) -> str:
+        """
+        Insert a chord progression directly into the selected Ableton clip via OSC.
+
+        REQUIRES: The 'Claude Chords' Max for Live device (.amxd) must be loaded
+        on a MIDI track in Ableton Live and a clip slot must be selected.
+        The device listens on localhost:11001.
+
+        How to set up in Ableton:
+          1. Create a MIDI track
+          2. Drag 'Claude Chords' M4L device onto the track
+          3. Select an empty clip slot (click on it)
+          4. Call this tool — chords appear in the piano roll instantly
+
+        Args:
+            chords: Space or comma-separated chord names, e.g. "Am F C G" or "Am7,Fmaj7,C,G7"
+                    Supports: maj, m, maj7, m7, 7, dim, sus2, sus4, add9
+            beats_per_chord: beats each chord lasts (4 = 1 bar at 4/4, default 4)
+            velocity: MIDI velocity 1-127 (default 90)
+            octave: root octave for voicings, 3-5 (default 4 = middle)
+            bpm: session BPM — informational only, does not change Ableton tempo
+
+        Returns:
+            Confirmation with chord count, note count, and clip length
+        """
+        t_start = time.perf_counter()
+
+        # Parse chord string: "Am F C G" or "Am,F,C,G" or "Am, F, C, G"
+        import re
+
+        raw_chords = re.split(r"[,\s]+", chords.strip())
+        chord_names = [c.strip() for c in raw_chords if c.strip()]
+
+        if not chord_names:
+            return "✗ No chords provided. Example: 'Am F C G' or 'Am7, Fmaj7, C, G7'"
+
+        inputs = {
+            "chords": chord_names,
+            "beats_per_chord": beats_per_chord,
+            "velocity": velocity,
+            "octave": octave,
+        }
+
+        try:
+            from musical_mcp.ableton import AbletonOscSender
+
+            sender = AbletonOscSender()
+            result = await asyncio.to_thread(
+                sender.send_chords,
+                chord_names,
+                beats_per_chord,
+                velocity,
+                octave,
+                bpm,
+            )
+
+            latency_ms = (time.perf_counter() - t_start) * 1000
+            _log_call("ableton_insert_chords", inputs, result, latency_ms)
+
+            bars = result["clip_beats"] / 4
+            return (
+                f"✓ Chords sent to Ableton\n"
+                f"  Progression:  {' → '.join(chord_names)}\n"
+                f"  Clip length:  {bars:.0f} bars ({result['clip_beats']:.0f} beats)\n"
+                f"  Notes sent:   {result['note_count']} MIDI notes\n"
+                f"  Latency:      {result['latency_ms']}ms\n"
+                f"\n"
+                f"  → Check your Ableton piano roll now!"
+            )
+
+        except OSError as exc:
+            latency_ms = (time.perf_counter() - t_start) * 1000
+            _log_call(
+                "ableton_insert_chords", inputs, {}, latency_ms, success=False, error=str(exc)
+            )
+            return (
+                f"✗ Could not reach Ableton (OSError: {exc})\n"
+                f"  Make sure the 'Claude Chords' M4L device is loaded on a MIDI track."
+            )
+
+        except ValueError as exc:
+            latency_ms = (time.perf_counter() - t_start) * 1000
+            _log_call(
+                "ableton_insert_chords", inputs, {}, latency_ms, success=False, error=str(exc)
+            )
+            return f"✗ Invalid chord: {exc}"
+
+        except Exception as exc:
+            latency_ms = (time.perf_counter() - t_start) * 1000
+            _log_call(
+                "ableton_insert_chords", inputs, {}, latency_ms, success=False, error=str(exc)
+            )
+            return f"✗ Unexpected error: {exc}"
+
 
 # ---------------------------------------------------------------------------
 # RESOURCES
