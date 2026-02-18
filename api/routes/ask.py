@@ -1,28 +1,42 @@
 """
-Ask route for grounded RAG question-answering.
+Ask route — hybrid tool-first + RAG question-answering.
 
-``POST /ask`` — retrieve relevant chunks, build context, generate answer with citations.
+``POST /ask`` — routes to tools when intent is detected, falls back to RAG.
 
-Pipeline:
+Pipeline (hybrid mode, use_tools=True):
+    0. Tool routing — detect intent, execute tool if matched
+       0a. If tool succeeds → synthesize natural language response via LLM → return (mode="tool")
+       0b. If no tool matches → continue to RAG pipeline (mode="rag")
     1. Expand query (intent detection + query expansion)
     2. Embed query
     3. Search vector store
     4. Confidence check (reject if max_score < threshold)
-    5. Format context block
-    6. Build system + user prompts
-    7. Generate response via LLM
-    8. Parse and validate citations
+    5. Rerank results
+    6. Format context block
+    7. Build system + user prompts
+    8. Generate response via LLM
+    9. Parse and validate citations
+
+Response modes:
+    "tool" — Tool executed and summarized. No RAG, no citations.
+    "rag"  — Pure RAG. No tool matched or use_tools=False.
 """
 
 import logging
 import time
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from api.deps import get_db, get_embedding_provider, get_generation_provider
-from api.schemas.ask import AskRequest, AskResponse, SourceReference, UsageMetadata
+from api.schemas.ask import (
+    AskRequest,
+    AskResponse,
+    SourceReference,
+    ToolCallRecord,
+    UsageMetadata,
+)
 from core.generation.base import GenerationProvider, GenerationRequest, Message
 from core.query_expansion import detect_mastering_intent, expand_query
 from core.rag.citations import extract_citations, validate_citations
@@ -31,6 +45,7 @@ from core.rag.prompts import build_system_prompt, build_user_prompt
 from db.rerank import rerank_results
 from db.search import search_chunks
 from ingestion.embeddings import OpenAIEmbeddingProvider
+from tools.router import ToolRouter
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +54,84 @@ router = APIRouter(tags=["ask"])
 DbSession = Annotated[Session, Depends(get_db)]
 Embedder = Annotated[OpenAIEmbeddingProvider, Depends(get_embedding_provider)]
 Generator = Annotated[GenerationProvider, Depends(get_generation_provider)]
+
+# ---------------------------------------------------------------------------
+# Tool synthesis prompts
+# ---------------------------------------------------------------------------
+
+_TOOL_SYSTEM_PROMPT = (
+    "You are a music production assistant. "
+    "A tool was just executed on behalf of the user. "
+    "Summarize what happened in a friendly, concise way (2-4 sentences). "
+    "If the tool succeeded, confirm what was done and highlight key results. "
+    "If it failed, explain clearly what went wrong and what the user can do. "
+    "Do NOT add information that wasn't in the tool result. "
+    "Do NOT use citations — this is not a RAG response."
+)
+
+
+def _build_tool_synthesis_prompt(query: str, tool_name: str, tool_data: dict) -> str:
+    """
+    Build the user prompt for LLM synthesis of a tool result.
+
+    Pure function — no I/O.
+
+    Args:
+        query:     Original user query
+        tool_name: Name of the tool that was executed
+        tool_data: Tool result data dict
+
+    Returns:
+        Formatted user prompt string
+    """
+    import json
+
+    data_str = json.dumps(tool_data, indent=2, ensure_ascii=False, default=str)
+    return (
+        f"User query: {query}\n\n"
+        f"Tool executed: {tool_name}\n\n"
+        f"Tool result:\n{data_str}\n\n"
+        "Please summarize the result in a friendly, conversational way."
+    )
+
+
+def _summarize_tool_data(tool_name: str, data: dict | None) -> dict[str, Any]:
+    """
+    Trim tool result data to the most important fields for the ToolCallRecord.
+
+    Avoids bloating the API response with full tool output.
+
+    Pure function — no I/O.
+
+    Args:
+        tool_name: Tool name for context-specific trimming
+        data:      Full tool result data
+
+    Returns:
+        Dict with key summary fields only
+    """
+    if not data:
+        return {}
+
+    # Tool-specific key fields to surface in the record
+    key_fields: dict[str, list[str]] = {
+        "log_practice_session": ["session_id", "topic", "duration_minutes", "logged_at"],
+        "create_session_note": ["note_id", "category", "title", "tags", "total_notes"],
+        "analyze_track": ["bpm", "key", "energy", "analysis_method"],
+        "suggest_chord_progression": ["key", "mood", "genre", "bars", "roman_analysis"],
+        "generate_midi_pattern": ["total_events", "bpm", "style", "midi_file"],
+        "search_by_genre": ["genre", "total_found", "query"],
+        "suggest_compatible_tracks": ["reference", "total_found", "compatible_keys"],
+        "extract_style_from_context": ["confidence_label", "suggestion_params", "midi_params"],
+    }
+
+    fields = key_fields.get(tool_name, list(data.keys())[:5])
+    return {k: data[k] for k in fields if k in data}
+
+
+# ---------------------------------------------------------------------------
+# Main endpoint
+# ---------------------------------------------------------------------------
 
 
 @router.post("/ask", response_model=AskResponse)
@@ -49,20 +142,41 @@ def ask(
     generator: Generator,
 ) -> AskResponse:
     """
-    Answer a question using grounded retrieval-augmented generation.
+    Answer a question using hybrid tool routing + grounded RAG.
 
-    Retrieves relevant chunks from the knowledge base, builds a context block,
-    and generates a cited answer. Rejects queries when confidence is too low.
+    When use_tools=True (default), attempts tool routing first:
+      - If a tool intent is detected, executes the tool and returns
+        a natural language summary (mode="tool").
+      - If no tool matches, falls back to pure RAG (mode="rag").
+
+    When use_tools=False, always uses pure RAG.
 
     Returns:
-        AskResponse with answer, sources, citations, and usage metadata.
+        AskResponse with answer, mode, tool_calls, sources, and usage metadata.
 
     Raises:
-        HTTPException 422: If max_score < confidence_threshold (insufficient knowledge).
-        HTTPException 500: If embedding, search, or generation fails.
+        HTTPException 422: Insufficient knowledge (RAG mode only).
+        HTTPException 500: Embedding, search, or generation failure.
     """
     t_start = time.perf_counter()
     warnings: list[str] = []
+
+    # ------------------------------------------------------------------
+    # Step 0: Tool routing (hybrid mode only)
+    # ------------------------------------------------------------------
+    if body.use_tools:
+        tool_response = _try_tool_route(
+            query=body.query,
+            generator=generator,
+            t_start=t_start,
+            body=body,
+        )
+        if tool_response is not None:
+            return tool_response
+
+    # ------------------------------------------------------------------
+    # Steps 1–9: Pure RAG pipeline
+    # ------------------------------------------------------------------
 
     # 1. Query expansion
     intent = detect_mastering_intent(body.query)
@@ -86,7 +200,7 @@ def ask(
         logger.error("Search failed: %s", exc)
         raise HTTPException(status_code=500, detail="Search failed") from exc
 
-    # 4. Rerank (resilient — degrade to raw results on failure)
+    # 4. Rerank
     filename_keywords = None
     if intent.category in ("mastering", "mixing"):
         filename_keywords = ["mastering", "mixing", "masterclass", "mix-mastering"]
@@ -96,7 +210,7 @@ def ask(
             raw_results,
             top_k=body.top_k,
             max_per_document=1,
-            course_boost=1.25,  # 25% boost for Pete Tong courses
+            course_boost=1.25,
             youtube_boost=1.0,
             filename_keywords=filename_keywords,
             filename_boost=1.20,
@@ -179,7 +293,6 @@ def ask(
     if citation_result.invalid_citations:
         warnings.append("invalid_citations")
 
-    # 10. Build response
     total_ms = (time.perf_counter() - t_start) * 1000
 
     return AskResponse(
@@ -208,4 +321,159 @@ def ask(
             total_ms=round(total_ms, 2),
             model=gen_response.model,
         ),
+        mode="rag",
+        tool_calls=[],
     )
+
+
+# ---------------------------------------------------------------------------
+# Tool routing helper
+# ---------------------------------------------------------------------------
+
+
+def _try_tool_route(
+    query: str,
+    generator: GenerationProvider,
+    t_start: float,
+    body: AskRequest,
+) -> AskResponse | None:
+    """
+    Attempt to route query to a tool. Returns AskResponse if tool handled it,
+    None if no tool matched (caller should fall back to RAG).
+
+    Args:
+        query:     User query string
+        generator: LLM provider for synthesis
+        t_start:   Request start time (perf_counter)
+        body:      Full request for token/temp settings
+
+    Returns:
+        AskResponse (mode="tool") if handled, else None
+    """
+    tool_router = ToolRouter()
+
+    try:
+        route_result = tool_router.route(query)
+    except Exception as exc:
+        logger.warning("Tool routing failed, falling back to RAG: %s", exc)
+        return None
+
+    # No tool matched → caller uses RAG
+    if route_result.fallback_to_rag:
+        return None
+
+    # Build ToolCallRecord list
+    tool_call_records: list[ToolCallRecord] = []
+    successful_results = []
+
+    for tool_name, tool_result, params in zip(
+        route_result.matched_tools,
+        route_result.tool_results,
+        route_result.params_used,
+        strict=False,
+    ):
+        record = ToolCallRecord(
+            tool_name=tool_name,
+            params=params,
+            success=tool_result.success,
+            error=tool_result.error,
+            data_summary=_summarize_tool_data(tool_name, tool_result.data),
+        )
+        tool_call_records.append(record)
+        if tool_result.success:
+            successful_results.append((tool_name, tool_result))
+
+    # If all tools failed → fall back to RAG
+    if not successful_results:
+        logger.warning("All tools failed for query %r — falling back to RAG", query[:80])
+        return None
+
+    # Synthesize natural language response from tool results
+    # Use the first successful tool result for synthesis
+    primary_tool_name, primary_result = successful_results[0]
+    synthesis_prompt = _build_tool_synthesis_prompt(
+        query=query,
+        tool_name=primary_tool_name,
+        tool_data=primary_result.data or {},
+    )
+
+    t_gen = time.perf_counter()
+    try:
+        gen_response = generator.generate(
+            GenerationRequest(
+                messages=(
+                    Message(role="system", content=_TOOL_SYSTEM_PROMPT),
+                    Message(role="user", content=synthesis_prompt),
+                ),
+                temperature=0.3,  # lower temp for factual confirmation
+                max_tokens=512,
+            )
+        )
+    except Exception as exc:
+        logger.error("Tool synthesis generation failed: %s", exc)
+        # Return minimal response without synthesis
+        gen_response = None
+
+    generation_ms = (time.perf_counter() - t_gen) * 1000
+    total_ms = (time.perf_counter() - t_start) * 1000
+
+    # Build answer: LLM synthesis or fallback to structured summary
+    if gen_response:
+        answer = gen_response.content
+        input_tokens = gen_response.usage_input_tokens
+        output_tokens = gen_response.usage_output_tokens
+        model = gen_response.model
+    else:
+        answer = _fallback_tool_answer(route_result.matched_tools, tool_call_records)
+        input_tokens = 0
+        output_tokens = 0
+        model = "none"
+
+    return AskResponse(
+        query=query,
+        answer=answer,
+        sources=[],
+        citations=[],
+        reason=None,
+        warnings=[],
+        usage=UsageMetadata(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            total_tokens=input_tokens + output_tokens,
+            embedding_ms=0.0,
+            search_ms=0.0,
+            generation_ms=round(generation_ms, 2),
+            total_ms=round(total_ms, 2),
+            model=model,
+        ),
+        mode="tool",
+        tool_calls=tool_call_records,
+    )
+
+
+def _fallback_tool_answer(
+    tool_names: tuple[str, ...],
+    records: list[ToolCallRecord],
+) -> str:
+    """
+    Build a plain-text fallback answer when LLM synthesis fails.
+
+    Pure function — no I/O.
+
+    Args:
+        tool_names: Names of tools that were called
+        records:    ToolCallRecord list with success/error status
+
+    Returns:
+        Human-readable status string
+    """
+    lines = []
+    for record in records:
+        if record.success:
+            lines.append(f"✓ {record.tool_name}: executed successfully.")
+            if record.data_summary:
+                for k, v in record.data_summary.items():
+                    lines.append(f"  {k}: {v}")
+        else:
+            lines.append(f"✗ {record.tool_name}: failed — {record.error}")
+    return "\n".join(lines) if lines else "Tools executed with no output."

@@ -77,6 +77,7 @@ _INTENT_PATTERNS: list[tuple[str, frozenset[str]]] = [
                 "remember that",
                 "save this",
                 "discovered that",
+                "discovered something",
                 "i discovered",
                 "realized that",
                 "i realized",
@@ -124,6 +125,7 @@ _INTENT_PATTERNS: list[tuple[str, frozenset[str]]] = [
             {
                 "compatible with",
                 "mix with",
+                "mix well with",
                 "plays well with",
                 "works with",
                 "harmonic mix",
