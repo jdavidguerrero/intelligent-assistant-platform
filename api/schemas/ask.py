@@ -3,7 +3,14 @@ Pydantic schemas for the ``/ask`` endpoint.
 
 Defines request validation and response serialization for the
 grounded RAG question-answering endpoint.
+
+Response modes:
+  "rag"    — Pure RAG: embed → search → generate with citations.
+  "tool"   — Tool execution: intent matched, tool called, result summarized by LLM.
+  "hybrid" — Tool result injected as context into RAG pipeline (future).
 """
+
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -39,6 +46,15 @@ class AskRequest(BaseModel):
         ge=0.0,
         le=1.0,
         description="Minimum similarity score for top chunk. Request fails if below this.",
+    )
+    use_tools: bool = Field(
+        default=True,
+        description=(
+            "Whether to attempt tool routing before RAG. "
+            "If True and a tool intent is detected, the tool is executed and its result "
+            "is summarized by the LLM. Falls back to pure RAG if no tool matches. "
+            "Set to False to force pure RAG (e.g., for knowledge-only queries)."
+        ),
     )
 
     @field_validator("query")
@@ -76,6 +92,19 @@ class UsageMetadata(BaseModel):
     model: str = Field(..., description="LLM model identifier that generated the response.")
 
 
+class ToolCallRecord(BaseModel):
+    """Record of a single tool execution within a request."""
+
+    tool_name: str = Field(..., description="Name of the tool that was called.")
+    params: dict[str, Any] = Field(..., description="Parameters passed to the tool.")
+    success: bool = Field(..., description="Whether the tool executed successfully.")
+    error: str | None = Field(None, description="Error message if success=False.")
+    data_summary: dict[str, Any] = Field(
+        default_factory=dict,
+        description="Key fields from tool result data (trimmed for response size).",
+    )
+
+
 class AskResponse(BaseModel):
     """Response body for ``POST /ask``."""
 
@@ -101,3 +130,14 @@ class AskResponse(BaseModel):
         description="Non-fatal warnings (e.g., 'reranking_failed', 'invalid_citations').",
     )
     usage: UsageMetadata = Field(..., description="Token usage and timing metadata.")
+    mode: str = Field(
+        default="rag",
+        description=(
+            "Response mode: 'rag' (pure retrieval), 'tool' (tool executed), "
+            "'hybrid' (tool result + RAG context combined)."
+        ),
+    )
+    tool_calls: list[ToolCallRecord] = Field(
+        default_factory=list,
+        description="Records of tool executions performed during this request.",
+    )
