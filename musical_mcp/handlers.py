@@ -13,14 +13,18 @@ Handler categories:
 
 from __future__ import annotations
 
-import json
 import logging
 import time
-from pathlib import Path
 from typing import Any
 
 from mcp.server.fastmcp import FastMCP
 
+from musical_mcp.resources import (
+    read_kb_metadata,
+    read_practice_logs,
+    read_session_notes,
+    read_setlist,
+)
 from musical_mcp.schemas import (
     URI_KB_METADATA,
     URI_PRACTICE_LOGS,
@@ -560,136 +564,59 @@ def _register_tools(mcp: FastMCP) -> None:
 
 
 def _register_resources(mcp: FastMCP) -> None:
-    """Register all musical state resources."""
+    """
+    Register all musical state resources.
+
+    Each resource delegates immediately to resources.py — no logic here.
+    Docstrings are MCP-visible: they tell the LLM when to read each resource.
+    """
 
     @mcp.resource(URI_PRACTICE_LOGS)
     def get_practice_logs() -> str:
         """
-        Read all logged practice sessions.
+        Read logged practice sessions with stats and gap detection.
 
-        Returns a JSON array of practice session records. Each record includes
-        topic, duration, date, BPM/key practiced, and any session notes.
-        Use this to understand what the user has been working on and identify
-        practice gaps.
+        Returns paginated JSON with sessions array, totals, and stats:
+        total_minutes, topics breakdown, most/least practiced areas.
+        Use this to understand what the user has been working on recently
+        and to identify practice gaps before making suggestions.
         """
-        path = Path("data/practice_sessions.json")
-        if not path.exists():
-            return json.dumps({"sessions": [], "total": 0})
-
-        try:
-            sessions = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(sessions, list):
-                return json.dumps({"sessions": sessions, "total": len(sessions)}, indent=2)
-            return path.read_text(encoding="utf-8")
-        except Exception as exc:
-            logger.error("Failed to read practice logs: %s", exc)
-            return json.dumps({"error": str(exc), "sessions": [], "total": 0})
+        return read_practice_logs()
 
     @mcp.resource(URI_SESSION_NOTES)
     def get_session_notes() -> str:
         """
-        Read all session notes (discoveries, ideas, next steps).
+        Read session notes (discoveries, ideas, problems, next steps).
 
-        Returns a JSON array of note records. Each note has a category
-        (discovery, problem, idea, reference, next_steps), title, content,
-        auto-extracted tags, and creation timestamp.
-        Use this to review what the user has learned and what they plan to do.
+        Returns paginated JSON with notes array, totals, and category counts.
+        Each note has: category, title, content, tags, created_at.
+        Use this to review what the user has learned, what needs solving,
+        and what action items are pending.
         """
-        path = Path("data/session_notes.json")
-        if not path.exists():
-            return json.dumps({"notes": [], "total": 0})
-
-        try:
-            notes = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(notes, list):
-                return json.dumps({"notes": notes, "total": len(notes)}, indent=2)
-            return path.read_text(encoding="utf-8")
-        except Exception as exc:
-            logger.error("Failed to read session notes: %s", exc)
-            return json.dumps({"error": str(exc), "notes": [], "total": 0})
+        return read_session_notes()
 
     @mcp.resource(URI_KB_METADATA)
     def get_kb_metadata() -> str:
         """
         Read metadata about the music production knowledge base.
 
-        Returns statistics about the indexed content: total chunks,
-        source breakdown (PDFs, YouTube, Markdown), and available topics.
-        Use this to understand what's in the knowledge base before searching.
+        Returns: status, total_chunks, per-source breakdown with percentages,
+        and source type classification (pdf/youtube/markdown).
+        Use this to understand what's in the knowledge base before searching,
+        and to diagnose why a query might return insufficient_knowledge.
         """
-        try:
-            import os
-
-            db_url = os.getenv("DATABASE_URL", "")
-            if not db_url:
-                return json.dumps(
-                    {
-                        "status": "unavailable",
-                        "reason": "DATABASE_URL not set",
-                        "total_chunks": 0,
-                    }
-                )
-
-            from sqlalchemy import func
-
-            from db.models import ChunkRecord
-            from db.session import get_session
-
-            with get_session() as session:
-                total = session.query(func.count(ChunkRecord.id)).scalar() or 0
-                sources = (
-                    session.query(
-                        ChunkRecord.source_name,
-                        func.count(ChunkRecord.id).label("count"),
-                    )
-                    .group_by(ChunkRecord.source_name)
-                    .order_by(func.count(ChunkRecord.id).desc())
-                    .limit(20)
-                    .all()
-                )
-                source_list = [{"source": s, "chunks": c} for s, c in sources]
-
-            return json.dumps(
-                {
-                    "status": "ok",
-                    "total_chunks": total,
-                    "sources": source_list,
-                },
-                indent=2,
-            )
-
-        except Exception as exc:
-            logger.error("Failed to read KB metadata: %s", exc)
-            return json.dumps({"status": "error", "reason": str(exc), "total_chunks": 0})
+        return read_kb_metadata()
 
     @mcp.resource(URI_SETLIST)
     def get_setlist() -> str:
         """
         Read the current setlist draft.
 
-        Returns the user's current setlist plan including tracks, BPMs,
-        keys, and ordering notes. This is a mutable resource — use
-        create_session_note with category='next_steps' to update it.
-
-        Note: Setlists are stored as tagged session notes.
-        This resource returns all notes tagged 'setlist'.
+        Returns session notes tagged 'setlist' with last_updated timestamp.
+        Setlists are stored as next_steps notes with the 'setlist' tag.
+        Use this before a DJ set to review the planned track sequence and keys.
         """
-        path = Path("data/session_notes.json")
-        if not path.exists():
-            return json.dumps({"setlist_notes": [], "total": 0})
-
-        try:
-            notes = json.loads(path.read_text(encoding="utf-8"))
-            if isinstance(notes, list):
-                setlist_notes = [n for n in notes if "setlist" in (n.get("tags") or [])]
-                return json.dumps(
-                    {"setlist_notes": setlist_notes, "total": len(setlist_notes)},
-                    indent=2,
-                )
-            return json.dumps({"setlist_notes": [], "total": 0})
-        except Exception as exc:
-            logger.error("Failed to read setlist: %s", exc)
-            return json.dumps({"error": str(exc), "setlist_notes": [], "total": 0})
+        return read_setlist()
 
 
 # ---------------------------------------------------------------------------
