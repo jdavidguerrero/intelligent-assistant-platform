@@ -7,13 +7,13 @@ Pipeline (hybrid mode, use_tools=True):
     0. Tool routing — detect intent, execute tool if matched
        0a. If tool succeeds → synthesize natural language response via LLM → return (mode="tool")
        0b. If no tool matches → continue to RAG pipeline (mode="rag")
-    1. Expand query (intent detection + query expansion)
+    1. Expand query (intent detection + query expansion + sub-domain detection)
     2. Embed query
-    3. Search vector store
+    3. Search vector store — namespaced by sub-domain if detected, global fallback
     4. Confidence check (reject if max_score < threshold)
     5. Rerank results
     6. Format context block
-    7. Build system + user prompts
+    7. Build system + user prompts (inject active_sub_domains)
     8. Generate response via LLM
     9. Parse and validate citations
 
@@ -42,6 +42,7 @@ from core.query_expansion import detect_mastering_intent, expand_query
 from core.rag.citations import extract_citations, validate_citations
 from core.rag.context import RetrievedChunk, format_context_block, format_source_list
 from core.rag.prompts import build_system_prompt, build_user_prompt
+from core.sub_domain_detector import detect_sub_domains
 from db.rerank import rerank_results
 from db.search import search_chunks
 from ingestion.embeddings import OpenAIEmbeddingProvider
@@ -178,9 +179,11 @@ def ask(
     # Steps 1–9: Pure RAG pipeline
     # ------------------------------------------------------------------
 
-    # 1. Query expansion
+    # 1. Query expansion + sub-domain detection
     intent = detect_mastering_intent(body.query)
     expanded_query = expand_query(body.query, intent)
+    sub_domain_result = detect_sub_domains(body.query)
+    active_sub_domains = list(sub_domain_result.active)
 
     # 2. Embed query
     t_embed = time.perf_counter()
@@ -192,10 +195,48 @@ def ask(
         raise HTTPException(status_code=500, detail="Failed to embed query") from exc
     embedding_ms = (time.perf_counter() - t_embed) * 1000
 
-    # 3. Search chunks (fetch 3x for reranking diversity)
+    # 3. Search chunks — namespaced by sub-domain when detected, with global fallback
+    #
+    # Strategy:
+    #   a) If sub-domains detected: search each active sub-domain, merge, deduplicate.
+    #   b) If the filtered search returns fewer than MIN_FILTERED_RESULTS chunks,
+    #      fall back to global search (avoids empty responses for niche queries).
+    #   c) If no sub-domains detected: global search directly.
+    _MIN_FILTERED_RESULTS = 3
     t_search = time.perf_counter()
     try:
-        raw_results = search_chunks(db, query_embedding, top_k=body.top_k * 3)
+        if active_sub_domains:
+            # Per-sub-domain search: allocate top_k * 3 slots, split across domains
+            per_domain_k = max(body.top_k * 2, 6)
+            seen_ids: set[int] = set()
+            merged: list = []
+            for sd in active_sub_domains:
+                for record, score in search_chunks(
+                    db, query_embedding, top_k=per_domain_k, sub_domain=sd
+                ):
+                    rid = id(record)
+                    if rid not in seen_ids:
+                        seen_ids.add(rid)
+                        merged.append((record, score))
+
+            if len(merged) >= _MIN_FILTERED_RESULTS:
+                raw_results = merged
+                logger.info(
+                    "Sub-domain search: domains=%s, results=%d",
+                    active_sub_domains,
+                    len(raw_results),
+                )
+            else:
+                # Not enough filtered results — fall back to global search
+                logger.info(
+                    "Sub-domain search returned %d results (< %d) — falling back to global",
+                    len(merged),
+                    _MIN_FILTERED_RESULTS,
+                )
+                raw_results = search_chunks(db, query_embedding, top_k=body.top_k * 3)
+                active_sub_domains = []  # clear so prompt stays generic
+        else:
+            raw_results = search_chunks(db, query_embedding, top_k=body.top_k * 3)
     except Exception as exc:
         logger.error("Search failed: %s", exc)
         raise HTTPException(status_code=500, detail="Search failed") from exc
@@ -264,8 +305,10 @@ def ask(
     context_block = format_context_block(retrieved_chunks)
     sources_list = format_source_list(retrieved_chunks)
 
-    # 7. Build prompts
-    system_prompt = build_system_prompt()
+    # 7. Build prompts — inject sub-domain context when available
+    system_prompt = build_system_prompt(
+        active_sub_domains=active_sub_domains if active_sub_domains else None,
+    )
     user_prompt = build_user_prompt(body.query, context_block)
 
     # 8. Generate response

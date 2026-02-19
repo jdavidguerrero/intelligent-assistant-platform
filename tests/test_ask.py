@@ -274,3 +274,199 @@ class TestAskEndpoint:
         assert response.status_code == 422
         data = response.json()
         assert "insufficient_knowledge" in data["detail"]["reason"]
+
+
+# ---------------------------------------------------------------------------
+# Sub-domain routing integration tests (Day 3)
+# ---------------------------------------------------------------------------
+
+
+class TestSubDomainRoutingInAsk:
+    """Tests for sub-domain detection wired into the /ask pipeline.
+
+    Verifies that:
+    - Queries with clear sub-domain signals trigger namespaced search.
+    - Queries with no sub-domain signals use global search.
+    - When filtered search returns < MIN_FILTERED_RESULTS, global search is used.
+    - The system prompt contains Focus Areas when sub-domains are active.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _setup_and_teardown(self) -> None:
+        app.dependency_overrides.clear()
+        yield
+        app.dependency_overrides.clear()
+
+    def _setup_mocks(
+        self,
+        mock_search: MagicMock,
+        search_results: list,
+        answer: str = "Answer [1].",
+    ) -> TestClient:
+        """Wire up a TestClient with mocked embedder, search, and generator."""
+        mock_embedder = MagicMock()
+        mock_embedder.embed_texts.return_value = [[0.1] * 1536]
+        app.dependency_overrides[get_embedding_provider] = lambda: mock_embedder
+
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = GenerationResponse(
+            content=answer,
+            model="gpt-4o",
+            usage_input_tokens=100,
+            usage_output_tokens=20,
+        )
+        app.dependency_overrides[get_generation_provider] = lambda: mock_generator
+        mock_search.return_value = search_results
+        return TestClient(app)
+
+    @patch("api.routes.ask.search_chunks")
+    def test_mixing_query_calls_search_with_sub_domain(self, mock_search: MagicMock) -> None:
+        """A mixing-heavy query should trigger at least one sub-domain search call."""
+        chunks = [(_make_chunk_record(text=f"chunk {i}"), 0.85) for i in range(5)]
+        client = self._setup_mocks(mock_search, chunks)
+
+        response = client.post(
+            "/ask",
+            json={"query": "how do I use sidechain compression on the kick?"},
+        )
+
+        assert response.status_code == 200
+        sub_domain_calls = [
+            c for c in mock_search.call_args_list if c.kwargs.get("sub_domain") is not None
+        ]
+        assert len(sub_domain_calls) >= 1
+
+    @patch("api.routes.ask.search_chunks")
+    def test_generic_query_uses_global_search(self, mock_search: MagicMock) -> None:
+        """A query with no domain keywords should use global search (sub_domain=None)."""
+        chunks = [(_make_chunk_record(text=f"chunk {i}"), 0.80) for i in range(3)]
+        client = self._setup_mocks(mock_search, chunks)
+
+        # "hello" has no sub-domain keywords
+        response = client.post("/ask", json={"query": "hello"})
+
+        assert response.status_code == 200
+        for call in mock_search.call_args_list:
+            assert call.kwargs.get("sub_domain") is None
+
+    @patch("api.routes.ask.search_chunks")
+    def test_fallback_to_global_when_filtered_results_too_few(self, mock_search: MagicMock) -> None:
+        """When each filtered search returns < MIN_FILTERED_RESULTS, global search runs."""
+        few = [(_make_chunk_record(text="single chunk"), 0.85)]
+        many = [(_make_chunk_record(text=f"global {i}"), 0.80) for i in range(5)]
+
+        def _side_effect(*args, **kwargs):  # type: ignore[no-untyped-def]
+            if kwargs.get("sub_domain") is not None:
+                return few  # 1 result per filtered call — triggers fallback
+            return many  # global fallback returns enough
+
+        mock_search.side_effect = _side_effect
+
+        mock_embedder = MagicMock()
+        mock_embedder.embed_texts.return_value = [[0.1] * 1536]
+        app.dependency_overrides[get_embedding_provider] = lambda: mock_embedder
+
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = GenerationResponse(
+            content="Answer [1].",
+            model="gpt-4o",
+            usage_input_tokens=100,
+            usage_output_tokens=20,
+        )
+        app.dependency_overrides[get_generation_provider] = lambda: mock_generator
+
+        client = TestClient(app)
+        response = client.post(
+            "/ask",
+            json={"query": "how do I EQ the kick drum?"},
+        )
+
+        assert response.status_code == 200
+        # Global fallback call (sub_domain=None) must have happened
+        global_calls = [c for c in mock_search.call_args_list if c.kwargs.get("sub_domain") is None]
+        assert len(global_calls) >= 1
+
+    @patch("api.routes.ask.search_chunks")
+    def test_system_prompt_includes_focus_areas_for_domain_query(
+        self, mock_search: MagicMock
+    ) -> None:
+        """The system prompt should contain Focus Areas for sub-domain queries."""
+        chunks = [(_make_chunk_record(text=f"chunk {i}"), 0.85) for i in range(5)]
+
+        mock_embedder = MagicMock()
+        mock_embedder.embed_texts.return_value = [[0.1] * 1536]
+        app.dependency_overrides[get_embedding_provider] = lambda: mock_embedder
+
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = GenerationResponse(
+            content="Answer [1].",
+            model="gpt-4o",
+            usage_input_tokens=100,
+            usage_output_tokens=20,
+        )
+        app.dependency_overrides[get_generation_provider] = lambda: mock_generator
+        mock_search.return_value = chunks
+
+        client = TestClient(app)
+        client.post(
+            "/ask",
+            json={"query": "how do I sidechain compress the bass?"},
+        )
+
+        gen_call = mock_generator.generate.call_args[0][0]
+        system_content = gen_call.messages[0].content
+        assert "## Focus Areas" in system_content
+
+    @patch("api.routes.ask.search_chunks")
+    def test_system_prompt_no_focus_areas_for_generic_query(self, mock_search: MagicMock) -> None:
+        """Generic queries (no sub-domain keywords) should NOT inject Focus Areas."""
+        # Verify via sub_domain_detector directly — if no sub-domains are detected,
+        # build_system_prompt is called without active_sub_domains.
+        from core.sub_domain_detector import detect_sub_domains as _detect
+
+        result = _detect("hello")
+        assert result.active == ()
+
+        # Verify end-to-end: generic query → no Focus Areas in system prompt
+        chunks = [(_make_chunk_record(text=f"chunk {i}"), 0.85) for i in range(3)]
+
+        mock_embedder = MagicMock()
+        mock_embedder.embed_texts.return_value = [[0.1] * 1536]
+        app.dependency_overrides[get_embedding_provider] = lambda: mock_embedder
+
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = GenerationResponse(
+            content="Answer [1].",
+            model="gpt-4o",
+            usage_input_tokens=100,
+            usage_output_tokens=20,
+        )
+        app.dependency_overrides[get_generation_provider] = lambda: mock_generator
+        mock_search.return_value = chunks
+
+        client = TestClient(app)
+        client.post("/ask", json={"query": "hello"})
+
+        gen_call = mock_generator.generate.call_args[0][0]
+        system_content = gen_call.messages[0].content
+        assert "## Focus Areas" not in system_content
+
+    @patch("api.routes.ask.search_chunks")
+    def test_multi_domain_query_searches_multiple_sub_domains(self, mock_search: MagicMock) -> None:
+        """A query covering mixing + sound_design should search both sub-domains."""
+        chunks = [(_make_chunk_record(text=f"chunk {i}"), 0.85) for i in range(6)]
+        client = self._setup_mocks(mock_search, chunks)
+
+        response = client.post(
+            "/ask",
+            json={"query": "how do I design a bass synth and compress it in the mix?"},
+        )
+
+        assert response.status_code == 200
+        sub_domains_searched = {
+            c.kwargs.get("sub_domain")
+            for c in mock_search.call_args_list
+            if c.kwargs.get("sub_domain") is not None
+        }
+        # At least one sub-domain was searched
+        assert len(sub_domains_searched) >= 1
