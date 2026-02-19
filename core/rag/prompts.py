@@ -44,17 +44,46 @@ clearly state: "I don't have enough information in my references to answer this 
 """
 
 
-def build_system_prompt() -> str:
+def build_system_prompt(
+    genre_context: str | None = None,
+    active_sub_domains: list[str] | None = None,
+) -> str:
     """Return the system prompt for the RAG assistant.
 
-    Currently returns the static ``SYSTEM_PROMPT``. Extracted as a
-    function so future enhancements (e.g. dynamic persona, user
-    preferences) have a single integration point.
+    Optionally injects structured genre knowledge and sub-domain context
+    to ground the LLM in the specific musical territory of the query.
+
+    When ``genre_context`` is provided, it is appended as a dedicated
+    section after the base prompt. This gives the model explicit facts
+    about the genre (BPM, keys, arrangement template, mixing notes) so
+    it can answer with genre-accurate vocabulary even when the retrieved
+    chunks are generic.
+
+    When ``active_sub_domains`` is provided, a brief scope note tells
+    the model which production disciplines are relevant, reducing the
+    chance of irrelevant tangents.
+
+    Args:
+        genre_context: Optional serialized genre recipe string (e.g. the
+            text of ``organic_house.md`` or a summary of ``ORGANIC_HOUSE``).
+            Must be plain text — will be included verbatim.
+        active_sub_domains: Optional list of active sub-domain names
+            (e.g. ``["mixing", "genre_analysis"]``). Used to scope the
+            model's focus without restricting it entirely.
 
     Returns:
-        The system prompt string.
+        The complete system prompt string.
     """
-    return SYSTEM_PROMPT
+    prompt = SYSTEM_PROMPT
+
+    if active_sub_domains:
+        domains_str = ", ".join(active_sub_domains)
+        prompt += f"\n\n## Focus Areas\nThis query spans the following production disciplines: {domains_str}. Prioritize information relevant to these areas when constructing your answer."
+
+    if genre_context:
+        prompt += f"\n\n## Genre Reference\nThe following is a production recipe for the genre most relevant to this query. Use it as additional grounding context:\n\n{genre_context}"
+
+    return prompt
 
 
 def build_user_prompt(query: str, context_block: str) -> str:
