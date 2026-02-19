@@ -470,3 +470,149 @@ class TestSubDomainRoutingInAsk:
         }
         # At least one sub-domain was searched
         assert len(sub_domains_searched) >= 1
+
+
+# ---------------------------------------------------------------------------
+# Genre recipe injection tests (Day 4)
+# ---------------------------------------------------------------------------
+
+
+class TestGenreRecipeInjectionInAsk:
+    """Tests for genre detection + recipe injection wired into /ask.
+
+    Verifies that:
+    - A genre-specific query injects Genre Reference into the system prompt.
+    - A query with no genre does NOT inject Genre Reference.
+    - Recipe loading failure is handled gracefully (no crash, no injection).
+    """
+
+    @pytest.fixture(autouse=True)
+    def _setup_and_teardown(self) -> None:
+        app.dependency_overrides.clear()
+        yield
+        app.dependency_overrides.clear()
+
+    def _wire(self, mock_search: MagicMock, answer: str = "Answer [1].") -> TestClient:
+        chunks = [(_make_chunk_record(text=f"chunk {i}"), 0.85) for i in range(5)]
+        mock_embedder = MagicMock()
+        mock_embedder.embed_texts.return_value = [[0.1] * 1536]
+        app.dependency_overrides[get_embedding_provider] = lambda: mock_embedder
+
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = GenerationResponse(
+            content=answer,
+            model="gpt-4o",
+            usage_input_tokens=100,
+            usage_output_tokens=20,
+        )
+        app.dependency_overrides[get_generation_provider] = lambda: mock_generator
+        mock_search.return_value = chunks
+        return TestClient(app)
+
+    @patch("api.routes.ask.search_chunks")
+    def test_organic_house_query_injects_genre_reference(
+        self, mock_search: MagicMock
+    ) -> None:
+        """An organic house query should inject ## Genre Reference into system prompt."""
+        from unittest.mock import patch as _patch
+
+        chunks = [(_make_chunk_record(text=f"chunk {i}"), 0.85) for i in range(5)]
+        mock_embedder = MagicMock()
+        mock_embedder.embed_texts.return_value = [[0.1] * 1536]
+        app.dependency_overrides[get_embedding_provider] = lambda: mock_embedder
+
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = GenerationResponse(
+            content="Answer [1].",
+            model="gpt-4o",
+            usage_input_tokens=100,
+            usage_output_tokens=20,
+        )
+        app.dependency_overrides[get_generation_provider] = lambda: mock_generator
+        mock_search.return_value = chunks
+
+        with _patch("api.routes.ask.load_recipe", return_value="BPM: 124. Key: A minor."):
+            client = TestClient(app)
+            client.post("/ask", json={"query": "how do I produce an organic house track?"})
+
+        gen_call = mock_generator.generate.call_args[0][0]
+        system_content = gen_call.messages[0].content
+        assert "## Genre Reference" in system_content
+
+    @patch("api.routes.ask.search_chunks")
+    def test_genre_recipe_content_in_system_prompt(
+        self, mock_search: MagicMock
+    ) -> None:
+        """The recipe text should appear verbatim in the system prompt."""
+        from unittest.mock import patch as _patch
+
+        chunks = [(_make_chunk_record(text=f"chunk {i}"), 0.85) for i in range(5)]
+        mock_embedder = MagicMock()
+        mock_embedder.embed_texts.return_value = [[0.1] * 1536]
+        app.dependency_overrides[get_embedding_provider] = lambda: mock_embedder
+
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = GenerationResponse(
+            content="Answer [1].",
+            model="gpt-4o",
+            usage_input_tokens=100,
+            usage_output_tokens=20,
+        )
+        app.dependency_overrides[get_generation_provider] = lambda: mock_generator
+        mock_search.return_value = chunks
+
+        recipe_text = "BPM: 124. Typical keys: A minor."
+        with _patch("api.routes.ask.load_recipe", return_value=recipe_text):
+            client = TestClient(app)
+            client.post("/ask", json={"query": "organic house bass design tips"})
+
+        gen_call = mock_generator.generate.call_args[0][0]
+        system_content = gen_call.messages[0].content
+        assert recipe_text in system_content
+
+    @patch("api.routes.ask.search_chunks")
+    def test_no_genre_query_no_genre_reference(
+        self, mock_search: MagicMock
+    ) -> None:
+        """A generic query should NOT inject ## Genre Reference."""
+        client = self._wire(mock_search)
+        client.post("/ask", json={"query": "how do I use reverb?"})
+
+        mock_generator = app.dependency_overrides[get_generation_provider]()
+        gen_call = mock_generator.generate.call_args[0][0]
+        system_content = gen_call.messages[0].content
+        assert "## Genre Reference" not in system_content
+
+    @patch("api.routes.ask.search_chunks")
+    def test_recipe_load_failure_does_not_crash(
+        self, mock_search: MagicMock
+    ) -> None:
+        """If load_recipe returns None (file missing), /ask still returns 200."""
+        from unittest.mock import patch as _patch
+
+        chunks = [(_make_chunk_record(text=f"chunk {i}"), 0.85) for i in range(5)]
+        mock_embedder = MagicMock()
+        mock_embedder.embed_texts.return_value = [[0.1] * 1536]
+        app.dependency_overrides[get_embedding_provider] = lambda: mock_embedder
+
+        mock_generator = MagicMock()
+        mock_generator.generate.return_value = GenerationResponse(
+            content="Answer [1].",
+            model="gpt-4o",
+            usage_input_tokens=100,
+            usage_output_tokens=20,
+        )
+        app.dependency_overrides[get_generation_provider] = lambda: mock_generator
+        mock_search.return_value = chunks
+
+        with _patch("api.routes.ask.load_recipe", return_value=None):
+            client = TestClient(app)
+            response = client.post(
+                "/ask", json={"query": "organic house track production"}
+            )
+
+        assert response.status_code == 200
+        # No Genre Reference should be injected when recipe is None
+        gen_call = mock_generator.generate.call_args[0][0]
+        system_content = gen_call.messages[0].content
+        assert "## Genre Reference" not in system_content
