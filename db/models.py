@@ -62,6 +62,7 @@ class ChunkRecord(Base):
     token_end: Mapped[int] = mapped_column(Integer)
     text: Mapped[str] = mapped_column(Text)
     page_number: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sub_domain: Mapped[str | None] = mapped_column(String(64), nullable=True, index=True)
     embedding: Mapped[list[float]] = mapped_column(Vector(1536))
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

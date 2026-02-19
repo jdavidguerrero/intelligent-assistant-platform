@@ -1,0 +1,41 @@
+"""Keywords and path patterns for the mixing sub-domain."""
+
+KEYWORDS: tuple[str, ...] = (
+    "mixing",
+    "eq",
+    "equalizer",
+    "compression",
+    "compressor",
+    "mastering",
+    "sidechain",
+    "side-chain",
+    "reverb",
+    "delay",
+    "stereo width",
+    "gain staging",
+    "headroom",
+    "loudness",
+    "lufs",
+    "frequency",
+    "high-pass",
+    "low-pass",
+    "transient",
+    "bus",
+    "stem",
+    "multiband",
+    "limiter",
+    "saturation",
+    "parallel",
+)
+
+PATH_PATTERNS: tuple[str, ...] = (
+    "/mixing-the-beat/",
+    "/starting-the-mix/",
+    "/bass-synths-and-fx/",
+    "/vocal-mix/",
+    "/mix-mastering/",
+    "/mastering/",
+    "mixing",
+    "mastering",
+    "session-setup",
+)
