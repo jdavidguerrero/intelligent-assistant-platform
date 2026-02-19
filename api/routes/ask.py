@@ -7,7 +7,7 @@ Pipeline (hybrid mode, use_tools=True):
     0. Tool routing — detect intent, execute tool if matched
        0a. If tool succeeds → synthesize natural language response via LLM → return (mode="tool")
        0b. If no tool matches → continue to RAG pipeline (mode="rag")
-    1. Expand query (intent detection + query expansion + sub-domain detection)
+    1. Expand query (intent + expansion + sub-domain detection + genre detection)
     2. Embed query
     3. Search vector store — namespaced by sub-domain if detected, global fallback
     4. Confidence check (reject if max_score < threshold)
@@ -38,6 +38,7 @@ from api.schemas.ask import (
     UsageMetadata,
 )
 from core.generation.base import GenerationProvider, GenerationRequest, Message
+from core.genre_detector import detect_genre
 from core.query_expansion import detect_mastering_intent, expand_query
 from core.rag.citations import extract_citations, validate_citations
 from core.rag.context import RetrievedChunk, format_context_block, format_source_list
@@ -46,6 +47,7 @@ from core.sub_domain_detector import detect_sub_domains
 from db.rerank import rerank_results
 from db.search import search_chunks
 from ingestion.embeddings import OpenAIEmbeddingProvider
+from ingestion.recipes import load_recipe
 from tools.router import ToolRouter
 
 logger = logging.getLogger(__name__)
@@ -179,11 +181,12 @@ def ask(
     # Steps 1–9: Pure RAG pipeline
     # ------------------------------------------------------------------
 
-    # 1. Query expansion + sub-domain detection
+    # 1. Query expansion + sub-domain detection + genre detection
     intent = detect_mastering_intent(body.query)
     expanded_query = expand_query(body.query, intent)
     sub_domain_result = detect_sub_domains(body.query)
     active_sub_domains = list(sub_domain_result.active)
+    genre_result = detect_genre(body.query)
 
     # 2. Embed query
     t_embed = time.perf_counter()
@@ -305,9 +308,16 @@ def ask(
     context_block = format_context_block(retrieved_chunks)
     sources_list = format_source_list(retrieved_chunks)
 
-    # 7. Build prompts — inject sub-domain context when available
+    # 7. Build prompts — inject sub-domain focus areas and genre recipe when available
+    genre_context: str | None = None
+    if genre_result.has_recipe and genre_result.recipe_file:
+        genre_context = load_recipe(genre_result.recipe_file)
+        if genre_context:
+            logger.info("Injecting genre recipe: %s", genre_result.genre)
+
     system_prompt = build_system_prompt(
         active_sub_domains=active_sub_domains if active_sub_domains else None,
+        genre_context=genre_context,
     )
     user_prompt = build_user_prompt(body.query, context_block)
 
