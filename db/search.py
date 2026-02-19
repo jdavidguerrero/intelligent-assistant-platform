@@ -16,6 +16,8 @@ def search_chunks(
     session: Session,
     query_embedding: list[float],
     top_k: int = 5,
+    *,
+    sub_domain: str | None = None,
 ) -> list[tuple[ChunkRecord, float]]:
     """
     Find the most similar chunks to a query embedding using cosine distance.
@@ -27,6 +29,10 @@ def search_chunks(
         session: Active SQLAlchemy session.
         query_embedding: Dense vector (1536 floats) representing the query.
         top_k: Maximum number of results to return.  Must be >= 1.
+        sub_domain: Optional sub-domain filter (e.g. ``"mixing"``).
+            When provided, only chunks tagged with this sub-domain are
+            considered.  Uses the partial index on ``chunk_records.sub_domain``
+            for efficient filtering.
 
     Returns:
         List of ``(ChunkRecord, score)`` tuples where
@@ -42,6 +48,9 @@ def search_chunks(
     distance = ChunkRecord.embedding.cosine_distance(query_embedding).label("distance")
 
     stmt = select(ChunkRecord, distance).order_by(distance).limit(top_k)
+
+    if sub_domain is not None:
+        stmt = stmt.where(ChunkRecord.sub_domain == sub_domain)
 
     results = session.execute(stmt).all()
 
@@ -106,6 +115,7 @@ def hybrid_search(
     vector_weight: float = 0.7,
     keyword_weight: float = 0.3,
     rrf_k: int = 60,
+    sub_domain: str | None = None,
 ) -> list[tuple[ChunkRecord, float]]:
     """
     Combine vector and keyword search via Reciprocal Rank Fusion (RRF).
@@ -125,6 +135,7 @@ def hybrid_search(
         vector_weight: Weight for vector search contribution.
         keyword_weight: Weight for keyword search contribution.
         rrf_k: RRF constant (higher = less emphasis on top ranks).
+        sub_domain: Optional sub-domain filter propagated to vector search.
 
     Returns:
         Fused ``(ChunkRecord, rrf_score)`` tuples, highest first.
@@ -132,7 +143,7 @@ def hybrid_search(
     # Fetch more candidates from each source for better fusion
     fetch_k = top_k * 3
 
-    vector_results = search_chunks(session, query_embedding, top_k=fetch_k)
+    vector_results = search_chunks(session, query_embedding, top_k=fetch_k, sub_domain=sub_domain)
     keyword_results = search_chunks_keyword(session, query_terms, top_k=fetch_k)
 
     # Build RRF scores keyed by ChunkRecord.id

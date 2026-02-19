@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from domains.music.tagger_logic import infer_sub_domain
 
 

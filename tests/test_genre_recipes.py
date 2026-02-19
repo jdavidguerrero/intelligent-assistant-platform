@@ -115,29 +115,25 @@ class TestAllRecipesImportable:
 
     def test_all_bpm_ranges_valid(self) -> None:
         for recipe in ALL_RECIPES:
-            assert recipe.bpm_range[0] < recipe.bpm_range[1], (
-                f"{recipe.genre_id}: bpm_range invalid"
-            )
+            assert (
+                recipe.bpm_range[0] < recipe.bpm_range[1]
+            ), f"{recipe.genre_id}: bpm_range invalid"
 
     def test_all_typical_bpm_within_range(self) -> None:
         for recipe in ALL_RECIPES:
             lo, hi = recipe.bpm_range
-            assert lo <= recipe.typical_bpm <= hi, (
-                f"{recipe.genre_id}: typical_bpm out of range"
-            )
+            assert lo <= recipe.typical_bpm <= hi, f"{recipe.genre_id}: typical_bpm out of range"
 
     def test_all_arrangements_non_empty(self) -> None:
         for recipe in ALL_RECIPES:
-            assert len(recipe.arrangement) > 0, (
-                f"{recipe.genre_id}: arrangement is empty"
-            )
+            assert len(recipe.arrangement) > 0, f"{recipe.genre_id}: arrangement is empty"
 
     def test_all_sub_domain_tags_valid(self) -> None:
         for recipe in ALL_RECIPES:
             for tag in recipe.sub_domain_tags:
-                assert tag in MUSIC_SUB_DOMAINS, (
-                    f"{recipe.genre_id}: invalid sub_domain_tag {tag!r}"
-                )
+                assert (
+                    tag in MUSIC_SUB_DOMAINS
+                ), f"{recipe.genre_id}: invalid sub_domain_tag {tag!r}"
 
     def test_all_sound_palettes_non_empty(self) -> None:
         for recipe in ALL_RECIPES:

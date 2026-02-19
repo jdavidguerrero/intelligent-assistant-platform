@@ -3,6 +3,7 @@ Tests for the semantic search endpoint.
 
 Covers:
 - db/search.py: search_chunks input validation
+- db/search.py: sub_domain filter (Day 2)
 - api/schemas/search.py: Pydantic validation
 - api/routes/search.py: POST /search endpoint integration
 - Response headers for observability
@@ -283,6 +284,123 @@ class TestSearchChunks:
         session = MagicMock(spec=Session)
         with pytest.raises(ValueError, match="top_k must be >= 1"):
             search_chunks(session, FAKE_EMBEDDING, top_k=-5)
+
+
+# ---------------------------------------------------------------------------
+# sub_domain filter tests (Day 2)
+# ---------------------------------------------------------------------------
+
+
+class TestSearchChunksSubDomainFilter:
+    """Tests for the sub_domain filter added in Week 5 Day 2.
+
+    We verify the SQL query construction by inspecting the WHERE clause
+    of the compiled statement, without actually hitting a real DB.
+    """
+
+    def _build_stmt(self, sub_domain: str | None) -> str:
+        """Return the WHERE clause SQL string for the given sub_domain."""
+
+        # We compile the statement directly to inspect its SQL without executing.
+        # We import here to avoid polluting module scope and to keep this self-contained.
+        from unittest.mock import MagicMock
+
+        from db.search import search_chunks as _search_chunks
+
+        # Intercept the session.execute() call and capture the statement
+        captured: list = []
+
+        class _CapturingSession(MagicMock):
+            def execute(self, stmt, *args, **kwargs):  # type: ignore[override]
+                captured.append(stmt)
+                result = MagicMock()
+                result.all.return_value = []
+                return result
+
+        session = _CapturingSession(spec=Session)
+        _search_chunks(session, FAKE_EMBEDDING, top_k=5, sub_domain=sub_domain)
+
+        if not captured:
+            return ""
+        # Compile to string for inspection
+        stmt = captured[0]
+        compiled = str(stmt.compile(compile_kwargs={"literal_binds": False}))
+        return compiled
+
+    def test_no_sub_domain_no_where_filter(self) -> None:
+        """When sub_domain=None, no WHERE sub_domain equality clause is added.
+
+        The column ``chunk_records.sub_domain`` appears in the SELECT list
+        regardless — we check that a WHERE equality constraint is absent.
+        """
+        sql = self._build_stmt(sub_domain=None)
+        # No WHERE ... sub_domain = :param means no equality predicate
+        assert "WHERE" not in sql or "sub_domain =" not in sql
+
+    def test_sub_domain_filter_adds_where_clause(self) -> None:
+        """When sub_domain is provided, a WHERE sub_domain equality clause is added."""
+        sql = self._build_stmt(sub_domain="mixing")
+        # The WHERE clause must include a sub_domain equality predicate
+        assert "WHERE" in sql
+        assert "sub_domain" in sql
+
+    def test_sub_domain_none_by_default(self) -> None:
+        """Default call (no sub_domain kwarg) behaves like sub_domain=None."""
+        captured: list = []
+
+        class _CapturingSession(MagicMock):
+            def execute(self, stmt, *args, **kwargs):  # type: ignore[override]
+                captured.append(stmt)
+                result = MagicMock()
+                result.all.return_value = []
+                return result
+
+        session = _CapturingSession(spec=Session)
+        search_chunks(session, FAKE_EMBEDDING, top_k=3)
+        assert len(captured) == 1
+        sql = str(captured[0].compile(compile_kwargs={"literal_binds": False}))
+        # Same check: no WHERE sub_domain equality predicate
+        assert "WHERE" not in sql or "sub_domain =" not in sql
+
+    def test_sub_domain_filter_result_mapped(self) -> None:
+        """search_chunks maps (ChunkRecord, distance) rows to (ChunkRecord, score)."""
+        from db.models import ChunkRecord
+
+        mock_record = MagicMock(spec=ChunkRecord)
+        mock_row = MagicMock()
+        mock_row.ChunkRecord = mock_record
+        mock_row.distance = 0.2  # cosine distance → score = 1 - 0.2 = 0.8
+
+        mock_result = MagicMock()
+        mock_result.all.return_value = [mock_row]
+
+        session = MagicMock(spec=Session)
+        session.execute.return_value = mock_result
+
+        results = search_chunks(session, FAKE_EMBEDDING, top_k=1, sub_domain="mixing")
+        assert len(results) == 1
+        record, score = results[0]
+        assert record is mock_record
+        assert abs(score - 0.8) < 1e-9
+
+    def test_valid_sub_domain_names_accepted(self) -> None:
+        """All six valid sub-domain names are accepted without error."""
+        valid_domains = [
+            "sound_design",
+            "arrangement",
+            "mixing",
+            "genre_analysis",
+            "live_performance",
+            "practice",
+        ]
+        for domain in valid_domains:
+            mock_result = MagicMock()
+            mock_result.all.return_value = []
+            session = MagicMock(spec=Session)
+            session.execute.return_value = mock_result
+            # Should not raise
+            results = search_chunks(session, FAKE_EMBEDDING, top_k=1, sub_domain=domain)
+            assert results == []
 
 
 # ---------------------------------------------------------------------------
