@@ -27,6 +27,7 @@ markers = [
     "unit: Pure unit tests — no I/O, no mocks (default for core/)",
     "integration: Tests that use FastAPI TestClient or mock external services",
     "slow: Tests with time.sleep or heavy computation",
+    "load: Burst pattern and concurrency tests — simulate production traffic",
 ]
 filterwarnings = [
     "error",              # Turn warnings into errors
