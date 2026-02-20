@@ -175,10 +175,12 @@ class TestAskEndpoint:
         assert "invalid_citations" in data["warnings"]
 
     @patch("api.routes.ask.search_chunks")
-    def test_embedding_failure_returns_500(
+    def test_embedding_failure_returns_503(
         self,
         mock_search: MagicMock,
     ) -> None:
+        # Day 3: embedding failure now returns 503 (service unavailable)
+        # instead of 500 (programming error). Circuit breaker tracks it.
         mock_embedder = MagicMock()
         mock_embedder.embed_texts.side_effect = Exception("API error")
         app.dependency_overrides[get_embedding_provider] = lambda: mock_embedder
@@ -186,14 +188,16 @@ class TestAskEndpoint:
         client = TestClient(app)
         response = client.post("/ask", json={"query": "test"})
 
-        assert response.status_code == 500
-        assert "embed" in response.json()["detail"].lower()
+        assert response.status_code == 503
+        detail = response.json()["detail"]
+        assert detail["reason"] == "embedding_unavailable"
 
     @patch("api.routes.ask.search_chunks")
-    def test_search_failure_returns_500(
+    def test_search_failure_returns_503(
         self,
         mock_search: MagicMock,
     ) -> None:
+        # Day 3: search failure now returns 503 instead of 500.
         mock_embedder = MagicMock()
         mock_embedder.embed_texts.return_value = [[0.1] * 1536]
         app.dependency_overrides[get_embedding_provider] = lambda: mock_embedder
@@ -203,14 +207,17 @@ class TestAskEndpoint:
         client = TestClient(app)
         response = client.post("/ask", json={"query": "test"})
 
-        assert response.status_code == 500
-        assert "search" in response.json()["detail"].lower()
+        assert response.status_code == 503
+        detail = response.json()["detail"]
+        assert detail["reason"] == "search_unavailable"
 
     @patch("api.routes.ask.search_chunks")
-    def test_generation_failure_returns_500(
+    def test_generation_failure_returns_degraded(
         self,
         mock_search: MagicMock,
     ) -> None:
+        # Day 3: LLM failure now returns a degraded response (200 with mode="degraded")
+        # instead of 500. The musician gets raw chunks instead of a hard error.
         mock_embedder = MagicMock()
         mock_embedder.embed_texts.return_value = [[0.1] * 1536]
         app.dependency_overrides[get_embedding_provider] = lambda: mock_embedder
@@ -225,8 +232,12 @@ class TestAskEndpoint:
         client = TestClient(app)
         response = client.post("/ask", json={"query": "test"})
 
-        assert response.status_code == 500
-        assert "generation" in response.json()["detail"].lower()
+        assert response.status_code == 200
+        data = response.json()
+        assert data["mode"] == "degraded"
+        assert data["usage"]["model"] == "degraded-mode"
+        assert len(data["warnings"]) > 0
+        assert len(data["answer"]) > 0
 
     def test_empty_query_rejected(self) -> None:
         client = TestClient(app)

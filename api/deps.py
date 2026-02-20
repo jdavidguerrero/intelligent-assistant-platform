@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 from core.generation.base import GenerationProvider
 from db.session import SessionLocal
 from infrastructure.cache import ResponseCache
+from infrastructure.circuit_breaker import CircuitBreaker
 from infrastructure.rate_limiter import RateLimiter
 from ingestion.embeddings import OpenAIEmbeddingProvider
 from ingestion.generation import create_generation_provider
@@ -87,3 +88,45 @@ def get_rate_limiter() -> RateLimiter:
     if _rate_limiter is None:
         _rate_limiter = RateLimiter(max_requests=30, window_seconds=60)
     return _rate_limiter
+
+
+# ---------------------------------------------------------------------------
+# Circuit breakers — one per external service
+# ---------------------------------------------------------------------------
+
+# LLM generation breaker: trips after 3 consecutive failures,
+# resets after 30s. Used for both OpenAI and Anthropic generation calls.
+_llm_breaker: CircuitBreaker | None = None
+
+# Embedding breaker: trips after 3 consecutive failures.
+# Separate from LLM because embeddings and generation use different
+# API quotas and can fail independently.
+_embedding_breaker: CircuitBreaker | None = None
+
+
+def get_llm_breaker() -> CircuitBreaker:
+    """Return the LLM generation circuit breaker singleton.
+
+    Shared across all requests so failure counts accumulate correctly
+    across the lifetime of the server process.
+    """
+    global _llm_breaker  # noqa: PLW0603
+    if _llm_breaker is None:
+        _llm_breaker = CircuitBreaker(
+            name="llm_generation",
+            failure_threshold=3,
+            reset_timeout_seconds=30.0,
+        )
+    return _llm_breaker
+
+
+def get_embedding_breaker() -> CircuitBreaker:
+    """Return the embedding circuit breaker singleton."""
+    global _embedding_breaker  # noqa: PLW0603
+    if _embedding_breaker is None:
+        _embedding_breaker = CircuitBreaker(
+            name="embedding",
+            failure_threshold=3,
+            reset_timeout_seconds=30.0,
+        )
+    return _embedding_breaker

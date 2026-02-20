@@ -31,8 +31,10 @@ from sqlalchemy.orm import Session
 
 from api.deps import (
     get_db,
+    get_embedding_breaker,
     get_embedding_provider,
     get_generation_provider,
+    get_llm_breaker,
     get_rate_limiter,
     get_response_cache,
 )
@@ -48,11 +50,13 @@ from core.genre_detector import detect_genre
 from core.query_expansion import detect_intents, detect_mastering_intent, expand_query
 from core.rag.citations import extract_citations, validate_citations
 from core.rag.context import RetrievedChunk, format_context_block, format_source_list
+from core.rag.degraded import build_degraded_response
 from core.rag.prompts import build_system_prompt, build_user_prompt
 from core.sub_domain_detector import detect_sub_domains
 from db.rerank import rerank_results
 from db.search import hybrid_search, search_chunks
 from infrastructure.cache import ResponseCache
+from infrastructure.circuit_breaker import CircuitBreaker, CircuitOpenError
 from infrastructure.metrics import (
     record_ask,
     record_cache_hit,
@@ -154,6 +158,8 @@ def _summarize_tool_data(tool_name: str, data: dict | None) -> dict[str, Any]:
 
 RespCache = Annotated[ResponseCache, Depends(get_response_cache)]
 Limiter = Annotated[RateLimiter, Depends(get_rate_limiter)]
+LLMBreaker = Annotated[CircuitBreaker, Depends(get_llm_breaker)]
+EmbBreaker = Annotated[CircuitBreaker, Depends(get_embedding_breaker)]
 
 
 @router.post("/ask", response_model=AskResponse)
@@ -164,6 +170,8 @@ def ask(
     generator: Generator,
     response_cache: RespCache,
     rate_limiter: Limiter,
+    llm_breaker: LLMBreaker,
+    embedding_breaker: EmbBreaker,
 ) -> AskResponse:
     """
     Answer a question using hybrid tool routing + grounded RAG.
@@ -181,7 +189,9 @@ def ask(
     Raises:
         HTTPException 422: Insufficient knowledge (RAG mode only).
         HTTPException 429: Rate limit exceeded.
-        HTTPException 500: Embedding, search, or generation failure.
+        HTTPException 503: Embedding or search unavailable (no chunks to degrade to).
+    Returns a degraded response (mode="degraded") when the LLM fails but chunks
+    are available — the musician gets raw excerpts instead of a 500 error.
     """
     t_start = time.perf_counter()
     warnings: list[str] = []
@@ -263,14 +273,48 @@ def ask(
     # Record cache miss (we didn't return early from the cache check)
     record_cache_miss()
 
-    # 2. Embed query
+    # 2. Embed query — protected by circuit breaker
+    #
+    # If the embedding service is down, the circuit opens after 3 failures and
+    # subsequent calls fail immediately (<1ms) with CircuitOpenError.
+    # We convert this to a 503 (not 500) because it's a known, expected failure
+    # mode during an outage — not a programming error.
     t_embed = time.perf_counter()
     try:
-        embeddings = embedder.embed_texts([expanded_query])
+        embeddings = embedding_breaker.call(embedder.embed_texts, [expanded_query])
         query_embedding = embeddings[0]
+    except CircuitOpenError as exc:
+        # Circuit is open — embedding service is known-down, fail fast
+        logger.warning("Embedding circuit open: %s", exc)
+        record_ask(
+            status="error",
+            subdomain="global",
+            latency_seconds=(time.perf_counter() - t_start),
+        )
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "reason": "embedding_unavailable",
+                "message": (
+                    "The embedding service is temporarily unavailable. "
+                    f"Will retry in ~{exc.reset_in_seconds:.0f}s."
+                ),
+            },
+        ) from exc
     except Exception as exc:
         logger.error("Embedding failed: %s", exc)
-        raise HTTPException(status_code=500, detail="Failed to embed query") from exc
+        record_ask(
+            status="error",
+            subdomain="global",
+            latency_seconds=(time.perf_counter() - t_start),
+        )
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "reason": "embedding_unavailable",
+                "message": "Failed to embed query. Please try again.",
+            },
+        ) from exc
     embedding_ms = (time.perf_counter() - t_embed) * 1000
     emb_cache_hit = getattr(embedder, "last_cache_hit", False)
     if emb_cache_hit:
@@ -341,8 +385,21 @@ def ask(
             else:
                 raw_results = search_chunks(db, query_embedding, top_k=body.top_k * 3)
     except Exception as exc:
+        # Search failure: no chunks available, can't build a degraded response.
+        # Return 503 (service unavailable) — the vector DB is down, not a code bug.
         logger.error("Search failed: %s", exc)
-        raise HTTPException(status_code=500, detail="Search failed") from exc
+        record_ask(
+            status="error",
+            subdomain="global",
+            latency_seconds=(time.perf_counter() - t_start),
+        )
+        raise HTTPException(
+            status_code=503,
+            detail={
+                "reason": "search_unavailable",
+                "message": "Vector search failed. Please try again in a moment.",
+            },
+        ) from exc
 
     # 4. Rerank — derive filename boost keywords from all matched intents
     _FILENAME_BOOST_MAP: dict[str, list[str]] = {
@@ -437,10 +494,22 @@ def ask(
     )
     user_prompt = build_user_prompt(body.query, context_block)
 
-    # 8. Generate response
+    # 8. Generate response — protected by circuit breaker
+    #
+    # Graceful degradation path:
+    #   - CircuitOpenError → LLM known-down → return raw chunks (mode="degraded")
+    #   - Any Exception    → LLM call failed → record failure, return raw chunks
+    #
+    # Why return degraded instead of 500?
+    #   At this point we have high-quality chunks from pgvector. A 500 discards
+    #   that work. A degraded response delivers real value: the musician can read
+    #   the source excerpts and keep working. "Here's what I found" beats "Server Error".
     t_gen = time.perf_counter()
+    degraded_reason: str | None = None
+    gen_response = None
     try:
-        gen_response = generator.generate(
+        gen_response = llm_breaker.call(
+            generator.generate,
             GenerationRequest(
                 messages=(
                     Message(role="system", content=system_prompt),
@@ -448,12 +517,63 @@ def ask(
                 ),
                 temperature=body.temperature,
                 max_tokens=body.max_tokens,
-            )
+            ),
         )
+    except CircuitOpenError as exc:
+        # Circuit is open — LLM service is known-down, short-circuit immediately
+        logger.warning("LLM circuit open, returning degraded response: %s", exc)
+        degraded_reason = "circuit_open"
     except Exception as exc:
-        logger.error("Generation failed: %s", exc)
-        raise HTTPException(status_code=500, detail="LLM generation failed") from exc
+        # Real LLM failure — breaker recorded it
+        logger.error("Generation failed, returning degraded response: %s", exc)
+        degraded_reason = "llm_unavailable"
     generation_ms = (time.perf_counter() - t_gen) * 1000
+
+    # If generation failed, return degraded response with raw chunks
+    if degraded_reason is not None:
+        degraded = build_degraded_response(
+            query=body.query,
+            retrieved_chunks=retrieved_chunks,
+            reason=degraded_reason,
+        )
+        total_ms = (time.perf_counter() - t_start) * 1000
+        subdomain_label = active_sub_domains[0] if active_sub_domains else "global"
+        record_ask(
+            status="degraded",
+            subdomain=subdomain_label,
+            latency_seconds=total_ms / 1000,
+        )
+        return AskResponse(
+            query=body.query,
+            answer=degraded.answer,
+            sources=[
+                SourceReference(
+                    index=i,
+                    source_name=chunk.source_name,
+                    source_path=chunk.source_path,
+                    page_number=chunk.page_number,
+                    score=chunk.score,
+                )
+                for i, chunk in enumerate(retrieved_chunks, start=1)
+            ],
+            citations=degraded.citations,
+            reason=None,
+            warnings=[degraded.warning],
+            usage=UsageMetadata(
+                input_tokens=0,
+                output_tokens=0,
+                total_tokens=0,
+                embedding_ms=round(embedding_ms, 2),
+                search_ms=round(search_ms, 2),
+                generation_ms=round(generation_ms, 2),
+                total_ms=round(total_ms, 2),
+                model="degraded-mode",
+                cache_hit=False,
+                embedding_cache_hit=emb_cache_hit,
+            ),
+            mode="degraded",
+            tool_calls=[],
+        )
 
     # 9. Parse and validate citations
     extracted_citations = extract_citations(gen_response.content)
