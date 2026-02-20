@@ -5,9 +5,10 @@ Defines request validation and response serialization for the
 grounded RAG question-answering endpoint.
 
 Response modes:
-  "rag"    — Pure RAG: embed → search → generate with citations.
-  "tool"   — Tool execution: intent matched, tool called, result summarized by LLM.
-  "hybrid" — Tool result injected as context into RAG pipeline (future).
+  "rag"      — Pure RAG: embed → search → generate with citations.
+  "tool"     — Tool execution: intent matched, tool called, result summarized by LLM.
+  "degraded" — LLM unavailable: raw pgvector chunks shown directly, no generation.
+  "hybrid"   — Tool result injected as context into RAG pipeline (future).
 """
 
 from typing import Any
@@ -149,8 +150,11 @@ class AskResponse(BaseModel):
     mode: str = Field(
         default="rag",
         description=(
-            "Response mode: 'rag' (pure retrieval), 'tool' (tool executed), "
-            "'hybrid' (tool result + RAG context combined)."
+            "Response mode: "
+            "'rag' (pure retrieval + LLM generation), "
+            "'tool' (tool executed + LLM synthesis), "
+            "'degraded' (LLM unavailable — raw knowledge base excerpts shown directly), "
+            "'hybrid' (tool result + RAG context combined, future)."
         ),
     )
     tool_calls: list[ToolCallRecord] = Field(
