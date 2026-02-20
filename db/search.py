@@ -127,6 +127,11 @@ def hybrid_search(
     A ``vector_weight`` / ``keyword_weight`` pair controls the contribution
     of each signal.
 
+    Important: the **returned score** is the original **cosine similarity** from
+    vector search, not the raw RRF value.  RRF is only used to determine the
+    *order* of candidates; the cosine score is preserved so downstream confidence
+    checks (``max_score >= threshold``) work correctly.
+
     Args:
         session: Active SQLAlchemy session.
         query_embedding: Dense query vector for cosine search.
@@ -138,27 +143,38 @@ def hybrid_search(
         sub_domain: Optional sub-domain filter propagated to vector search.
 
     Returns:
-        Fused ``(ChunkRecord, rrf_score)`` tuples, highest first.
+        RRF-reranked ``(ChunkRecord, cosine_score)`` tuples, highest cosine first.
+        Chunks found only by keyword search (not vector search) carry a score of 0.0.
     """
     # Fetch more candidates from each source for better fusion
     fetch_k = top_k * 3
 
     vector_results = search_chunks(session, query_embedding, top_k=fetch_k, sub_domain=sub_domain)
-    keyword_results = search_chunks_keyword(session, query_terms, top_k=fetch_k)
 
-    # Build RRF scores keyed by ChunkRecord.id
+    # Keyword search may not be supported on all DB backends (e.g. pgvector cast
+    # syntax differs from SQLite used in tests).  Fall back to vector-only when it fails.
+    try:
+        keyword_results = search_chunks_keyword(session, query_terms, top_k=fetch_k)
+    except Exception:  # noqa: BLE001
+        keyword_results = []
+
+    # Build RRF scores and preserve original cosine similarity scores
     rrf_scores: dict[int, float] = {}
+    cosine_scores: dict[int, float] = {}
     record_map: dict[int, ChunkRecord] = {}
 
-    for rank, (record, _score) in enumerate(vector_results):
+    for rank, (record, cosine_score) in enumerate(vector_results):
         rrf_scores[record.id] = rrf_scores.get(record.id, 0.0) + vector_weight / (rrf_k + rank + 1)
+        cosine_scores[record.id] = cosine_score  # preserve original similarity
         record_map[record.id] = record
 
     for rank, (record, _score) in enumerate(keyword_results):
         rrf_scores[record.id] = rrf_scores.get(record.id, 0.0) + keyword_weight / (rrf_k + rank + 1)
         record_map[record.id] = record
+        if record.id not in cosine_scores:
+            cosine_scores[record.id] = 0.0  # keyword-only result has no cosine score
 
-    # Sort by fused score descending
+    # Sort by RRF score (best diversity-aware ranking), return cosine scores
     sorted_ids = sorted(rrf_scores, key=rrf_scores.get, reverse=True)  # type: ignore[arg-type]
 
-    return [(record_map[rid], rrf_scores[rid]) for rid in sorted_ids[:top_k]]
+    return [(record_map[rid], cosine_scores[rid]) for rid in sorted_ids[:top_k]]

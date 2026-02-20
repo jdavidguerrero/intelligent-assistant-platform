@@ -29,7 +29,9 @@ pgvector==0.4.2
 pluggy==1.6.0
 psycopg==3.3.2
 psycopg-binary==3.3.2
+pdf2image==1.17.0
 pdfplumber==0.11.9
+google-cloud-vision==3.12.1
 pydantic==2.12.5
 pydantic_core==2.41.5
 Pygments==2.19.2

@@ -39,13 +39,13 @@ from api.schemas.ask import (
 )
 from core.generation.base import GenerationProvider, GenerationRequest, Message
 from core.genre_detector import detect_genre
-from core.query_expansion import detect_mastering_intent, expand_query
+from core.query_expansion import detect_intents, detect_mastering_intent, expand_query
 from core.rag.citations import extract_citations, validate_citations
 from core.rag.context import RetrievedChunk, format_context_block, format_source_list
 from core.rag.prompts import build_system_prompt, build_user_prompt
 from core.sub_domain_detector import detect_sub_domains
 from db.rerank import rerank_results
-from db.search import search_chunks
+from db.search import hybrid_search, search_chunks
 from ingestion.embeddings import OpenAIEmbeddingProvider
 from ingestion.recipes import load_recipe
 from tools.router import ToolRouter
@@ -182,8 +182,22 @@ def ask(
     # ------------------------------------------------------------------
 
     # 1. Query expansion + sub-domain detection + genre detection
-    intent = detect_mastering_intent(body.query)
+    # Use multi-intent detection to cover all music production domains
+    intents = detect_intents(body.query)
+    intent = intents[0] if intents else detect_mastering_intent(body.query)
     expanded_query = expand_query(body.query, intent)
+    # Extract keywords from all matched intents for hybrid search
+    query_terms: list[str] = []
+    for detected_intent in intents:
+        query_terms.extend(detected_intent.keywords)
+    # Deduplicate while preserving order
+    seen_terms: set[str] = set()
+    unique_terms: list[str] = []
+    for term in query_terms:
+        if term not in seen_terms:
+            seen_terms.add(term)
+            unique_terms.append(term)
+    query_terms = unique_terms
     sub_domain_result = detect_sub_domains(body.query)
     active_sub_domains = list(sub_domain_result.active)
     genre_result = detect_genre(body.query)
@@ -236,18 +250,56 @@ def ask(
                     len(merged),
                     _MIN_FILTERED_RESULTS,
                 )
-                raw_results = search_chunks(db, query_embedding, top_k=body.top_k * 3)
+                # Fallback: use hybrid if we have query terms
+                if query_terms:
+                    raw_results = hybrid_search(
+                        db,
+                        query_embedding,
+                        query_terms,
+                        top_k=body.top_k * 3,
+                        vector_weight=0.7,
+                        keyword_weight=0.3,
+                    )
+                else:
+                    raw_results = search_chunks(db, query_embedding, top_k=body.top_k * 3)
                 active_sub_domains = []  # clear so prompt stays generic
         else:
-            raw_results = search_chunks(db, query_embedding, top_k=body.top_k * 3)
+            # Use hybrid search (RRF: vector + keyword) when intent keywords detected
+            if query_terms:
+                raw_results = hybrid_search(
+                    db,
+                    query_embedding,
+                    query_terms,
+                    top_k=body.top_k * 3,
+                    vector_weight=0.7,
+                    keyword_weight=0.3,
+                )
+            else:
+                raw_results = search_chunks(db, query_embedding, top_k=body.top_k * 3)
     except Exception as exc:
         logger.error("Search failed: %s", exc)
         raise HTTPException(status_code=500, detail="Search failed") from exc
 
-    # 4. Rerank
-    filename_keywords = None
-    if intent.category in ("mastering", "mixing"):
-        filename_keywords = ["mastering", "mixing", "masterclass", "mix-mastering"]
+    # 4. Rerank — derive filename boost keywords from all matched intents
+    _FILENAME_BOOST_MAP: dict[str, list[str]] = {
+        "mastering": ["mastering", "mixing", "masterclass", "mix-mastering"],
+        "mixing": ["mastering", "mixing", "masterclass", "mix-masterclass"],
+        "sound_design": ["serum", "synthesis", "sound-design", "synth"],
+        "synthesis": ["synthesis", "synth", "serum", "sound-design"],
+        "rhythm": ["drum", "groove", "rhythm", "percussion"],
+        "chord_progressions": ["chord", "harmony", "theory", "progression"],
+        "organic_house": ["organic", "house", "deep-house", "melodic"],
+        "afrobeat": ["afro", "latin", "african", "rhythm"],
+        "arrangement": ["arrangement", "structure", "track"],
+        "bass_design": ["bass", "kick-bass", "sub", "808"],
+    }
+    filename_keywords: list[str] | None = None
+    for detected_intent in intents:
+        extra = _FILENAME_BOOST_MAP.get(detected_intent.category)
+        if extra:
+            if filename_keywords is None:
+                filename_keywords = []
+            filename_keywords.extend(k for k in extra if k not in filename_keywords)
 
     try:
         reranked = rerank_results(

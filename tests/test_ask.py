@@ -50,10 +50,12 @@ class TestAskEndpoint:
         yield
         app.dependency_overrides.clear()
 
+    @patch("api.routes.ask.hybrid_search")
     @patch("api.routes.ask.search_chunks")
     def test_successful_ask_with_citations(
         self,
         mock_search: MagicMock,
+        mock_hybrid: MagicMock,
     ) -> None:
         # Setup mocks
         mock_embedder = MagicMock()
@@ -68,6 +70,7 @@ class TestAskEndpoint:
             page_number=12,
         )
         mock_search.return_value = [(chunk1, 0.92), (chunk2, 0.85)]
+        mock_hybrid.return_value = [(chunk1, 0.92), (chunk2, 0.85)]
 
         mock_generator = MagicMock()
         mock_generator.generate.return_value = GenerationResponse(
@@ -349,8 +352,11 @@ class TestSubDomainRoutingInAsk:
         for call in mock_search.call_args_list:
             assert call.kwargs.get("sub_domain") is None
 
+    @patch("api.routes.ask.hybrid_search")
     @patch("api.routes.ask.search_chunks")
-    def test_fallback_to_global_when_filtered_results_too_few(self, mock_search: MagicMock) -> None:
+    def test_fallback_to_global_when_filtered_results_too_few(
+        self, mock_search: MagicMock, mock_hybrid: MagicMock
+    ) -> None:
         """When each filtered search returns < MIN_FILTERED_RESULTS, global search runs."""
         few = [(_make_chunk_record(text="single chunk"), 0.85)]
         many = [(_make_chunk_record(text=f"global {i}"), 0.80) for i in range(5)]
@@ -361,6 +367,8 @@ class TestSubDomainRoutingInAsk:
             return many  # global fallback returns enough
 
         mock_search.side_effect = _side_effect
+        # hybrid_search is used in the global fallback when query_terms present
+        mock_hybrid.return_value = many
 
         mock_embedder = MagicMock()
         mock_embedder.embed_texts.return_value = [[0.1] * 1536]
@@ -382,9 +390,12 @@ class TestSubDomainRoutingInAsk:
         )
 
         assert response.status_code == 200
-        # Global fallback call (sub_domain=None) must have happened
-        global_calls = [c for c in mock_search.call_args_list if c.kwargs.get("sub_domain") is None]
-        assert len(global_calls) >= 1
+        # Either search_chunks (global, no sub_domain) or hybrid_search was called
+        # for the fallback — depending on whether query_terms were extracted
+        global_search_calls = [
+            c for c in mock_search.call_args_list if c.kwargs.get("sub_domain") is None
+        ]
+        assert len(global_search_calls) >= 1 or mock_hybrid.call_count >= 1
 
     @patch("api.routes.ask.search_chunks")
     def test_system_prompt_includes_focus_areas_for_domain_query(
@@ -510,9 +521,7 @@ class TestGenreRecipeInjectionInAsk:
         return TestClient(app)
 
     @patch("api.routes.ask.search_chunks")
-    def test_organic_house_query_injects_genre_reference(
-        self, mock_search: MagicMock
-    ) -> None:
+    def test_organic_house_query_injects_genre_reference(self, mock_search: MagicMock) -> None:
         """An organic house query should inject ## Genre Reference into system prompt."""
         from unittest.mock import patch as _patch
 
@@ -540,9 +549,7 @@ class TestGenreRecipeInjectionInAsk:
         assert "## Genre Reference" in system_content
 
     @patch("api.routes.ask.search_chunks")
-    def test_genre_recipe_content_in_system_prompt(
-        self, mock_search: MagicMock
-    ) -> None:
+    def test_genre_recipe_content_in_system_prompt(self, mock_search: MagicMock) -> None:
         """The recipe text should appear verbatim in the system prompt."""
         from unittest.mock import patch as _patch
 
@@ -571,9 +578,7 @@ class TestGenreRecipeInjectionInAsk:
         assert recipe_text in system_content
 
     @patch("api.routes.ask.search_chunks")
-    def test_no_genre_query_no_genre_reference(
-        self, mock_search: MagicMock
-    ) -> None:
+    def test_no_genre_query_no_genre_reference(self, mock_search: MagicMock) -> None:
         """A generic query should NOT inject ## Genre Reference."""
         client = self._wire(mock_search)
         client.post("/ask", json={"query": "how do I use reverb?"})
@@ -584,9 +589,7 @@ class TestGenreRecipeInjectionInAsk:
         assert "## Genre Reference" not in system_content
 
     @patch("api.routes.ask.search_chunks")
-    def test_recipe_load_failure_does_not_crash(
-        self, mock_search: MagicMock
-    ) -> None:
+    def test_recipe_load_failure_does_not_crash(self, mock_search: MagicMock) -> None:
         """If load_recipe returns None (file missing), /ask still returns 200."""
         from unittest.mock import patch as _patch
 
@@ -607,9 +610,7 @@ class TestGenreRecipeInjectionInAsk:
 
         with _patch("api.routes.ask.load_recipe", return_value=None):
             client = TestClient(app)
-            response = client.post(
-                "/ask", json={"query": "organic house track production"}
-            )
+            response = client.post("/ask", json={"query": "organic house track production"})
 
         assert response.status_code == 200
         # No Genre Reference should be injected when recipe is None

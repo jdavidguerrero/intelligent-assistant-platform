@@ -126,6 +126,6 @@ class TestGenerateRhythmPatternToolMetadata:
     def test_all_pattern_instruments_in_percussion_midi(self):
         for rhythm, pattern in _RHYTHM_PATTERNS.items():
             for instrument in pattern:
-                assert instrument in PERCUSSION_MIDI, (
-                    f"Instrument {instrument!r} in rhythm {rhythm!r} not in PERCUSSION_MIDI"
-                )
+                assert (
+                    instrument in PERCUSSION_MIDI
+                ), f"Instrument {instrument!r} in rhythm {rhythm!r} not in PERCUSSION_MIDI"

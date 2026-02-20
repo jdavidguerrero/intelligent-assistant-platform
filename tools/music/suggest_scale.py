@@ -30,7 +30,10 @@ _GENRE_MOOD_SCALE: dict[str, dict[str, tuple[str, str]]] = {
         "dark": ("natural minor", "Natural minor anchors the organic feel — earthy and grounded"),
         "melancholic": ("natural minor", "Minor thirds create the introspective, emotional depth"),
         "dreamy": ("dorian", "Dorian's raised 6th adds brightness without losing the minor feel"),
-        "euphoric": ("dorian", "Dorian is lighter than natural minor — works for uplifting moments"),
+        "euphoric": (
+            "dorian",
+            "Dorian is lighter than natural minor — works for uplifting moments",
+        ),
         "neutral": ("natural minor", "Natural minor is the default tonal center for organic house"),
     },
     "melodic house": {
@@ -58,7 +61,10 @@ _GENRE_MOOD_SCALE: dict[str, dict[str, tuple[str, str]]] = {
         "dark": ("natural minor", "Natural minor for the hypnotic, dark driving feel"),
         "melancholic": ("natural minor", "Minor gives the introspective, cinematic quality"),
         "dreamy": ("dorian", "Dorian for slightly brighter, less oppressive textures"),
-        "euphoric": ("natural minor", "Even euphoric techno stays in minor — the drive comes from rhythm"),
+        "euphoric": (
+            "natural minor",
+            "Even euphoric techno stays in minor — the drive comes from rhythm",
+        ),
         "neutral": ("natural minor", "Natural minor is the primary tonality of melodic techno"),
     },
     "techno": {
@@ -265,8 +271,7 @@ class SuggestScale(MusicalTool):
             return ToolResult(
                 success=False,
                 error=(
-                    f"genre must be one of: {', '.join(sorted(VALID_GENRES))}. "
-                    f"Got: {genre!r}"
+                    f"genre must be one of: {', '.join(sorted(VALID_GENRES))}. " f"Got: {genre!r}"
                 ),
             )
 
@@ -277,8 +282,7 @@ class SuggestScale(MusicalTool):
             return ToolResult(
                 success=False,
                 error=(
-                    f"mood must be one of: {', '.join(valid_moods)} for {genre}. "
-                    f"Got: {mood!r}"
+                    f"mood must be one of: {', '.join(valid_moods)} for {genre}. " f"Got: {mood!r}"
                 ),
             )
 
