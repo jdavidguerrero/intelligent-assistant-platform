@@ -29,7 +29,13 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from api.deps import get_db, get_embedding_provider, get_generation_provider
+from api.deps import (
+    get_db,
+    get_embedding_provider,
+    get_generation_provider,
+    get_rate_limiter,
+    get_response_cache,
+)
 from api.schemas.ask import (
     AskRequest,
     AskResponse,
@@ -46,6 +52,15 @@ from core.rag.prompts import build_system_prompt, build_user_prompt
 from core.sub_domain_detector import detect_sub_domains
 from db.rerank import rerank_results
 from db.search import hybrid_search, search_chunks
+from infrastructure.cache import ResponseCache
+from infrastructure.metrics import (
+    record_ask,
+    record_cache_hit,
+    record_cache_miss,
+    record_embedding_cache_hit,
+    record_rate_limited,
+)
+from infrastructure.rate_limiter import RateLimiter
 from ingestion.embeddings import OpenAIEmbeddingProvider
 from ingestion.recipes import load_recipe
 from tools.router import ToolRouter
@@ -137,12 +152,18 @@ def _summarize_tool_data(tool_name: str, data: dict | None) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
+RespCache = Annotated[ResponseCache, Depends(get_response_cache)]
+Limiter = Annotated[RateLimiter, Depends(get_rate_limiter)]
+
+
 @router.post("/ask", response_model=AskResponse)
 def ask(
     body: AskRequest,
     db: DbSession,
     embedder: Embedder,
     generator: Generator,
+    response_cache: RespCache,
+    rate_limiter: Limiter,
 ) -> AskResponse:
     """
     Answer a question using hybrid tool routing + grounded RAG.
@@ -159,10 +180,47 @@ def ask(
 
     Raises:
         HTTPException 422: Insufficient knowledge (RAG mode only).
+        HTTPException 429: Rate limit exceeded.
         HTTPException 500: Embedding, search, or generation failure.
     """
     t_start = time.perf_counter()
     warnings: list[str] = []
+
+    # ------------------------------------------------------------------
+    # Rate limiting — generous window, protects against runaway loops
+    # ------------------------------------------------------------------
+    session_id = body.session_id or "default"
+    if not rate_limiter.allow(session_id):
+        record_rate_limited()
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "reason": "rate_limit_exceeded",
+                "message": "Too many requests. Take a breath and try again in a moment.",
+            },
+        )
+
+    # ------------------------------------------------------------------
+    # Response cache check — skip for tool mode (non-deterministic)
+    # ------------------------------------------------------------------
+    if body.use_tools is False or not body.use_tools:
+        # Only cache pure RAG responses
+        cached = response_cache.get(
+            body.query,
+            top_k=body.top_k,
+            threshold=body.confidence_threshold,
+        )
+        if cached is not None:
+            record_cache_hit()
+            total_ms = (time.perf_counter() - t_start) * 1000
+            cached["usage"]["total_ms"] = round(total_ms, 2)
+            cached["usage"]["cache_hit"] = True
+            record_ask(
+                status="cache_hit",
+                subdomain=cached.get("_subdomain", "global"),
+                latency_seconds=total_ms / 1000,
+            )
+            return AskResponse(**cached)
 
     # ------------------------------------------------------------------
     # Step 0: Tool routing (hybrid mode only)
@@ -202,6 +260,9 @@ def ask(
     active_sub_domains = list(sub_domain_result.active)
     genre_result = detect_genre(body.query)
 
+    # Record cache miss (we didn't return early from the cache check)
+    record_cache_miss()
+
     # 2. Embed query
     t_embed = time.perf_counter()
     try:
@@ -211,6 +272,9 @@ def ask(
         logger.error("Embedding failed: %s", exc)
         raise HTTPException(status_code=500, detail="Failed to embed query") from exc
     embedding_ms = (time.perf_counter() - t_embed) * 1000
+    emb_cache_hit = getattr(embedder, "last_cache_hit", False)
+    if emb_cache_hit:
+        record_embedding_cache_hit()
 
     # 3. Search chunks — namespaced by sub-domain when detected, with global fallback
     #
@@ -399,8 +463,11 @@ def ask(
         warnings.append("invalid_citations")
 
     total_ms = (time.perf_counter() - t_start) * 1000
+    subdomain_label = active_sub_domains[0] if active_sub_domains else "global"
 
-    return AskResponse(
+    record_ask(status="success", subdomain=subdomain_label, latency_seconds=total_ms / 1000)
+
+    rag_response = AskResponse(
         query=body.query,
         answer=gen_response.content,
         sources=[
@@ -425,10 +492,27 @@ def ask(
             generation_ms=round(generation_ms, 2),
             total_ms=round(total_ms, 2),
             model=gen_response.model,
+            cache_hit=False,
+            embedding_cache_hit=emb_cache_hit,
         ),
         mode="rag",
         tool_calls=[],
     )
+
+    # Store in response cache for future identical queries
+    # Only cache successful responses (not low-confidence refusals)
+    cited_sources = [src["source_name"] for src in sources_list]  # type: ignore[index]
+    cacheable = rag_response.model_dump()
+    cacheable["_subdomain"] = subdomain_label
+    response_cache.set(
+        body.query,
+        top_k=body.top_k,
+        threshold=body.confidence_threshold,
+        response=cacheable,
+        sources=cited_sources,
+    )
+
+    return rag_response
 
 
 # ---------------------------------------------------------------------------

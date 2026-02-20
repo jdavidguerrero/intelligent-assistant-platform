@@ -12,10 +12,17 @@ from unittest.mock import MagicMock, patch
 import pytest
 from fastapi.testclient import TestClient
 
-from api.deps import get_embedding_provider, get_generation_provider
+from api.deps import (
+    get_embedding_provider,
+    get_generation_provider,
+    get_rate_limiter,
+    get_response_cache,
+)
 from api.main import app
 from core.generation.base import GenerationResponse
 from db.models import ChunkRecord
+from infrastructure.cache import ResponseCache
+from infrastructure.rate_limiter import RateLimiter
 
 
 def _make_chunk_record(
@@ -45,8 +52,19 @@ class TestAskEndpoint:
 
     @pytest.fixture(autouse=True)
     def _setup_and_teardown(self) -> None:
-        """Clear dependency overrides before and after each test."""
+        """Clear dependency overrides and inject no-op infra before each test."""
         app.dependency_overrides.clear()
+        # No-op ResponseCache (Redis not needed in unit tests)
+        noop_cache = ResponseCache.__new__(ResponseCache)
+        noop_cache._client = None
+        noop_cache._ttl = 86400
+        app.dependency_overrides[get_response_cache] = lambda: noop_cache
+        # Allow-all RateLimiter (no Redis needed)
+        noop_limiter = RateLimiter.__new__(RateLimiter)
+        noop_limiter._client = None
+        noop_limiter._max = 30
+        noop_limiter._window = 60
+        app.dependency_overrides[get_rate_limiter] = lambda: noop_limiter
         yield
         app.dependency_overrides.clear()
 
@@ -297,6 +315,15 @@ class TestSubDomainRoutingInAsk:
     @pytest.fixture(autouse=True)
     def _setup_and_teardown(self) -> None:
         app.dependency_overrides.clear()
+        noop_cache = ResponseCache.__new__(ResponseCache)
+        noop_cache._client = None
+        noop_cache._ttl = 86400
+        app.dependency_overrides[get_response_cache] = lambda: noop_cache
+        noop_limiter = RateLimiter.__new__(RateLimiter)
+        noop_limiter._client = None
+        noop_limiter._max = 30
+        noop_limiter._window = 60
+        app.dependency_overrides[get_rate_limiter] = lambda: noop_limiter
         yield
         app.dependency_overrides.clear()
 
@@ -500,6 +527,15 @@ class TestGenreRecipeInjectionInAsk:
     @pytest.fixture(autouse=True)
     def _setup_and_teardown(self) -> None:
         app.dependency_overrides.clear()
+        noop_cache = ResponseCache.__new__(ResponseCache)
+        noop_cache._client = None
+        noop_cache._ttl = 86400
+        app.dependency_overrides[get_response_cache] = lambda: noop_cache
+        noop_limiter = RateLimiter.__new__(RateLimiter)
+        noop_limiter._client = None
+        noop_limiter._max = 30
+        noop_limiter._window = 60
+        app.dependency_overrides[get_rate_limiter] = lambda: noop_limiter
         yield
         app.dependency_overrides.clear()
 
