@@ -10,7 +10,6 @@ Covers:
 - Error cases: invalid genre, invalid mood, invalid root
 """
 
-
 from tools.music.suggest_scale import SuggestScale
 
 tool = SuggestScale()

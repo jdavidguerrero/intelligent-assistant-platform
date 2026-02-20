@@ -48,8 +48,12 @@ class TestDetectMasteringIntent:
         assert any(kw in ["compression", "sidechain"] for kw in intent.keywords)
 
     def test_general_query(self) -> None:
-        """General query returns general intent."""
-        intent = detect_mastering_intent("how to make a punchy kick")
+        """Query with no music production keywords returns general intent.
+
+        Note: 'kick' is a rhythm domain keyword so 'punchy kick' now matches
+        rhythm. Use a truly non-music query for the general fallback.
+        """
+        intent = detect_mastering_intent("what is the weather today")
         assert intent.category == "general"
         assert intent.confidence == 0.0
         assert intent.keywords == []
@@ -96,8 +100,12 @@ class TestDetectIntents:
         assert intents[0].category == "mastering"
 
     def test_general_query_returns_empty(self) -> None:
-        """No domain matches → empty list (caller treats as general)."""
-        intents = detect_intents("how to make a punchy kick")
+        """No domain matches → empty list (caller treats as general).
+
+        Note: with the expanded domain registry, many 'music' queries now
+        match a domain. Use a truly non-music query here.
+        """
+        intents = detect_intents("what is the best coffee brand")
         assert intents == []
 
     def test_confidence_proportional_to_matches(self) -> None:
@@ -266,3 +274,184 @@ class TestExpandQuery:
         intent = QueryIntent(category="unknown_domain", confidence=0.5, keywords=["foo"])
         expanded = expand_query("some query", intent)
         assert expanded == "some query"
+
+
+# ---------------------------------------------------------------------------
+# New music production domains (Week 6)
+# ---------------------------------------------------------------------------
+
+
+class TestNewMusicDomains:
+    """Tests for the expanded domain registry covering music production domains."""
+
+    def test_registry_has_new_domains(self) -> None:
+        """Registry includes all 10 music production domains."""
+        names = {d.name for d in DOMAIN_REGISTRY}
+        expected = {
+            "mastering",
+            "mixing",
+            "sound_design",
+            "synthesis",
+            "rhythm",
+            "chord_progressions",
+            "organic_house",
+            "afrobeat",
+            "arrangement",
+            "bass_design",
+        }
+        assert expected == names, f"Missing domains: {expected - names}"
+
+    def test_sound_design_serum_query(self) -> None:
+        """Serum-specific query detects sound_design intent."""
+        intents = detect_intents("how to design a bass sound in Serum")
+        categories = [i.category for i in intents]
+        assert "sound_design" in categories or "bass_design" in categories
+
+    def test_sound_design_wavetable_query(self) -> None:
+        """Wavetable query detects sound_design."""
+        intents = detect_intents("wavetable oscillator patch design")
+        categories = [i.category for i in intents]
+        assert "sound_design" in categories
+
+    def test_synthesis_adsr_query(self) -> None:
+        """ADSR envelope query detects synthesis."""
+        intents = detect_intents("how to set attack and release on the envelope")
+        categories = [i.category for i in intents]
+        assert "synthesis" in categories
+
+    def test_synthesis_lfo_filter_query(self) -> None:
+        """LFO to filter cutoff modulation detects synthesis."""
+        intents = detect_intents("LFO modulate filter cutoff resonance")
+        categories = [i.category for i in intents]
+        assert "synthesis" in categories
+
+    def test_rhythm_drum_groove_query(self) -> None:
+        """Drum groove query detects rhythm."""
+        intents = detect_intents("how to program a groovy drum pattern with swing")
+        categories = [i.category for i in intents]
+        assert "rhythm" in categories
+
+    def test_rhythm_quantize_query(self) -> None:
+        """Quantization query detects rhythm."""
+        intents = detect_intents("quantize vs swing drum timing")
+        categories = [i.category for i in intents]
+        assert "rhythm" in categories
+
+    def test_chord_progressions_harmony_query(self) -> None:
+        """Harmony/chord query detects chord_progressions."""
+        intents = detect_intents("chord progressions in minor key for deep house")
+        categories = [i.category for i in intents]
+        assert "chord_progressions" in categories
+
+    def test_chord_progressions_scale_query(self) -> None:
+        """Scale/mode query detects chord_progressions."""
+        intents = detect_intents("dorian mode scale intervals")
+        categories = [i.category for i in intents]
+        assert "chord_progressions" in categories
+
+    def test_organic_house_query(self) -> None:
+        """Organic house genre query detects organic_house."""
+        intents = detect_intents("how to make organic house like All Day I Dream")
+        categories = [i.category for i in intents]
+        assert "organic_house" in categories
+
+    def test_organic_house_deep_progressive_query(self) -> None:
+        """Deep progressive house detects organic_house."""
+        intents = detect_intents("deep progressive melodic house structure")
+        categories = [i.category for i in intents]
+        assert "organic_house" in categories
+
+    def test_afrobeat_clave_query(self) -> None:
+        """Clave/tresillo query detects afrobeat."""
+        intents = detect_intents("son clave 3+3+2 tresillo pattern")
+        categories = [i.category for i in intents]
+        assert "afrobeat" in categories
+
+    def test_afrobeat_black_coffee_query(self) -> None:
+        """Black Coffee style query detects afrobeat."""
+        intents = detect_intents("afro house Black Coffee production style")
+        categories = [i.category for i in intents]
+        assert "afrobeat" in categories
+
+    def test_arrangement_drop_structure_query(self) -> None:
+        """Drop/structure query detects arrangement."""
+        intents = detect_intents("how to structure a track with intro drop breakdown")
+        categories = [i.category for i in intents]
+        assert "arrangement" in categories
+
+    def test_arrangement_buildup_query(self) -> None:
+        """Buildup/tension query detects arrangement."""
+        intents = detect_intents("buildup tension release 16 bars before the drop")
+        categories = [i.category for i in intents]
+        assert "arrangement" in categories
+
+    def test_bass_design_808_query(self) -> None:
+        """808 bass query detects bass_design."""
+        intents = detect_intents("how to design an 808 sub bass")
+        categories = [i.category for i in intents]
+        assert "bass_design" in categories
+
+    def test_bass_design_kickbass_query(self) -> None:
+        """Kick-bass relationship query detects bass_design."""
+        intents = detect_intents("kick bass sidechain relationship low end")
+        categories = [i.category for i in intents]
+        assert "bass_design" in categories
+
+    def test_multi_domain_sound_design_synthesis(self) -> None:
+        """Serum synthesis query matches both sound_design and synthesis."""
+        intents = detect_intents("Serum synthesis oscillator LFO filter modulation")
+        categories = [i.category for i in intents]
+        assert "sound_design" in categories
+        assert "synthesis" in categories
+
+    def test_multi_domain_organic_afro(self) -> None:
+        """Organic + afro query can match multiple domains."""
+        intents = detect_intents("afro house conga bongo organic percussion groove")
+        categories = [i.category for i in intents]
+        # At least one of these must be detected
+        assert "afrobeat" in categories or "rhythm" in categories or "organic_house" in categories
+
+    def test_negative_keywords_exclude_programming(self) -> None:
+        """Programming keywords exclude all music domains."""
+        for query in [
+            "python synthesis algorithm",
+            "java drum machine programming",
+            "coding chord progression",
+        ]:
+            intents = detect_intents(query)
+            categories = [i.category for i in intents]
+            for cat in [
+                "sound_design",
+                "synthesis",
+                "rhythm",
+                "chord_progressions",
+                "organic_house",
+                "afrobeat",
+                "arrangement",
+                "bass_design",
+            ]:
+                assert (
+                    cat not in categories
+                ), f"Domain {cat!r} should be excluded for programming query: {query!r}"
+
+    def test_expand_sound_design_query(self) -> None:
+        """sound_design domain produces meaningful expansion."""
+        intent = QueryIntent(category="sound_design", confidence=0.9, keywords=["serum"])
+        expanded = expand_query("bass sound in Serum", intent)
+        assert "bass sound in Serum" in expanded
+        assert "sound design" in expanded or "synthesis" in expanded
+
+    def test_expand_rhythm_query(self) -> None:
+        """rhythm domain produces meaningful expansion."""
+        intent = QueryIntent(category="rhythm", confidence=0.85, keywords=["groove"])
+        expanded = expand_query("how to add groove to drums", intent)
+        assert "how to add groove to drums" in expanded
+        assert "rhythm" in expanded or "groove" in expanded
+
+    def test_expand_organic_house_query(self) -> None:
+        """organic_house domain produces meaningful expansion."""
+        intent = QueryIntent(category="organic_house", confidence=0.9, keywords=["organic house"])
+        expanded = expand_query("making organic house tracks", intent)
+        assert "making organic house tracks" in expanded
+        # Should add related terms
+        assert len(expanded) > len("making organic house tracks")

@@ -45,17 +45,17 @@ class TestSuggestArrangementHappyPath:
         for i in range(len(sections) - 1):
             current_end = sections[i]["bars"][1]
             next_start = sections[i + 1]["bars"][0]
-            assert next_start == current_end + 1, (
-                f"Gap between {sections[i]['section']} and {sections[i+1]['section']}"
-            )
+            assert (
+                next_start == current_end + 1
+            ), f"Gap between {sections[i]['section']} and {sections[i+1]['section']}"
 
     def test_energy_in_range_1_to_10(self):
         for genre in VALID_GENRES:
             result = self.tool(genre=genre)
             for section in result.data["sections"]:
-                assert 1 <= section["energy"] <= 10, (
-                    f"Energy {section['energy']} out of range in {section['section']}"
-                )
+                assert (
+                    1 <= section["energy"] <= 10
+                ), f"Energy {section['energy']} out of range in {section['section']}"
 
     def test_returns_energy_curve(self):
         result = self.tool(genre="house")
@@ -88,9 +88,9 @@ class TestSuggestArrangementHappyPath:
         result = self.tool(genre="house")
         for section in result.data["sections"]:
             for element, active in section["elements"].items():
-                assert isinstance(active, bool), (
-                    f"Element {element} in {section['section']} is not bool"
-                )
+                assert isinstance(
+                    active, bool
+                ), f"Element {element} in {section['section']} is not bool"
 
     def test_techno_has_long_peak_section(self):
         result = self.tool(genre="techno")

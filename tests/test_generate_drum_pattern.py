@@ -177,6 +177,6 @@ class TestGenerateDrumPatternToolMetadata:
     def test_all_pattern_instruments_in_drum_midi(self):
         for genre, pattern in _PATTERNS.items():
             for instrument in pattern:
-                assert instrument in DRUM_MIDI, (
-                    f"Instrument {instrument!r} in genre {genre!r} not in DRUM_MIDI"
-                )
+                assert (
+                    instrument in DRUM_MIDI
+                ), f"Instrument {instrument!r} in genre {genre!r} not in DRUM_MIDI"
