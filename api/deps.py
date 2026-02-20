@@ -13,6 +13,8 @@ from sqlalchemy.orm import Session
 
 from core.generation.base import GenerationProvider
 from db.session import SessionLocal
+from infrastructure.cache import ResponseCache
+from infrastructure.rate_limiter import RateLimiter
 from ingestion.embeddings import OpenAIEmbeddingProvider
 from ingestion.generation import create_generation_provider
 
@@ -57,3 +59,31 @@ def get_generation_provider() -> GenerationProvider:
     if _generation_provider is None:
         _generation_provider = create_generation_provider()
     return _generation_provider
+
+
+_response_cache: ResponseCache | None = None
+
+
+def get_response_cache() -> ResponseCache:
+    """Return a cached ResponseCache singleton (Redis-backed).
+
+    Falls back gracefully to a no-op cache if Redis is unavailable.
+    """
+    global _response_cache  # noqa: PLW0603
+    if _response_cache is None:
+        _response_cache = ResponseCache()
+    return _response_cache
+
+
+_rate_limiter: RateLimiter | None = None
+
+
+def get_rate_limiter() -> RateLimiter:
+    """Return a cached RateLimiter singleton (Redis sliding-window).
+
+    Falls back gracefully to allow-all if Redis is unavailable.
+    """
+    global _rate_limiter  # noqa: PLW0603
+    if _rate_limiter is None:
+        _rate_limiter = RateLimiter(max_requests=30, window_seconds=60)
+    return _rate_limiter

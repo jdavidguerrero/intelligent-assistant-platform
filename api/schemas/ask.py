@@ -56,6 +56,14 @@ class AskRequest(BaseModel):
             "Set to False to force pure RAG (e.g., for knowledge-only queries)."
         ),
     )
+    session_id: str | None = Field(
+        default=None,
+        max_length=128,
+        description=(
+            "Optional session identifier for per-session rate limiting. "
+            "Defaults to 'default' if not provided."
+        ),
+    )
 
     @field_validator("query")
     @classmethod
@@ -90,6 +98,14 @@ class UsageMetadata(BaseModel):
     generation_ms: float = Field(..., description="Time for LLM generation (milliseconds).")
     total_ms: float = Field(..., description="Total request duration (milliseconds).")
     model: str = Field(..., description="LLM model identifier that generated the response.")
+    cache_hit: bool = Field(
+        default=False,
+        description="True if the response was served from Redis cache (<100ms).",
+    )
+    embedding_cache_hit: bool = Field(
+        default=False,
+        description="True if the query embedding was served from in-memory cache.",
+    )
 
 
 class ToolCallRecord(BaseModel):
