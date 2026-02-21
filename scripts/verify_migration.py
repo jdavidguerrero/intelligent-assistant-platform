@@ -215,9 +215,9 @@ def main() -> None:
             sample_embedding = "[" + ",".join(["0.0"] * 1536) + "]"
             rows = c.execute(
                 text(
-                    "SELECT id, 1 - (embedding <=> :emb::vector) AS score "
+                    "SELECT id, 1 - (embedding <=> CAST(:emb AS vector)) AS score "
                     "FROM chunk_records "
-                    "ORDER BY embedding <=> :emb::vector "
+                    "ORDER BY embedding <=> CAST(:emb AS vector) "
                     "LIMIT 3"
                 ),
                 {"emb": sample_embedding},

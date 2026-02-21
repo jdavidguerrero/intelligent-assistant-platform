@@ -263,6 +263,12 @@ def load_scanned_pdf_pages(
         ImportError: If pdf2image or google-cloud-vision are not installed.
         RuntimeError: If Vision API fails after retries.
     """
+    path = pathlib.Path(file_path)
+    if not path.exists():
+        raise FileNotFoundError(f"PDF file does not exist: {path}")
+    if path.suffix.lower() != ".pdf":
+        raise ValueError(f"Expected a .pdf file, got: {path.suffix!r}")
+
     if convert_from_path is None:
         raise ImportError(
             "pdf2image is required for scanned PDF loading. "
@@ -270,12 +276,6 @@ def load_scanned_pdf_pages(
             "Also install poppler: brew install poppler (macOS) "
             "or apt-get install poppler-utils (Ubuntu)"
         )
-
-    path = pathlib.Path(file_path)
-    if not path.exists():
-        raise FileNotFoundError(f"PDF file does not exist: {path}")
-    if path.suffix.lower() != ".pdf":
-        raise ValueError(f"Expected a .pdf file, got: {path.suffix!r}")
 
     # Count total pages for range validation
     with pdfplumber.open(path) as pdf:
