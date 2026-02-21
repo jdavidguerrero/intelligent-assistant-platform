@@ -28,6 +28,7 @@ markers = [
     "integration: Tests that use FastAPI TestClient or mock external services",
     "slow: Tests with time.sleep or heavy computation",
     "load: Burst pattern and concurrency tests — simulate production traffic",
+    "chaos: Failure injection tests — DB down, Redis down, LLM timeout, degraded mode",
 ]
 filterwarnings = [
     "error",              # Turn warnings into errors
