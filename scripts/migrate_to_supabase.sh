@@ -137,15 +137,14 @@ success "Dump complete: ${DUMP_FILE} (${DUMP_SIZE})"
 # ---------------------------------------------------------------------------
 info "Phase E: Restoring to Supabase (this may take a few minutes for large embeddings)..."
 
-# --single-transaction: all-or-nothing restore
 # --no-owner: don't try to set object ownership (Supabase restricts this)
 # --no-privileges: skip GRANT/REVOKE (same reason)
 # -j 4: parallel workers for faster restore of large tables
+# NOTE: --single-transaction is incompatible with -j, so omitted
 pg_restore "$DUMP_FILE" \
     --dbname="$SUPABASE_DB_URL" \
     --no-owner \
     --no-privileges \
-    --single-transaction \
     -j 4 \
     2>&1 | grep -v "^pg_restore: warning" | grep -v "^$" || true
 
