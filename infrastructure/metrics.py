@@ -4,12 +4,14 @@ Exposes musical context in metrics so dashboards show production-session
 patterns, not just generic HTTP stats.
 
 Metrics:
-    ask_requests_total          Counter by status (hit/miss/error) and subdomain
-    ask_latency_seconds         Histogram of end-to-end /ask latency
-    cache_hits_total            Counter of response cache hits
-    cache_misses_total          Counter of response cache misses
-    embedding_cache_hits_total  Counter of embedding cache hits
-    active_sessions_gauge       Gauge of sessions active in last 5 minutes
+    ask_requests_total               Counter by status (hit/miss/error/degraded) and subdomain
+    ask_latency_seconds              Histogram of end-to-end /ask latency
+    cache_hits_total                 Counter of response cache hits
+    cache_misses_total               Counter of response cache misses
+    embedding_cache_hits_total       Counter of embedding cache hits
+    rate_limited_total               Requests rejected by rate limiter
+    circuit_breaker_trips_total      Times a circuit breaker tripped to OPEN
+    circuit_breaker_rejected_total   Calls rejected while circuit is OPEN
 
 Usage::
 
@@ -81,6 +83,20 @@ try:
         registry=_REGISTRY,
     )
 
+    circuit_breaker_trips_total = Counter(
+        "mip_circuit_breaker_trips_total",
+        "Number of times a circuit breaker tripped to OPEN state",
+        ["breaker_name"],
+        registry=_REGISTRY,
+    )
+
+    circuit_breaker_rejected_total = Counter(
+        "mip_circuit_breaker_rejected_total",
+        "Requests rejected because circuit was OPEN (short-circuited)",
+        ["breaker_name"],
+        registry=_REGISTRY,
+    )
+
     _registry_available = True
     logger.info("Prometheus metrics registry initialized")
 
@@ -135,6 +151,26 @@ def record_rate_limited() -> None:
     """Increment rate-limited requests counter."""
     if _registry_available:
         rate_limited_total.inc()
+
+
+def record_circuit_trip(breaker_name: str) -> None:
+    """Increment circuit breaker trip counter.
+
+    Args:
+        breaker_name: Name of the circuit breaker that tripped.
+    """
+    if _registry_available:
+        circuit_breaker_trips_total.labels(breaker_name=breaker_name).inc()
+
+
+def record_circuit_rejected(breaker_name: str) -> None:
+    """Increment circuit breaker rejected-call counter.
+
+    Args:
+        breaker_name: Name of the circuit breaker that rejected the call.
+    """
+    if _registry_available:
+        circuit_breaker_rejected_total.labels(breaker_name=breaker_name).inc()
 
 
 def get_metrics_response() -> tuple[bytes, str]:

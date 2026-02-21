@@ -619,18 +619,21 @@ def ask(
         tool_calls=[],
     )
 
-    # Store in response cache for future identical queries
+    # Store in response cache for future identical queries (best-effort)
     # Only cache successful responses (not low-confidence refusals)
     cited_sources = [src["source_name"] for src in sources_list]  # type: ignore[index]
     cacheable = rag_response.model_dump()
     cacheable["_subdomain"] = subdomain_label
-    response_cache.set(
-        body.query,
-        top_k=body.top_k,
-        threshold=body.confidence_threshold,
-        response=cacheable,
-        sources=cited_sources,
-    )
+    try:
+        response_cache.set(
+            body.query,
+            top_k=body.top_k,
+            threshold=body.confidence_threshold,
+            response=cacheable,
+            sources=cited_sources,
+        )
+    except Exception:  # noqa: BLE001
+        logger.warning("Cache write failed — response not cached (best-effort)")
 
     return rag_response
 
