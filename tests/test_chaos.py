@@ -647,18 +647,22 @@ class TestConcurrentFailures:
         results: list[int] = []
         lock = threading.Lock()
 
+        # NOTE: _search_patches() must be applied ONCE outside the thread functions.
+        # unittest.mock.patch is not thread-safe — applying it inside threads causes
+        # a race condition where the patched attribute is left permanently modified,
+        # contaminating subsequent tests (including golden set tests).
         def make_request(i: int) -> None:
-            with _search_patches():
-                resp = _ask(client, query=f"Concurrent query {i}")
+            resp = _ask(client, query=f"Concurrent query {i}")
             with lock:
                 results.append(resp.status_code)
 
         try:
-            threads = [threading.Thread(target=make_request, args=(i,)) for i in range(5)]
-            for t in threads:
-                t.start()
-            for t in threads:
-                t.join()
+            with _search_patches():
+                threads = [threading.Thread(target=make_request, args=(i,)) for i in range(5)]
+                for t in threads:
+                    t.start()
+                for t in threads:
+                    t.join()
 
             assert len(results) == 5
             for status in results:
@@ -679,18 +683,20 @@ class TestConcurrentFailures:
         results: list[int] = []
         lock = threading.Lock()
 
+        # NOTE: _search_patches() applied once outside threads — see note in
+        # test_concurrent_llm_failures_all_degraded for thread-safety rationale.
         def make_request(i: int) -> None:
-            with _search_patches():
-                resp = _ask(client, query=f"Concurrent query {i}")
+            resp = _ask(client, query=f"Concurrent query {i}")
             with lock:
                 results.append(resp.status_code)
 
         try:
-            threads = [threading.Thread(target=make_request, args=(i,)) for i in range(5)]
-            for t in threads:
-                t.start()
-            for t in threads:
-                t.join()
+            with _search_patches():
+                threads = [threading.Thread(target=make_request, args=(i,)) for i in range(5)]
+                for t in threads:
+                    t.start()
+                for t in threads:
+                    t.join()
 
             assert len(results) == 5
             for status in results:
