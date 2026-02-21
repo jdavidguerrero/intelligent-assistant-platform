@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "musical-intelligence": {
+      "command": "/path/to/your/.venv/bin/python",
+      "args": [
+        "-m",
+        "musical_mcp.server"
+      ],
+      "cwd": "/path/to/intelligent-assistant-platform",
+      "env": {
+        "API_BASE_URL": "http://localhost:8000",
+        "DATABASE_URL": "postgresql+psycopg://ia:ia@localhost:5432/ia",
+        "OPENAI_API_KEY": "sk-proj-...",
+        "PYTHONPATH": "/path/to/intelligent-assistant-platform"
+      }
+    }
+  }
+}
