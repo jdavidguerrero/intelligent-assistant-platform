@@ -22,11 +22,14 @@ Response modes:
     "rag"  — Pure RAG. No tool matched or use_tools=False.
 """
 
+import json
 import logging
 import time
+from collections.abc import Iterator
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from api.deps import (
@@ -636,6 +639,316 @@ def ask(
         logger.warning("Cache write failed — response not cached (best-effort)")
 
     return rag_response
+
+
+# ---------------------------------------------------------------------------
+# Streaming endpoint — POST /ask/stream
+# ---------------------------------------------------------------------------
+
+
+def _sse(data: dict) -> str:
+    """Format a dict as a single SSE ``data:`` line.
+
+    Pure function — no I/O.
+
+    Returns a string of the form ``"data: {...}\\n\\n"``.
+    """
+    return f"data: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+@router.post("/ask/stream")
+def ask_stream(
+    body: AskRequest,
+    db: DbSession,
+    embedder: Embedder,
+    generator: Generator,
+    rate_limiter: Limiter,
+    embedding_breaker: EmbBreaker,
+) -> StreamingResponse:
+    """Stream an answer as Server-Sent Events (SSE).
+
+    Runs the same RAG pipeline as ``POST /ask`` but streams the LLM
+    response token-by-token.  Tool routing is disabled for the stream
+    endpoint (pure RAG only).
+
+    SSE event types
+    ---------------
+    ``step``
+        Pipeline progress update.  ``{"type": "step", "step": "<name>"}``
+    ``chunk``
+        One text fragment from the LLM.  ``{"type": "chunk", "content": "..."}``
+    ``sources``
+        Final ranked sources list.  ``{"type": "sources", "sources": [...]}``
+    ``done``
+        Completion signal with citations and timing.
+        ``{"type": "done", "citations": [...], "usage": {...}}``
+    ``error``
+        Fatal pipeline error.  ``{"type": "error", "code": "...", "message": "..."}``
+
+    The client should accumulate ``chunk`` events to reconstruct the full answer.
+
+    Returns:
+        ``StreamingResponse`` with ``Content-Type: text/event-stream``.
+
+    Raises:
+        HTTPException 429: Rate limit exceeded (before stream starts).
+    """
+    session_id = body.session_id or "default"
+    if not rate_limiter.allow(session_id):
+        record_rate_limited()
+        raise HTTPException(
+            status_code=429,
+            detail={
+                "reason": "rate_limit_exceeded",
+                "message": "Too many requests. Take a breath and try again in a moment.",
+            },
+        )
+
+    def event_stream() -> Iterator[str]:
+        t_start = time.perf_counter()
+
+        # --- Step 1: Query expansion + sub-domain detection --------------------
+        yield _sse({"type": "step", "step": "expanding"})
+
+        intents = detect_intents(body.query)
+        intent = intents[0] if intents else detect_mastering_intent(body.query)
+        expanded_query = expand_query(body.query, intent)
+
+        query_terms: list[str] = []
+        for detected_intent in intents:
+            query_terms.extend(detected_intent.keywords)
+        seen_terms: set[str] = set()
+        unique_terms: list[str] = []
+        for term in query_terms:
+            if term not in seen_terms:
+                seen_terms.add(term)
+                unique_terms.append(term)
+        query_terms = unique_terms
+
+        sub_domain_result = detect_sub_domains(body.query)
+        active_sub_domains = list(sub_domain_result.active)
+        genre_result = detect_genre(body.query)
+
+        # --- Step 2: Embed query -----------------------------------------------
+        yield _sse({"type": "step", "step": "embedding"})
+        t_embed = time.perf_counter()
+
+        try:
+            embeddings = embedding_breaker.call(embedder.embed_texts, [expanded_query])
+            query_embedding = embeddings[0]
+        except Exception as exc:
+            logger.error("Streaming embed failed: %s", exc)
+            yield _sse(
+                {
+                    "type": "error",
+                    "code": "embedding_unavailable",
+                    "message": "Failed to embed query. Please try again.",
+                }
+            )
+            return
+
+        embedding_ms = (time.perf_counter() - t_embed) * 1000
+
+        # --- Step 3: Search + rerank -------------------------------------------
+        yield _sse({"type": "step", "step": "searching"})
+        t_search = time.perf_counter()
+        _MIN_FILTERED_RESULTS = 3
+
+        try:
+            if active_sub_domains:
+                per_domain_k = max(body.top_k * 2, 6)
+                seen_ids: set[int] = set()
+                merged: list = []
+                for sd in active_sub_domains:
+                    for record, score in search_chunks(
+                        db, query_embedding, top_k=per_domain_k, sub_domain=sd
+                    ):
+                        rid = id(record)
+                        if rid not in seen_ids:
+                            seen_ids.add(rid)
+                            merged.append((record, score))
+
+                if len(merged) >= _MIN_FILTERED_RESULTS:
+                    raw_results = merged
+                else:
+                    if query_terms:
+                        raw_results = hybrid_search(
+                            db,
+                            query_embedding,
+                            query_terms,
+                            top_k=body.top_k * 3,
+                            vector_weight=0.7,
+                            keyword_weight=0.3,
+                        )
+                    else:
+                        raw_results = search_chunks(db, query_embedding, top_k=body.top_k * 3)
+                    active_sub_domains = []
+            else:
+                if query_terms:
+                    raw_results = hybrid_search(
+                        db,
+                        query_embedding,
+                        query_terms,
+                        top_k=body.top_k * 3,
+                        vector_weight=0.7,
+                        keyword_weight=0.3,
+                    )
+                else:
+                    raw_results = search_chunks(db, query_embedding, top_k=body.top_k * 3)
+        except Exception as exc:
+            logger.error("Streaming search failed: %s", exc)
+            yield _sse(
+                {
+                    "type": "error",
+                    "code": "search_unavailable",
+                    "message": "Vector search failed. Please try again.",
+                }
+            )
+            return
+
+        try:
+            reranked = rerank_results(
+                raw_results,
+                top_k=body.top_k,
+                max_per_document=1,
+                course_boost=1.25,
+                youtube_boost=1.0,
+                filename_boost=1.20,
+                query_embedding=query_embedding,
+                mmr_lambda=0.7,
+                use_mmr=True,
+            )
+        except Exception:
+            reranked = raw_results[: body.top_k]
+
+        search_ms = (time.perf_counter() - t_search) * 1000
+
+        # --- Step 4: Confidence check ------------------------------------------
+        if not reranked:
+            yield _sse(
+                {
+                    "type": "error",
+                    "code": "insufficient_knowledge",
+                    "message": "No relevant chunks found for this query.",
+                }
+            )
+            return
+
+        max_score = max(score for _, score in reranked)
+        if max_score < body.confidence_threshold:
+            yield _sse(
+                {
+                    "type": "error",
+                    "code": "insufficient_knowledge",
+                    "message": (
+                        f"Top similarity score ({max_score:.2f}) is below "
+                        f"confidence threshold ({body.confidence_threshold})."
+                    ),
+                }
+            )
+            return
+
+        # --- Step 5: Build context + prompts -----------------------------------
+        retrieved_chunks = [
+            RetrievedChunk(
+                text=record.text,
+                source_name=record.source_name,
+                source_path=record.source_path,
+                chunk_index=record.chunk_index,
+                score=score,
+                page_number=record.page_number,
+            )
+            for record, score in reranked
+        ]
+
+        context_block = format_context_block(retrieved_chunks)
+        sources_list = format_source_list(retrieved_chunks)
+
+        genre_context: str | None = None
+        if genre_result.has_recipe and genre_result.recipe_file:
+            genre_context = load_recipe(genre_result.recipe_file)
+
+        system_prompt = build_system_prompt(
+            active_sub_domains=active_sub_domains if active_sub_domains else None,
+            genre_context=genre_context,
+        )
+        user_prompt = build_user_prompt(body.query, context_block)
+
+        # --- Step 6: Stream generation -----------------------------------------
+        yield _sse({"type": "step", "step": "generating"})
+
+        # Emit sources before generation begins — clients can pre-render them
+        sources_payload = [
+            {
+                "index": src["index"],
+                "source_name": src["source_name"],
+                "source_path": src["source_path"],
+                "page_number": src["page_number"],
+                "score": src["score"],
+            }
+            for src in sources_list
+        ]
+        yield _sse({"type": "sources", "sources": sources_payload})
+
+        t_gen = time.perf_counter()
+        full_answer: list[str] = []
+
+        gen_request = GenerationRequest(
+            messages=(
+                Message(role="system", content=system_prompt),
+                Message(role="user", content=user_prompt),
+            ),
+            temperature=body.temperature,
+            max_tokens=body.max_tokens,
+        )
+
+        try:
+            for chunk_text in generator.generate_stream(gen_request):
+                full_answer.append(chunk_text)
+                yield _sse({"type": "chunk", "content": chunk_text})
+        except Exception as exc:
+            logger.error("Streaming generation failed: %s", exc)
+            yield _sse(
+                {
+                    "type": "error",
+                    "code": "generation_failed",
+                    "message": "LLM generation failed mid-stream. Partial answer above.",
+                }
+            )
+            return
+
+        generation_ms = (time.perf_counter() - t_gen) * 1000
+        total_ms = (time.perf_counter() - t_start) * 1000
+
+        # --- Step 7: Citations + done -----------------------------------------
+        answer_text = "".join(full_answer)
+        extracted_citations = extract_citations(answer_text)
+        citation_result = validate_citations(
+            extracted_citations, num_sources=len(retrieved_chunks)
+        )
+
+        yield _sse(
+            {
+                "type": "done",
+                "citations": list(citation_result.citations),
+                "usage": {
+                    "embedding_ms": round(embedding_ms, 2),
+                    "search_ms": round(search_ms, 2),
+                    "generation_ms": round(generation_ms, 2),
+                    "total_ms": round(total_ms, 2),
+                },
+            }
+        )
+
+    return StreamingResponse(
+        event_stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",  # disable nginx buffering for SSE
+            "Connection": "keep-alive",
+        },
+    )
 
 
 # ---------------------------------------------------------------------------

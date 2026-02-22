@@ -10,6 +10,7 @@ any class with the right method signature satisfies the protocol
 without inheriting from it.
 """
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
@@ -104,5 +105,24 @@ class GenerationProvider(Protocol):
 
         Raises:
             RuntimeError: If the generation API call fails.
+        """
+        ...
+
+    def generate_stream(self, request: GenerationRequest) -> Iterator[str]:
+        """
+        Stream a completion as an iterator of text chunks.
+
+        Yields text deltas as they arrive from the LLM API, enabling
+        Server-Sent Events (SSE) streaming in the API layer.
+
+        Args:
+            request: A ``GenerationRequest`` containing the conversation
+                messages, temperature, and max_tokens.
+
+        Yields:
+            String fragments of the generated response.
+
+        Raises:
+            RuntimeError: If the streaming API call fails.
         """
         ...

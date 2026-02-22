@@ -108,15 +108,33 @@ class TestGenerationResponse:
 class TestGenerationProtocol:
     """Test GenerationProvider protocol satisfaction."""
 
-    def test_class_with_generate_satisfies_protocol(self) -> None:
+    def test_class_with_generate_and_stream_satisfies_protocol(self) -> None:
+        """A class implementing both generate and generate_stream satisfies the protocol."""
+
         class FakeProvider:
             def generate(self, request: GenerationRequest) -> GenerationResponse:
                 return GenerationResponse(
                     content="fake", model="fake", usage_input_tokens=0, usage_output_tokens=0
                 )
 
+            def generate_stream(self, request: GenerationRequest):  # type: ignore[override]
+                yield "fake"
+
         provider = FakeProvider()
         assert isinstance(provider, GenerationProvider)
+
+    def test_class_with_only_generate_does_not_satisfy_protocol(self) -> None:
+        """A class without generate_stream no longer satisfies the full protocol."""
+
+        class PartialProvider:
+            def generate(self, request: GenerationRequest) -> GenerationResponse:
+                return GenerationResponse(
+                    content="fake", model="fake", usage_input_tokens=0, usage_output_tokens=0
+                )
+
+        # Since generate_stream was added to the protocol, this partial class
+        # no longer satisfies the runtime-checkable protocol.
+        assert not isinstance(PartialProvider(), GenerationProvider)
 
     def test_class_without_generate_does_not_satisfy(self) -> None:
         class NotAProvider:

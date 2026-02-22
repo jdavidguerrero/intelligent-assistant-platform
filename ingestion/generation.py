@@ -12,6 +12,7 @@ Usage::
 """
 
 import os
+from collections.abc import Iterator
 
 import anthropic
 import openai
@@ -75,6 +76,37 @@ class OpenAIGenerationProvider:
             usage_input_tokens=usage.prompt_tokens if usage else 0,
             usage_output_tokens=usage.completion_tokens if usage else 0,
         )
+
+
+    def generate_stream(self, request: GenerationRequest) -> Iterator[str]:
+        """Stream text chunks from OpenAI chat completions API.
+
+        Uses OpenAI's streaming mode (``stream=True``) to yield text deltas
+        as they arrive. Suitable for Server-Sent Events (SSE) delivery.
+
+        Args:
+            request: Generation request with messages, temperature, max_tokens.
+
+        Yields:
+            Non-empty text delta strings from the completion stream.
+
+        Raises:
+            RuntimeError: If the streaming API call fails.
+        """
+        messages = [{"role": m.role, "content": m.content} for m in request.messages]
+        try:
+            stream = self._client.chat.completions.create(
+                model=self._model,
+                messages=messages,
+                temperature=request.temperature,
+                max_tokens=request.max_tokens,
+                stream=True,
+            )
+            for chunk in stream:
+                if chunk.choices and chunk.choices[0].delta.content:
+                    yield chunk.choices[0].delta.content
+        except Exception as exc:
+            raise RuntimeError(f"OpenAI streaming failed: {exc}") from exc
 
 
 class AnthropicGenerationProvider:
@@ -152,6 +184,41 @@ class AnthropicGenerationProvider:
             usage_input_tokens=response.usage.input_tokens,
             usage_output_tokens=response.usage.output_tokens,
         )
+
+
+    def generate_stream(self, request: GenerationRequest) -> Iterator[str]:
+        """Stream text chunks from Anthropic Messages API.
+
+        Uses Anthropic's streaming context manager to yield text deltas
+        as they arrive. Suitable for Server-Sent Events (SSE) delivery.
+
+        Args:
+            request: Generation request with messages, temperature, max_tokens.
+
+        Yields:
+            Non-empty text delta strings from the completion stream.
+
+        Raises:
+            RuntimeError: If the streaming API call fails.
+        """
+        system_text, conversation = _split_system_messages(request.messages)
+        messages = [{"role": m.role, "content": m.content} for m in conversation]
+        try:
+            kwargs: dict = {
+                "model": self._model,
+                "messages": messages,
+                "temperature": request.temperature,
+                "max_tokens": request.max_tokens,
+            }
+            if system_text:
+                kwargs["system"] = system_text
+
+            with self._client.messages.stream(**kwargs) as stream:
+                for text in stream.text_stream:
+                    if text:
+                        yield text
+        except Exception as exc:
+            raise RuntimeError(f"Anthropic streaming failed: {exc}") from exc
 
 
 def _split_system_messages(

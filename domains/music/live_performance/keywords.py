@@ -34,5 +34,6 @@ PATH_PATTERNS: tuple[str, ...] = (
     "/social-media/",
     "daw",
     "live-performance",
+    "live_performance",
     "set-preparation",
 )
