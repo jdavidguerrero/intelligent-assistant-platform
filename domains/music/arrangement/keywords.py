@@ -25,6 +25,7 @@ PATH_PATTERNS: tuple[str, ...] = (
     "/arrangement/",
     "/planning/",
     "structure",
-    "form",
+    "/form/",
     "song-structure",
+    "song-form",
 )
