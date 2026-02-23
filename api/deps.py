@@ -7,6 +7,7 @@ the embedding and generation providers so they are created once and
 reused across requests.
 """
 
+import os
 from collections.abc import Generator
 
 from sqlalchemy.orm import Session
@@ -146,3 +147,52 @@ def get_memory_store() -> MemoryStore:
     if _memory_store is None:
         _memory_store = MemoryStore()
     return _memory_store
+
+
+# ---------------------------------------------------------------------------
+# Task router — multi-model musical task routing (opt-in via USE_ROUTING=true)
+# ---------------------------------------------------------------------------
+
+_task_router: "TaskRouter | None" = None  # type: ignore[name-defined]  # noqa: F821
+
+
+def get_task_router() -> "TaskRouter":  # type: ignore[name-defined]  # noqa: F821
+    """Return a cached TaskRouter singleton.
+
+    Reads model names from environment variables (with safe defaults):
+      TIER_FAST_MODEL     — default: gpt-4o-mini
+      TIER_STANDARD_MODEL — default: gpt-4o
+      TIER_LOCAL_MODEL    — default: claude-haiku-4-20250514
+
+    Returns:
+        TaskRouter configured with three tier providers.
+    """
+    global _task_router  # noqa: PLW0603
+    if _task_router is None:
+        from ingestion.generation import (
+            AnthropicGenerationProvider,
+            OpenAIGenerationProvider,
+        )
+        from ingestion.router import TaskRouter
+
+        fast = OpenAIGenerationProvider(model=os.getenv("TIER_FAST_MODEL", "gpt-4o-mini"))
+        standard = OpenAIGenerationProvider(model=os.getenv("TIER_STANDARD_MODEL", "gpt-4o"))
+        local = AnthropicGenerationProvider(
+            model=os.getenv("TIER_LOCAL_MODEL", "claude-haiku-4-20250514")
+        )
+        _task_router = TaskRouter(fast=fast, standard=standard, local=local)
+    return _task_router  # type: ignore[return-value]
+
+
+def get_task_router_optional() -> "TaskRouter | None":  # type: ignore[name-defined]  # noqa: F821
+    """Return the TaskRouter only when ``USE_ROUTING=true`` is set.
+
+    Keeps the routing feature strictly opt-in — existing deployments
+    without the env var continue to use the single-provider setup unchanged.
+
+    Returns:
+        TaskRouter if ``USE_ROUTING=true``, else None.
+    """
+    if os.getenv("USE_ROUTING", "").lower() == "true":
+        return get_task_router()
+    return None

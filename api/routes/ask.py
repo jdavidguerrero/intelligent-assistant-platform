@@ -43,6 +43,7 @@ from api.deps import (
     get_memory_store,
     get_rate_limiter,
     get_response_cache,
+    get_task_router_optional,
 )
 from api.schemas.ask import (
     AskRequest,
@@ -59,6 +60,7 @@ from core.rag.citations import extract_citations, validate_citations
 from core.rag.context import RetrievedChunk, format_context_block, format_source_list
 from core.rag.degraded import build_degraded_response
 from core.rag.prompts import build_system_prompt, build_user_prompt
+from core.routing.costs import calculate_cost
 from core.sub_domain_detector import detect_sub_domains
 from db.rerank import rerank_results
 from db.search import hybrid_search, search_chunks
@@ -169,6 +171,8 @@ Limiter = Annotated[RateLimiter, Depends(get_rate_limiter)]
 LLMBreaker = Annotated[CircuitBreaker, Depends(get_llm_breaker)]
 EmbBreaker = Annotated[CircuitBreaker, Depends(get_embedding_breaker)]
 MemStore = Annotated[MemoryStore, Depends(get_memory_store)]
+# Router is None when USE_ROUTING != "true" — backward-compatible opt-in
+Router = Annotated[Any, Depends(get_task_router_optional)]
 
 
 @router.post("/ask", response_model=AskResponse)
@@ -182,6 +186,7 @@ def ask(
     llm_breaker: LLMBreaker,
     embedding_breaker: EmbBreaker,
     memory_store: MemStore,
+    task_router: Router = None,
 ) -> AskResponse:
     """
     Answer a question using hybrid tool routing + grounded RAG.
@@ -508,6 +513,28 @@ def ask(
     except Exception:
         logger.warning("Memory retrieval failed — skipping memory injection")
 
+    # ── Step 6.7 — Classify musical task + select model tier (best-effort) ──
+    # When USE_ROUTING=true, task_router is an instance of TaskRouter that
+    # implements GenerationProvider — it can drop in as active_generator.
+    # When USE_ROUTING is unset/false, task_router is None and we fall back
+    # to the default singleton (generator).
+    active_generator: GenerationProvider = generator
+    if task_router is not None:
+        try:
+            from core.routing.classifier import classify_musical_task
+            from core.routing.tiers import select_tier
+
+            _classification = classify_musical_task(body.query)
+            logger.info(
+                "Task classified as %s (confidence=%.2f) → tier %s",
+                _classification.task_type,
+                _classification.confidence,
+                select_tier(_classification).name,
+            )
+            active_generator = task_router
+        except Exception:
+            logger.warning("Task routing classification failed — using default generator")
+
     # 7. Build prompts — inject sub-domain focus areas and genre recipe when available
     genre_context: str | None = None
     if genre_result.has_recipe and genre_result.recipe_file:
@@ -532,21 +559,29 @@ def ask(
     #   At this point we have high-quality chunks from pgvector. A 500 discards
     #   that work. A degraded response delivers real value: the musician can read
     #   the source excerpts and keep working. "Here's what I found" beats "Server Error".
+    #
+    # When USE_ROUTING=true, active_generator is the TaskRouter.
+    # We call generate_with_decision() directly (bypassing the circuit breaker wrapper)
+    # to recover the RoutingDecision for tier/cost metadata.  The TaskRouter has its own
+    # internal fallback chain, so the breaker is not needed at this level for routing.
     t_gen = time.perf_counter()
     degraded_reason: str | None = None
     gen_response = None
+    routing_decision = None
+    _gen_request = GenerationRequest(
+        messages=(
+            Message(role="system", content=system_prompt),
+            Message(role="user", content=user_prompt),
+        ),
+        temperature=body.temperature,
+        max_tokens=body.max_tokens,
+    )
     try:
-        gen_response = llm_breaker.call(
-            generator.generate,
-            GenerationRequest(
-                messages=(
-                    Message(role="system", content=system_prompt),
-                    Message(role="user", content=user_prompt),
-                ),
-                temperature=body.temperature,
-                max_tokens=body.max_tokens,
-            ),
-        )
+        if task_router is not None:
+            # Router path: recover RoutingDecision for tier/cost metadata.
+            gen_response, routing_decision = task_router.generate_with_decision(_gen_request)
+        else:
+            gen_response = llm_breaker.call(active_generator.generate, _gen_request)
     except CircuitOpenError as exc:
         # Circuit is open — LLM service is known-down, short-circuit immediately
         logger.warning("LLM circuit open, returning degraded response: %s", exc)
@@ -615,6 +650,17 @@ def ask(
 
     record_ask(status="success", subdomain=subdomain_label, latency_seconds=total_ms / 1000)
 
+    # Derive cost_usd and tier from routing decision (when routing active)
+    _cost_usd = 0.0
+    _tier = ""
+    if routing_decision is not None:
+        _cost_usd = calculate_cost(
+            gen_response.model,
+            gen_response.usage_input_tokens,
+            gen_response.usage_output_tokens,
+        )
+        _tier = routing_decision.tier_used
+
     rag_response = AskResponse(
         query=body.query,
         answer=gen_response.content,
@@ -642,6 +688,8 @@ def ask(
             model=gen_response.model,
             cache_hit=False,
             embedding_cache_hit=emb_cache_hit,
+            cost_usd=_cost_usd,
+            tier=_tier,
         ),
         mode="rag",
         tool_calls=[],
