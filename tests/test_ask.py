@@ -15,6 +15,7 @@ from fastapi.testclient import TestClient
 from api.deps import (
     get_embedding_provider,
     get_generation_provider,
+    get_memory_store,
     get_rate_limiter,
     get_response_cache,
 )
@@ -65,6 +66,12 @@ class TestAskEndpoint:
         noop_limiter._max = 30
         noop_limiter._window = 60
         app.dependency_overrides[get_rate_limiter] = lambda: noop_limiter
+        # No-op MemoryStore mock — memory system not under test here
+        noop_memory = MagicMock()
+        noop_memory.search_relevant.return_value = []
+        noop_memory.create_entry.return_value = MagicMock()
+        noop_memory.save.return_value = None
+        app.dependency_overrides[get_memory_store] = lambda: noop_memory
         yield
         app.dependency_overrides.clear()
 
@@ -335,6 +342,11 @@ class TestSubDomainRoutingInAsk:
         noop_limiter._max = 30
         noop_limiter._window = 60
         app.dependency_overrides[get_rate_limiter] = lambda: noop_limiter
+        noop_memory = MagicMock()
+        noop_memory.search_relevant.return_value = []
+        noop_memory.create_entry.return_value = MagicMock()
+        noop_memory.save.return_value = None
+        app.dependency_overrides[get_memory_store] = lambda: noop_memory
         yield
         app.dependency_overrides.clear()
 
@@ -547,6 +559,11 @@ class TestGenreRecipeInjectionInAsk:
         noop_limiter._max = 30
         noop_limiter._window = 60
         app.dependency_overrides[get_rate_limiter] = lambda: noop_limiter
+        noop_memory = MagicMock()
+        noop_memory.search_relevant.return_value = []
+        noop_memory.create_entry.return_value = MagicMock()
+        noop_memory.save.return_value = None
+        app.dependency_overrides[get_memory_store] = lambda: noop_memory
         yield
         app.dependency_overrides.clear()
 

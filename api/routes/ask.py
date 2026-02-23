@@ -26,6 +26,8 @@ import json
 import logging
 import time
 from collections.abc import Iterator
+from datetime import UTC
+from datetime import datetime as _dt
 from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -38,6 +40,7 @@ from api.deps import (
     get_embedding_provider,
     get_generation_provider,
     get_llm_breaker,
+    get_memory_store,
     get_rate_limiter,
     get_response_cache,
 )
@@ -50,6 +53,7 @@ from api.schemas.ask import (
 )
 from core.generation.base import GenerationProvider, GenerationRequest, Message
 from core.genre_detector import detect_genre
+from core.memory.format import format_memory_block
 from core.query_expansion import detect_intents, detect_mastering_intent, expand_query
 from core.rag.citations import extract_citations, validate_citations
 from core.rag.context import RetrievedChunk, format_context_block, format_source_list
@@ -69,6 +73,7 @@ from infrastructure.metrics import (
 )
 from infrastructure.rate_limiter import RateLimiter
 from ingestion.embeddings import OpenAIEmbeddingProvider
+from ingestion.memory_store import MemoryStore
 from ingestion.recipes import load_recipe
 from tools.router import ToolRouter
 
@@ -163,6 +168,7 @@ RespCache = Annotated[ResponseCache, Depends(get_response_cache)]
 Limiter = Annotated[RateLimiter, Depends(get_rate_limiter)]
 LLMBreaker = Annotated[CircuitBreaker, Depends(get_llm_breaker)]
 EmbBreaker = Annotated[CircuitBreaker, Depends(get_embedding_breaker)]
+MemStore = Annotated[MemoryStore, Depends(get_memory_store)]
 
 
 @router.post("/ask", response_model=AskResponse)
@@ -175,6 +181,7 @@ def ask(
     rate_limiter: Limiter,
     llm_breaker: LLMBreaker,
     embedding_breaker: EmbBreaker,
+    memory_store: MemStore,
 ) -> AskResponse:
     """
     Answer a question using hybrid tool routing + grounded RAG.
@@ -484,6 +491,20 @@ def ask(
     context_block = format_context_block(retrieved_chunks)
     sources_list = format_source_list(retrieved_chunks)
 
+    # ── Step 6.5 — Retrieve relevant memories (best-effort) ──────────
+    memory_context: str | None = None
+    try:
+        _now = _dt.now(UTC)
+        relevant_memories = memory_store.search_relevant(
+            query_embedding=query_embedding,
+            now=_now,
+            top_k=5,
+        )
+        if relevant_memories:
+            memory_context = format_memory_block([e for e, _ in relevant_memories]) or None
+    except Exception:
+        logger.warning("Memory retrieval failed — skipping memory injection")
+
     # 7. Build prompts — inject sub-domain focus areas and genre recipe when available
     genre_context: str | None = None
     if genre_result.has_recipe and genre_result.recipe_file:
@@ -494,6 +515,7 @@ def ask(
     system_prompt = build_system_prompt(
         active_sub_domains=active_sub_domains if active_sub_domains else None,
         genre_context=genre_context,
+        memory_context=memory_context,
     )
     user_prompt = build_user_prompt(body.query, context_block)
 
@@ -622,6 +644,18 @@ def ask(
         tool_calls=[],
     )
 
+    # ── Step 9.5 — Extract and store new memories (best-effort) ──────
+    try:
+        _extract_and_store_memories(
+            query=body.query,
+            answer=gen_response.content,
+            query_embedding=query_embedding,
+            generator=generator,
+            memory_store=memory_store,
+        )
+    except Exception:
+        logger.debug("Memory extraction skipped (best-effort)")
+
     # Store in response cache for future identical queries (best-effort)
     # Only cache successful responses (not low-confidence refusals)
     cited_sources = [src["source_name"] for src in sources_list]  # type: ignore[index]
@@ -664,6 +698,7 @@ def ask_stream(
     generator: Generator,
     rate_limiter: Limiter,
     embedding_breaker: EmbBreaker,
+    memory_store: MemStore,
 ) -> StreamingResponse:
     """Stream an answer as Server-Sent Events (SSE).
 
@@ -868,9 +903,26 @@ def ask_stream(
         if genre_result.has_recipe and genre_result.recipe_file:
             genre_context = load_recipe(genre_result.recipe_file)
 
+        # ── Step 6.5 — Retrieve relevant memories (best-effort) ──────
+        stream_memory_context: str | None = None
+        try:
+            _stream_now = _dt.now(UTC)
+            _stream_memories = memory_store.search_relevant(
+                query_embedding=query_embedding,
+                now=_stream_now,
+                top_k=5,
+            )
+            if _stream_memories:
+                stream_memory_context = (
+                    format_memory_block([e for e, _ in _stream_memories]) or None
+                )
+        except Exception:
+            logger.warning("Stream memory retrieval failed — skipping memory injection")
+
         system_prompt = build_system_prompt(
             active_sub_domains=active_sub_domains if active_sub_domains else None,
             genre_context=genre_context,
+            memory_context=stream_memory_context,
         )
         user_prompt = build_user_prompt(body.query, context_block)
 
@@ -923,9 +975,19 @@ def ask_stream(
         # --- Step 7: Citations + done -----------------------------------------
         answer_text = "".join(full_answer)
         extracted_citations = extract_citations(answer_text)
-        citation_result = validate_citations(
-            extracted_citations, num_sources=len(retrieved_chunks)
-        )
+        citation_result = validate_citations(extracted_citations, num_sources=len(retrieved_chunks))
+
+        # ── Step 9.5 — Extract and store new memories (best-effort) ──
+        try:
+            _extract_and_store_memories(
+                query=body.query,
+                answer=answer_text,
+                query_embedding=query_embedding,
+                generator=generator,
+                memory_store=memory_store,
+            )
+        except Exception:
+            logger.debug("Stream memory extraction skipped (best-effort)")
 
         yield _sse(
             {
@@ -1102,3 +1164,42 @@ def _fallback_tool_answer(
         else:
             lines.append(f"✗ {record.tool_name}: failed — {record.error}")
     return "\n".join(lines) if lines else "Tools executed with no output."
+
+
+def _extract_and_store_memories(
+    query: str,
+    answer: str,
+    query_embedding: list[float],
+    generator: GenerationProvider,
+    memory_store: MemoryStore,
+) -> None:
+    """Extract memorable facts from (query, answer) and persist them.
+
+    Best-effort coordinator — all errors are swallowed by the caller.
+    The extracted memories use the query_embedding as a proxy embedding
+    (avoids an extra API call for the memory content).
+
+    Args:
+        query: The user's question.
+        answer: The LLM's answer.
+        query_embedding: Existing embedding of the query (reused for memory).
+        generator: LLM provider for LLM-based extraction.
+        memory_store: Store to persist extracted memories.
+    """
+    from ingestion.memory_extractor import extract_memories
+
+    extracted = extract_memories(
+        query=query,
+        answer=answer,
+        generator=None,   # rule-based only in background — avoids extra LLM call per /ask
+        use_llm=False,
+    )
+    now = _dt.now(UTC)
+    for mem in extracted:
+        entry = memory_store.create_entry(
+            memory_type=mem.memory_type,
+            content=mem.content,
+            now=now,
+            source="auto",
+        )
+        memory_store.save(entry, embedding=query_embedding)
