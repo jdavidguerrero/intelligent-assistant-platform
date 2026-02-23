@@ -18,6 +18,7 @@ from infrastructure.circuit_breaker import CircuitBreaker
 from infrastructure.rate_limiter import RateLimiter
 from ingestion.embeddings import OpenAIEmbeddingProvider
 from ingestion.generation import create_generation_provider
+from ingestion.memory_store import MemoryStore
 
 
 def get_db() -> Generator[Session, None, None]:
@@ -130,3 +131,18 @@ def get_embedding_breaker() -> CircuitBreaker:
             reset_timeout_seconds=30.0,
         )
     return _embedding_breaker
+
+
+_memory_store: MemoryStore | None = None
+
+
+def get_memory_store() -> MemoryStore:
+    """Return a cached MemoryStore singleton (SQLite-backed, local-first).
+
+    Created on first call. SQLite file created at data/memory.db if it
+    does not exist. Thread-safe in WAL mode.
+    """
+    global _memory_store  # noqa: PLW0603
+    if _memory_store is None:
+        _memory_store = MemoryStore()
+    return _memory_store

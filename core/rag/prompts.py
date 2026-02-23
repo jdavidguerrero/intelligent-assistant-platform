@@ -47,11 +47,13 @@ clearly state: "I don't have enough information in my references to answer this 
 def build_system_prompt(
     genre_context: str | None = None,
     active_sub_domains: list[str] | None = None,
+    memory_context: str | None = None,
 ) -> str:
     """Return the system prompt for the RAG assistant.
 
-    Optionally injects structured genre knowledge and sub-domain context
-    to ground the LLM in the specific musical territory of the query.
+    Optionally injects structured genre knowledge, sub-domain context,
+    and personal memory context to ground the LLM in the specific musical
+    territory of the query.
 
     When ``genre_context`` is provided, it is appended as a dedicated
     section after the base prompt. This gives the model explicit facts
@@ -63,6 +65,11 @@ def build_system_prompt(
     the model which production disciplines are relevant, reducing the
     chance of irrelevant tangents.
 
+    When ``memory_context`` is provided, it is appended after the genre
+    context section. This injects the user's personal musical memories
+    (preferences, session notes, growth milestones, creative ideas) so
+    the model can tailor its answers to the individual producer.
+
     Args:
         genre_context: Optional serialized genre recipe string (e.g. the
             text of ``organic_house.md`` or a summary of ``ORGANIC_HOUSE``).
@@ -70,6 +77,9 @@ def build_system_prompt(
         active_sub_domains: Optional list of active sub-domain names
             (e.g. ``["mixing", "genre_analysis"]``). Used to scope the
             model's focus without restricting it entirely.
+        memory_context: Optional formatted memory block from
+            ``format_memory_block()``. Injected verbatim after the genre
+            reference section when present.
 
     Returns:
         The complete system prompt string.
@@ -82,6 +92,9 @@ def build_system_prompt(
 
     if genre_context:
         prompt += f"\n\n## Genre Reference\nThe following is a production recipe for the genre most relevant to this query. Use it as additional grounding context:\n\n{genre_context}"
+
+    if memory_context:
+        prompt += f"\n\n{memory_context}"
 
     return prompt
 

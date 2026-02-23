@@ -20,6 +20,7 @@ from api.deps import (
     get_embedding_breaker,
     get_embedding_provider,
     get_generation_provider,
+    get_memory_store,
     get_rate_limiter,
 )
 from api.main import app
@@ -95,6 +96,11 @@ class TestAskStream:
         app.dependency_overrides.clear()
         app.dependency_overrides[get_rate_limiter] = lambda: _make_allow_all_limiter()
         app.dependency_overrides[get_embedding_breaker] = lambda: _make_allow_all_breaker()
+        noop_memory = MagicMock()
+        noop_memory.search_relevant.return_value = []
+        noop_memory.create_entry.return_value = MagicMock()
+        noop_memory.save.return_value = None
+        app.dependency_overrides[get_memory_store] = lambda: noop_memory
         yield
         app.dependency_overrides.clear()
 
