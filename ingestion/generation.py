@@ -77,7 +77,6 @@ class OpenAIGenerationProvider:
             usage_output_tokens=usage.completion_tokens if usage else 0,
         )
 
-
     def generate_stream(self, request: GenerationRequest) -> Iterator[str]:
         """Stream text chunks from OpenAI chat completions API.
 
@@ -184,7 +183,6 @@ class AnthropicGenerationProvider:
             usage_input_tokens=response.usage.input_tokens,
             usage_output_tokens=response.usage.output_tokens,
         )
-
 
     def generate_stream(self, request: GenerationRequest) -> Iterator[str]:
         """Stream text chunks from Anthropic Messages API.

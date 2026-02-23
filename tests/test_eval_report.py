@@ -25,6 +25,7 @@ from eval.runner import QueryResult
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_golden_query(
     qid: str = "test_001",
     sub_domain: SubDomain = SubDomain.MIXING,
@@ -37,7 +38,9 @@ def _make_golden_query(
         id=qid,
         question="What is EQ?",
         expected_topics=expected_topics if expected_topics is not None else ["eq", "frequency"],
-        expected_sources=expected_sources if expected_sources is not None else ["pete-tong", "mixing"],
+        expected_sources=expected_sources
+        if expected_sources is not None
+        else ["pete-tong", "mixing"],
         sub_domain=sub_domain,
         difficulty=Difficulty.EASY,
         adversarial=adversarial,
@@ -82,6 +85,7 @@ def _make_judge_score(
 # ---------------------------------------------------------------------------
 # score_results()
 # ---------------------------------------------------------------------------
+
 
 class TestScoreResults:
     """Tests for score_results() — converts raw QueryResult list to QueryScore list."""
@@ -158,9 +162,7 @@ class TestVerdictAssignment:
             expected_topics=[],
             expected_sources=[],
         )
-        result = _make_query_result(
-            query, status_code=200, answer="Here is a detailed answer..."
-        )
+        result = _make_query_result(query, status_code=200, answer="Here is a detailed answer...")
         scores = score_results([result])
         assert scores[0].verdict == "FAIL"
 
@@ -198,6 +200,7 @@ class TestVerdictAssignment:
 # ---------------------------------------------------------------------------
 # build_report()
 # ---------------------------------------------------------------------------
+
 
 class TestBuildReport:
     """Tests for build_report() — assembles EvalReport from QueryScore list."""
@@ -308,6 +311,7 @@ import pytest  # noqa: E402  (needed for pytest.approx reference above)
 # render_report()
 # ---------------------------------------------------------------------------
 
+
 class TestRenderReport:
     """Tests for render_report() — text rendering of EvalReport."""
 
@@ -390,6 +394,7 @@ class TestRenderReport:
 # ---------------------------------------------------------------------------
 # report_to_dict()
 # ---------------------------------------------------------------------------
+
 
 class TestReportToDict:
     """Tests for report_to_dict() — JSON serialisability and structure."""

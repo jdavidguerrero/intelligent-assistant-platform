@@ -36,7 +36,7 @@ class TestPrecisionAtK:
         sources = [
             "pete-tong-course.pdf",  # relevant (matches "pete-tong")
             "unrelated-a.pdf",
-            "mixing-guide.pdf",      # relevant (matches "mixing")
+            "mixing-guide.pdf",  # relevant (matches "mixing")
             "unrelated-b.pdf",
             "unrelated-c.pdf",
         ]
@@ -105,8 +105,8 @@ class TestRecallAtK:
     def test_recall_respects_k(self) -> None:
         """Sources beyond rank K are not considered for recall."""
         sources = [
-            "unrelated-a.pdf",   # rank 1
-            "pete-tong.pdf",     # rank 2
+            "unrelated-a.pdf",  # rank 1
+            "pete-tong.pdf",  # rank 2
             "mixing-guide.pdf",  # rank 3 — outside k=2
         ]
         expected = ["pete-tong", "mixing"]

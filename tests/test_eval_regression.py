@@ -22,6 +22,7 @@ from eval.regression import (
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_baseline(
     overall_pass_rate: float = 0.80,
     mixing_pass_rate: float = 0.80,
@@ -82,6 +83,7 @@ def _make_baseline(
 # MetricDelta
 # ---------------------------------------------------------------------------
 
+
 class TestMetricDelta:
     """Unit tests for the MetricDelta value object."""
 
@@ -124,6 +126,7 @@ class TestMetricDelta:
 # ---------------------------------------------------------------------------
 # compare()
 # ---------------------------------------------------------------------------
+
 
 class TestCompare:
     """Tests for compare() — the core regression-detection function."""
@@ -184,8 +187,7 @@ class TestCompare:
         report = compare(baseline, current, threshold=0.05)
         assert report.has_regressions is True
         mixing_regressions = [
-            d for d in report.regressions
-            if d.sub_domain == "mixing" and d.metric == "pass_rate"
+            d for d in report.regressions if d.sub_domain == "mixing" and d.metric == "pass_rate"
         ]
         assert len(mixing_regressions) == 1
 
@@ -216,8 +218,7 @@ class TestCompare:
         report = compare(baseline, current, threshold=0.05, metrics=["precision_at_5"])
         # pass_rate sub-domain regression should NOT be in regressions list
         mixing_pass_regressions = [
-            d for d in report.regressions
-            if d.sub_domain == "mixing" and d.metric == "pass_rate"
+            d for d in report.regressions if d.sub_domain == "mixing" and d.metric == "pass_rate"
         ]
         assert len(mixing_pass_regressions) == 0
 
@@ -225,6 +226,7 @@ class TestCompare:
 # ---------------------------------------------------------------------------
 # RegressionReport.render()
 # ---------------------------------------------------------------------------
+
 
 class TestRegressionReportRender:
     """Tests for the text rendering of RegressionReport."""
@@ -270,6 +272,7 @@ class TestRegressionReportRender:
 # ---------------------------------------------------------------------------
 # save_baseline() / load_baseline()
 # ---------------------------------------------------------------------------
+
 
 class TestBaselinePersistence:
     """File I/O tests for save_baseline() and load_baseline()."""

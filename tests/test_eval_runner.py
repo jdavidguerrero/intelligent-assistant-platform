@@ -18,6 +18,7 @@ from eval.runner import EvalRunner, QueryResult
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _make_golden_query(
     qid: str = "mix_001",
     adversarial: bool = False,
@@ -30,7 +31,9 @@ def _make_golden_query(
         id=qid,
         question="How do you use EQ to separate kick and bass frequencies?",
         expected_topics=expected_topics if expected_topics is not None else ["eq", "frequency"],
-        expected_sources=expected_sources if expected_sources is not None else ["pete-tong", "mixing"],
+        expected_sources=expected_sources
+        if expected_sources is not None
+        else ["pete-tong", "mixing"],
         sub_domain=sub_domain,
         difficulty=Difficulty.EASY,
         adversarial=adversarial,
@@ -47,11 +50,15 @@ def _make_ask_200_response(
     """Build a fake /ask 200 response payload."""
     return {
         "answer": answer,
-        "sources": sources if sources is not None else [
+        "sources": sources
+        if sources is not None
+        else [
             {"source_name": "pete-tong-mixing.pdf"},
             {"source_name": "mixing-guide.pdf"},
         ],
-        "citations": citations if citations is not None else [{"index": 1, "source": "pete-tong-mixing.pdf"}],
+        "citations": citations
+        if citations is not None
+        else [{"index": 1, "source": "pete-tong-mixing.pdf"}],
         "mode": mode,
         "warnings": warnings or [],
     }
@@ -65,6 +72,7 @@ def _make_ask_422_response(detail: str = "insufficient_knowledge") -> dict:
 # ---------------------------------------------------------------------------
 # QueryResult unit tests (no runner, no HTTP)
 # ---------------------------------------------------------------------------
+
 
 class TestQueryResult:
     """Unit tests for QueryResult properties and methods."""
@@ -270,6 +278,7 @@ class TestQueryResult:
 # EvalRunner integration tests with mocked client
 # ---------------------------------------------------------------------------
 
+
 class TestEvalRunner:
     """Tests for EvalRunner using a mocked FastAPI TestClient."""
 
@@ -391,9 +400,7 @@ class TestEvalRunner:
     def test_runner_error_mode_is_error(self) -> None:
         """On exception, mode is set to 'error'."""
         runner = EvalRunner()
-        runner._make_client = lambda: self._mock_client_raises(
-            TimeoutError("Request timed out")
-        )
+        runner._make_client = lambda: self._mock_client_raises(TimeoutError("Request timed out"))
         query = _make_golden_query()
         results = runner.run(dataset=[query])
         assert results[0].mode == "error"
