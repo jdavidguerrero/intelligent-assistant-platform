@@ -1,0 +1,35 @@
+# compose.api.yml — extends compose.yml with the API service
+#
+# Usage: docker compose -f compose.yml -f compose.api.yml up --build -d
+#
+# This file adds the FastAPI application container on top of the
+# pgvector + Redis infrastructure defined in compose.yml.
+
+services:
+  api:
+    build: .
+    ports:
+      - "${API_PORT:-8000}:8000"
+    env_file: .env
+    environment:
+      # Override DATABASE_URL to use the compose service name
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-ia}:${POSTGRES_PASSWORD:-ia}@db:5432/${POSTGRES_DB:-ia}
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      # Persist SQLite memory store outside the container
+      - memory_data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+volumes:
+  memory_data:
