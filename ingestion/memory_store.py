@@ -285,6 +285,7 @@ class MemoryStore:
         now: datetime,
         top_k: int = 5,
         memory_types: list[MemoryType] | None = None,
+        min_score: float = 0.35,
     ) -> list[tuple[MemoryEntry, float]]:
         """Find memories semantically relevant to a query, weighted by decay.
 
@@ -292,13 +293,18 @@ class MemoryStore:
         1. Load all entries from SQLite
         2. filter_active_memories() removes expired entries
         3. For each active entry with an embedding: score = cosine * decay_weight
-        4. Sort descending, return top_k
+        4. Filter out entries with score < min_score (memory trigger threshold)
+        5. Sort descending, return top_k
 
         Args:
             query_embedding: 1536-dim embedding of the current query.
             now: Current timezone-aware datetime.
             top_k: Maximum results to return.
             memory_types: Optional filter — only consider these types.
+            min_score: Minimum combined score (cosine * decay) to surface a memory.
+                Entries below this threshold are silenced even if they exist.
+                Default 0.35 prevents tangentially-related memories from leaking
+                into unrelated queries.
 
         Returns:
             List of (MemoryEntry, score) tuples, sorted by score descending.
@@ -325,7 +331,9 @@ class MemoryStore:
                 continue
             cosine = _cosine(query_embedding, emb)
             decay = compute_decay_weight(entry, now).effective_weight
-            scored.append((entry, round(cosine * decay, 4)))
+            score = round(cosine * decay, 4)
+            if score >= min_score:
+                scored.append((entry, score))
 
         scored.sort(key=lambda t: t[1], reverse=True)
         return scored[:top_k]

@@ -144,3 +144,25 @@ class TestMemoryStoreSearch:
     def test_search_returns_empty_when_no_entries(self, store: MemoryStore) -> None:
         results = store.search_relevant([0.1] * 1536, FROZEN_NOW)
         assert results == []
+
+    def test_search_min_score_excludes_low_scoring_entries(self, store: MemoryStore) -> None:
+        """Entries whose cosine*decay < min_score are silenced (trigger threshold)."""
+        # orthogonal embedding → cosine ≈ 0.0, score < 0.35
+        e = store.create_entry("preference", "orthogonal memory", FROZEN_NOW)
+        store.save(e, embedding=[1.0] + [0.0] * 1535)
+        # query points in completely different direction
+        results = store.search_relevant(
+            [0.0] * 1535 + [1.0],
+            FROZEN_NOW,
+            min_score=0.35,
+        )
+        assert all(entry.memory_id != e.memory_id for entry, _ in results)
+
+    def test_search_min_score_zero_returns_all_with_embedding(self, store: MemoryStore) -> None:
+        """min_score=0.0 disables the trigger — all entries with embeddings are returned."""
+        emb = [0.1] * 1536
+        entries = [store.create_entry("preference", f"mem {i}", FROZEN_NOW) for i in range(3)]
+        for e in entries:
+            store.save(e, embedding=emb)
+        results = store.search_relevant(emb, FROZEN_NOW, min_score=0.0)
+        assert len(results) == 3
