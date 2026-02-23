@@ -107,6 +107,21 @@ class UsageMetadata(BaseModel):
         default=False,
         description="True if the query embedding was served from in-memory cache.",
     )
+    cost_usd: float = Field(
+        default=0.0,
+        description=(
+            "Estimated USD cost for this generation call. "
+            "Non-zero only when USE_ROUTING=true. "
+            "Calculated from (model, input_tokens, output_tokens) via the cost table."
+        ),
+    )
+    tier: str = Field(
+        default="",
+        description=(
+            "Model tier that generated the response: 'fast', 'standard', or 'local'. "
+            "Empty string when USE_ROUTING=false (single-provider mode)."
+        ),
+    )
 
 
 class ToolCallRecord(BaseModel):
