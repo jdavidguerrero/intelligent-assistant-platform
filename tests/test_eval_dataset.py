@@ -91,16 +91,16 @@ class TestNonAdversarialAnnotations:
     def test_non_adversarial_have_topics(self) -> None:
         """All non-adversarial queries must have at least one expected topic."""
         for q in self._non_adversarial():
-            assert len(q.expected_topics) > 0, (
-                f"{q.id}: non-adversarial query has empty expected_topics"
-            )
+            assert (
+                len(q.expected_topics) > 0
+            ), f"{q.id}: non-adversarial query has empty expected_topics"
 
     def test_non_adversarial_have_sources(self) -> None:
         """All non-adversarial queries must have at least one expected source."""
         for q in self._non_adversarial():
-            assert len(q.expected_sources) > 0, (
-                f"{q.id}: non-adversarial query has empty expected_sources"
-            )
+            assert (
+                len(q.expected_sources) > 0
+            ), f"{q.id}: non-adversarial query has empty expected_sources"
 
 
 class TestAdversarialAnnotations:
@@ -112,23 +112,23 @@ class TestAdversarialAnnotations:
     def test_adversarial_have_empty_topics(self) -> None:
         """All adversarial queries must have empty expected_topics."""
         for q in self._adversarial():
-            assert q.expected_topics == [], (
-                f"{q.id}: adversarial query has non-empty expected_topics"
-            )
+            assert (
+                q.expected_topics == []
+            ), f"{q.id}: adversarial query has non-empty expected_topics"
 
     def test_adversarial_have_empty_sources(self) -> None:
         """All adversarial queries must have empty expected_sources."""
         for q in self._adversarial():
-            assert q.expected_sources == [], (
-                f"{q.id}: adversarial query has non-empty expected_sources"
-            )
+            assert (
+                q.expected_sources == []
+            ), f"{q.id}: adversarial query has non-empty expected_sources"
 
     def test_adversarial_flag_matches_subdomain(self) -> None:
         """Queries with adversarial=True must belong to the ADVERSARIAL sub-domain."""
         for q in self._adversarial():
-            assert q.sub_domain == SubDomain.ADVERSARIAL, (
-                f"{q.id}: adversarial=True but sub_domain={q.sub_domain}"
-            )
+            assert (
+                q.sub_domain == SubDomain.ADVERSARIAL
+            ), f"{q.id}: adversarial=True but sub_domain={q.sub_domain}"
 
 
 class TestCrossDomainAnnotations:
@@ -141,17 +141,16 @@ class TestCrossDomainAnnotations:
         """All CROSS queries must list at least 2 cross_domains."""
         for q in self._cross_queries():
             assert len(q.cross_domains) >= 2, (
-                f"{q.id}: CROSS query has fewer than 2 cross_domains "
-                f"(got {q.cross_domains})"
+                f"{q.id}: CROSS query has fewer than 2 cross_domains " f"(got {q.cross_domains})"
             )
 
     def test_cross_domains_are_subdomain_enums(self) -> None:
         """All cross_domains entries must be valid SubDomain enum values."""
         for q in self._cross_queries():
             for domain in q.cross_domains:
-                assert isinstance(domain, SubDomain), (
-                    f"{q.id}: cross_domains contains non-SubDomain value {domain!r}"
-                )
+                assert isinstance(
+                    domain, SubDomain
+                ), f"{q.id}: cross_domains contains non-SubDomain value {domain!r}"
 
 
 class TestDatasetByIdLookup:
@@ -165,13 +164,9 @@ class TestDatasetByIdLookup:
     def test_dataset_by_id_values_are_golden_queries(self) -> None:
         """All values in DATASET_BY_ID must be GoldenQuery instances."""
         for key, value in DATASET_BY_ID.items():
-            assert isinstance(value, GoldenQuery), (
-                f"DATASET_BY_ID[{key!r}] is not a GoldenQuery"
-            )
+            assert isinstance(value, GoldenQuery), f"DATASET_BY_ID[{key!r}] is not a GoldenQuery"
 
     def test_dataset_by_id_key_matches_query_id(self) -> None:
         """Each key in DATASET_BY_ID must match the .id of its GoldenQuery."""
         for key, value in DATASET_BY_ID.items():
-            assert key == value.id, (
-                f"Key {key!r} does not match query id {value.id!r}"
-            )
+            assert key == value.id, f"Key {key!r} does not match query id {value.id!r}"
