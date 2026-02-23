@@ -492,6 +492,8 @@ def ask(
     sources_list = format_source_list(retrieved_chunks)
 
     # ── Step 6.5 — Retrieve relevant memories (best-effort) ──────────
+    # min_score=0.35 is the trigger threshold: memories scoring below this
+    # (cosine * decay < 0.35) are silenced — not relevant enough to surface.
     memory_context: str | None = None
     try:
         _now = _dt.now(UTC)
@@ -499,6 +501,7 @@ def ask(
             query_embedding=query_embedding,
             now=_now,
             top_k=5,
+            min_score=0.35,
         )
         if relevant_memories:
             memory_context = format_memory_block([e for e, _ in relevant_memories]) or None
@@ -904,6 +907,7 @@ def ask_stream(
             genre_context = load_recipe(genre_result.recipe_file)
 
         # ── Step 6.5 — Retrieve relevant memories (best-effort) ──────
+        # min_score=0.35 mirrors the non-stream trigger threshold.
         stream_memory_context: str | None = None
         try:
             _stream_now = _dt.now(UTC)
@@ -911,6 +915,7 @@ def ask_stream(
                 query_embedding=query_embedding,
                 now=_stream_now,
                 top_k=5,
+                min_score=0.35,
             )
             if _stream_memories:
                 stream_memory_context = (
@@ -1191,7 +1196,7 @@ def _extract_and_store_memories(
     extracted = extract_memories(
         query=query,
         answer=answer,
-        generator=None,   # rule-based only in background — avoids extra LLM call per /ask
+        generator=None,  # rule-based only in background — avoids extra LLM call per /ask
         use_llm=False,
     )
     now = _dt.now(UTC)

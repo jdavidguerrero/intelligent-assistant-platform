@@ -506,3 +506,126 @@ class TestSystemPromptMemorySectionContent:
         prompt = build_system_prompt(memory_context=block)
         assert "improving sidechain compression" in prompt
         assert "[growth]" in prompt
+
+
+# ---------------------------------------------------------------------------
+# Test: Memory vs. No-Memory A/B Baseline
+# ---------------------------------------------------------------------------
+
+
+class TestMemoryVsNoMemoryBaseline:
+    """Measure that memory measurably and correctly changes the system prompt.
+
+    These tests establish the A/B baseline:
+    - WITH memory:    prompt contains memory block, is longer, references user context.
+    - WITHOUT memory: prompt has no memory section.
+    - Below threshold: low-score memories are silenced (trigger logic).
+    """
+
+    def _make_entry(self, memory_type: str, content: str) -> MemoryEntry:
+        return MemoryEntry(
+            memory_id=f"ab-{memory_type}",
+            memory_type=memory_type,  # type: ignore[arg-type]
+            content=content,
+            created_at="2026-02-21T12:00:00+00:00",
+            updated_at="2026-02-21T12:00:00+00:00",
+        )
+
+    def test_prompt_without_memory_has_no_memory_section(self) -> None:
+        """Baseline: no memories → no '## Your Musical Memory' section."""
+        prompt = build_system_prompt()
+        assert "Your Musical Memory" not in prompt
+
+    def test_prompt_with_memory_contains_memory_section(self) -> None:
+        """With memory injected the prompt gains the memory section."""
+        entry = self._make_entry("preference", "prefer A minor, 128 BPM house")
+        block = format_memory_block([entry])
+        prompt = build_system_prompt(memory_context=block)
+        assert "Your Musical Memory" in prompt
+
+    def test_prompt_with_memory_is_longer_than_without(self) -> None:
+        """Memory injection measurably increases prompt length."""
+        baseline = build_system_prompt()
+        entry = self._make_entry("session", "worked on kick compression today")
+        block = format_memory_block([entry])
+        with_memory = build_system_prompt(memory_context=block)
+        assert len(with_memory) > len(baseline)
+        # The delta should be at least the length of the memory content itself
+        assert len(with_memory) - len(baseline) >= len("worked on kick compression today")
+
+    def test_memory_content_appears_verbatim_in_prompt(self) -> None:
+        """The exact user memory text is present, not paraphrased."""
+        content = "FM synthesis with operator ratio 1:2:4 sounds huge"
+        entry = self._make_entry("creative", content)
+        block = format_memory_block([entry])
+        prompt = build_system_prompt(memory_context=block)
+        assert content in prompt
+
+    def test_all_four_types_each_change_the_prompt(self) -> None:
+        """All 4 memory types individually produce a prompt with memory section."""
+        for mt in ("preference", "session", "growth", "creative"):
+            entry = self._make_entry(mt, f"some {mt} memory content")
+            block = format_memory_block([entry])
+            prompt = build_system_prompt(memory_context=block)
+            assert "Your Musical Memory" in prompt, f"Memory section missing for type={mt}"
+            assert f"[{mt}]" in prompt, f"Type label missing for type={mt}"
+
+    def test_low_score_memory_silenced_by_threshold(self, store: MemoryStore) -> None:
+        """Entries whose cosine*decay < 0.35 are not returned by search_relevant.
+
+        This validates the trigger: the assistant stays silent about memories
+        that are not meaningfully related to the current query.
+        """
+        # Save a memory with embedding pointing in dimension-0
+        entry = store.create_entry("preference", "prefer analog warmth", FROZEN_NOW)
+        # Orthogonal embedding: dimension 1535 only
+        store.save(entry, embedding=[0.0] * 1535 + [1.0])
+
+        # Query points only in dimension 0 — cosine ≈ 0.0
+        results = store.search_relevant(
+            [1.0] + [0.0] * 1535,
+            FROZEN_NOW,
+            min_score=0.35,
+        )
+        surfaced_ids = [e.memory_id for e, _ in results]
+        assert (
+            entry.memory_id not in surfaced_ids
+        ), "Low-relevance memory should be silenced by the trigger threshold"
+
+    def test_high_score_memory_surfaces_above_threshold(self, store: MemoryStore) -> None:
+        """Entries with cosine*decay >= 0.35 are returned and injected."""
+        entry = store.create_entry(
+            "preference", "prefer A minor for melancholic tracks", FROZEN_NOW
+        )
+        # Identical embedding → cosine = 1.0, decay = 1.0, score = 1.0
+        emb = [1.0] + [0.0] * 1535
+        store.save(entry, embedding=emb)
+
+        results = store.search_relevant(emb, FROZEN_NOW, min_score=0.35)
+        surfaced_ids = [e.memory_id for e, _ in results]
+        assert entry.memory_id in surfaced_ids
+
+        # Verify this surfaces into the system prompt
+        block = format_memory_block([e for e, _ in results])
+        prompt = build_system_prompt(memory_context=block)
+        assert "prefer A minor for melancholic tracks" in prompt
+
+    def test_two_queries_same_memory_different_relevance(self, store: MemoryStore) -> None:
+        """Same memory surfaces for a relevant query but not for an unrelated one.
+
+        Demonstrates the trigger correctly discriminates between queries.
+        """
+        # Memory about bass design stored with a specific embedding direction
+        entry = store.create_entry("session", "deep dive into bass layering", FROZEN_NOW)
+        bass_emb = [1.0, 0.0] + [0.0] * 1534
+        store.save(entry, embedding=bass_emb)
+
+        # Query aligned with bass memory (should surface)
+        bass_query_emb = [1.0, 0.0] + [0.0] * 1534
+        results_relevant = store.search_relevant(bass_query_emb, FROZEN_NOW, min_score=0.35)
+        assert entry.memory_id in [e.memory_id for e, _ in results_relevant]
+
+        # Query completely orthogonal (should NOT surface)
+        unrelated_emb = [0.0] * 1534 + [0.0, 1.0]
+        results_unrelated = store.search_relevant(unrelated_emb, FROZEN_NOW, min_score=0.35)
+        assert entry.memory_id not in [e.memory_id for e, _ in results_unrelated]
