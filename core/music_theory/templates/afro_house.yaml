@@ -1,0 +1,39 @@
+# Afro House — harmonic template
+#
+# Aesthetic: percussive, tribal, joyful, rooted. Dorian and natural minor modes.
+# Progressions are short (2-bar) and highly repetitive — rhythm and groove over
+# harmonic movement. Modal interchange between Dorian and natural minor common.
+# Simpler voicings — triads and open fifths to leave space for percussion.
+#
+# Reference artists: Black Coffee, Enoo Napa, Themba, Da Capo
+
+genre: afro house
+default_mode: dorian        # dorian gives the characteristic raised VI
+voicing: triads             # raw triads — room for rhythm
+
+progressions:
+  - degrees: [0, 3, 0, 4]   # i - IV - i - v  (dorian IV gives brightness)
+    label: "i - IV - i - v"
+    weight: 4
+  - degrees: [0, 5, 0, 3]   # i - VI - i - iv
+    label: "i - VI - i - iv"
+    weight: 3
+  - degrees: [0, 3, 4, 0]   # i - IV - v - i  (more movement)
+    label: "i - IV - v - i"
+    weight: 3
+  - degrees: [0, 6, 3, 0]   # i - VII - IV - i  (Dorian VII)
+    label: "i - VII - IV - i"
+    weight: 2
+
+tonic_degrees: [0]
+avoid_penultimate: []
+
+moods:
+  - euphoric
+  - neutral
+  - dark
+
+extensions:
+  minor: minor     # keep triads
+  major: major
+  dim: dim

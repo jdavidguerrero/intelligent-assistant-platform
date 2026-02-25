@@ -1,0 +1,39 @@
+# Melodic Techno — harmonic template
+#
+# Aesthetic: cinematic, driving, emotional. Minor modes predominant.
+# Progressions are repetitive but emotionally charged — often 2-bar motifs
+# looped 4–8 times. Builds tension before a single harmonic resolution.
+# Extended and modal chords preferred; phrygian colour used occasionally.
+#
+# Reference artists: Tale Of Us, Recondite, Moderat, Stephan Bodzin
+
+genre: melodic techno
+default_mode: natural minor
+voicing: extended
+
+progressions:
+  - degrees: [0, 5, 2, 6]   # i - VI - III - VII  (shared with organic house)
+    label: "i - VI - III - VII"
+    weight: 4
+  - degrees: [0, 6, 5, 3]   # i - VII - VI - iv  (cinematic descent)
+    label: "i - VII - VI - iv"
+    weight: 4
+  - degrees: [0, 3, 0, 4]   # i - iv - i - v  (tension-building)
+    label: "i - iv - i - v"
+    weight: 3
+  - degrees: [0, 2, 6, 5]   # i - III - VII - VI
+    label: "i - III - VII - VI"
+    weight: 2
+
+tonic_degrees: [0]
+avoid_penultimate: []
+
+moods:
+  - dark
+  - tense
+  - euphoric
+
+extensions:
+  minor: min7
+  major: maj7
+  dim: halfdim7

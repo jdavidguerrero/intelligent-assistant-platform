@@ -1,0 +1,38 @@
+# Progressive House — harmonic template
+#
+# Aesthetic: euphoric, building, anthemic. Major and minor modes.
+# Clear functional harmony with dominant resolutions, but avoids being
+# overly "poppy". Often uses flat-VII (Aeolian borrowed chord) for lift.
+# Seventh chords throughout; occasional add9 for brightness.
+#
+# Reference artists: Eric Prydz, deadmau5, Chicane, Daft Punk
+
+genre: progressive house
+default_mode: natural minor
+voicing: seventh
+
+progressions:
+  - degrees: [0, 4, 5, 3]   # i - v - VI - iv  (building, euphoric)
+    label: "i - v - VI - iv"
+    weight: 4
+  - degrees: [0, 5, 3, 4]   # i - VI - iv - v  (anthemic)
+    label: "i - VI - iv - v"
+    weight: 4
+  - degrees: [0, 2, 5, 4]   # i - III - VI - v
+    label: "i - III - VI - v"
+    weight: 3
+  - degrees: [0, 5, 6, 4]   # i - VI - VII - v  (lift with flat-VII)
+    label: "i - VI - VII - v"
+    weight: 2
+
+tonic_degrees: [0]
+avoid_penultimate: []       # dominant preparation is OK in prog house
+
+moods:
+  - euphoric
+  - neutral
+
+extensions:
+  minor: min7
+  major: maj7
+  dim: dim7

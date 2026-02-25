@@ -1,0 +1,38 @@
+# Deep House — harmonic template
+#
+# Aesthetic: lush, warm, slightly jazzy. Minor and major keys equally used.
+# Rich extended chords: dom7, maj9, min9. Smooth voice leading between chords.
+# Often uses sus2/sus4 to add ambiguity before resolution.
+#
+# Reference artists: Larry Heard, Kerri Chandler, Ron Trent, Moodymann
+
+genre: deep house
+default_mode: natural minor
+voicing: seventh            # maj7, min7, dom7
+
+progressions:
+  - degrees: [0, 5, 3, 6]   # i - VI - iv - VII
+    label: "i - VI - iv - VII"
+    weight: 4
+  - degrees: [0, 3, 5, 4]   # i - iv - VI - v
+    label: "i - iv - VI - v"
+    weight: 3
+  - degrees: [0, 5, 0, 3]   # i - VI - i - iv  (two-bar vamp)
+    label: "i - VI - i - iv"
+    weight: 2
+  - degrees: [0, 6, 5, 3]   # i - VII - VI - iv
+    label: "i - VII - VI - iv"
+    weight: 2
+
+tonic_degrees: [0]
+avoid_penultimate: []       # deep house allows any penultimate chord
+
+moods:
+  - dreamy
+  - neutral
+  - euphoric
+
+extensions:
+  minor: min7
+  major: maj7
+  dim: dim7
