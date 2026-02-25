@@ -37,3 +37,60 @@ extensions:
   minor: minor     # keep triads
   major: major
   dim: dim
+
+# ---------------------------------------------------------------------------
+# Bass patterns — syncopated, tribal feel, root emphasis with rhythmic gaps
+# ---------------------------------------------------------------------------
+bass_patterns:
+  - style: root
+    base_octave: 2
+    notes:
+      - [0,  0,  3, 100]    # root, beat 1 (dotted 8th — syncopated feel)
+      - [3,  0,  1,  82]    # root staccato, syncopation
+      - [6,  7,  2,  90]    # fifth, offbeat momentum
+      - [8,  0,  3, 100]    # root, beat 3 anchor
+      - [11, 5,  1,  78]    # fourth, short passing tone
+      - [12, 0,  2,  96]    # root, beat 4
+      - [15, -5, 1,  72]    # pull-down into next bar (chromatic approach)
+
+  - style: walk
+    base_octave: 2
+    notes:
+      - [0,  0,  2, 100]    # root
+      - [2,  3,  2,  84]    # minor third
+      - [4,  5,  2,  90]    # fourth
+      - [6,  7,  2,  84]    # fifth
+      - [8,  0,  2, 100]    # root, re-anchor
+      - [10, 7,  2,  84]    # fifth
+      - [12, 5,  2,  90]    # fourth
+      - [14, 0,  2,  78]    # root, settle
+
+# ---------------------------------------------------------------------------
+# Drum patterns — syncopated kick, strong percussion emphasis
+# NOT 4-on-the-floor — the defining contrast with house sub-genres
+# ---------------------------------------------------------------------------
+drum_patterns:
+  velocity_base:
+    kick:    112
+    snare:    88
+    clap:     86
+    hihat_c:  74
+    hihat_o:  80
+
+  grid:
+    # Kick: syncopated — beat 1, offbeat beat 2, beat 4 (tribal pattern)
+    kick:    [1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+    # Snare on offbeats — cross-rhythm feel
+    snare:   [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0]
+    # Clap on beat 3 — the "tribal clap" signature
+    clap:    [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
+    # Closed hi-hat: 8th notes — steady anchor amid syncopation
+    hihat_c: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+    # Open hi-hat: syncopated offbeats
+    hihat_o: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]
+
+  fill:
+    every_n_bars: 4
+    kick:    [1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0]
+    snare:   [0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 1, 0, 1, 0, 1, 0]
+    hihat_c: [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 1, 1, 0, 0, 0, 0]

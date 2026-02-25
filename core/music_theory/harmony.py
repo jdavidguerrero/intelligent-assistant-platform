@@ -289,6 +289,127 @@ def melody_to_chords(
     )
 
 
+# ---------------------------------------------------------------------------
+# Mood → degree bias weights
+# ---------------------------------------------------------------------------
+
+# Maps mood tags to preferred scale degrees.
+# Degrees with higher weight are more likely to be chosen when the mood matches.
+# Based on harmonic function theory:
+#   - "dark": emphasize minor tonic (0) and subdominant (3)
+#   - "euphoric": emphasis on VI (5) and VII (6) for lift
+#   - "tense": dominant (4) and leading-tone area (4, 6)
+#   - "dreamy": mediant (2) and submediant (5) for ambiguity
+#   - "hypnotic": repetition → tonic bias (0)
+_MOOD_DEGREE_WEIGHTS: dict[str, dict[int, float]] = {
+    "dark": {0: 1.5, 3: 1.3, 6: 1.1, 5: 0.8},
+    "euphoric": {5: 1.5, 6: 1.3, 2: 1.1, 0: 0.9},
+    "tense": {4: 1.5, 6: 1.3, 3: 1.1, 0: 0.8},
+    "dreamy": {2: 1.5, 5: 1.3, 0: 1.1, 3: 0.9},
+    "hypnotic": {0: 2.0, 5: 1.2, 3: 1.1, 6: 1.0},
+    "neutral": {},  # no bias — pure genre preference
+}
+
+
+def suggest_progression(
+    key_root: str,
+    *,
+    key_mode: str = "natural minor",
+    genre: str = "organic house",
+    mood: str | None = None,
+    bars: int = 4,
+    voicing: str | None = None,
+) -> VoicingResult:
+    """Suggest a chord progression without a melody, using genre templates and mood.
+
+    Unlike melody_to_chords(), this function requires no input notes.
+    It selects the highest-weighted progression from the genre template,
+    optionally biased by a mood tag.
+
+    Algorithm:
+        1. Load genre template
+        2. Score each progression by:
+           a. Template weight
+           b. Mood-degree affinity (if mood provided)
+        3. Pick the highest-scoring progression
+        4. Cycle its degree sequence to fill `bars` bars
+        5. Return a VoicingResult
+
+    Args:
+        key_root:  Tonal centre, e.g. "A", "C#", "Bb"
+        key_mode:  Scale mode, e.g. "natural minor", "dorian"
+        genre:     Genre template name. See available_genres().
+        mood:      Optional mood bias: "dark", "euphoric", "tense",
+                   "dreamy", "hypnotic", "neutral". If None, uses pure
+                   genre weights.
+        bars:      Number of bars in the output progression.
+        voicing:   Voicing override. None → use template default.
+
+    Returns:
+        VoicingResult with one Chord per bar.
+
+    Raises:
+        ValueError: If genre, key_root, key_mode, or bars is invalid.
+        ValueError: If mood is not a recognized mood tag.
+
+    Examples:
+        >>> result = suggest_progression("A", genre="organic house", mood="dark")
+        >>> result.progression_label
+        'i - VI - III - VII'
+        >>> result.key_root
+        'A'
+    """
+    if bars <= 0:
+        raise ValueError(f"bars must be > 0, got {bars}")
+
+    valid_moods = set(_MOOD_DEGREE_WEIGHTS) | {None}
+    if mood not in valid_moods:
+        raise ValueError(f"Unknown mood {mood!r}. Valid: {sorted(m for m in _MOOD_DEGREE_WEIGHTS)}")
+
+    template = _load_template(genre)
+    template_voicing: str = voicing or template.get("voicing", "triads")
+    diatonic = get_diatonic_chords(key_root, key_mode, voicing=template_voicing)
+
+    # Score progressions from the template
+    mood_weights = _MOOD_DEGREE_WEIGHTS.get(mood or "neutral", {})
+    progressions = template.get("progressions", [])
+
+    if not progressions:
+        # Fallback: tonic repeated
+        best_degrees = [0] * bars
+    else:
+        # Score each progression: template_weight × avg(mood_affinity per degree)
+        def _prog_score(prog: dict[str, Any]) -> float:
+            w = float(prog.get("weight", 1))
+            degrees = prog.get("degrees", [0])
+            if not degrees:
+                return w
+            mood_bonus = sum(mood_weights.get(d, 1.0) for d in degrees) / len(degrees)
+            return w * mood_bonus
+
+        best_prog = max(progressions, key=_prog_score)
+        best_degrees = best_prog.get("degrees", [0])
+
+    # Cycle the degree sequence to fill `bars` bars
+    degree_map = {c.degree: c for c in diatonic}
+    selected: list = []
+    for i in range(bars):
+        degree = best_degrees[i % len(best_degrees)]
+        chord = degree_map.get(degree, diatonic[0])
+        selected.append(chord)
+
+    roman_labels = tuple(c.roman for c in selected)
+
+    return VoicingResult(
+        chords=tuple(selected),
+        key_root=key_root,
+        key_mode=key_mode,
+        genre=genre,
+        bars=bars,
+        roman_labels=roman_labels,
+    )
+
+
 def _extract_preferred_degrees(template: dict[str, Any]) -> list[int]:
     """Extract a weighted, deduplicated degree preference list from a template.
 
