@@ -1,0 +1,45 @@
+# Organic House — harmonic template
+#
+# Aesthetic: earthy, hypnotic, rooted. Emphasis on minor keys and modal colour.
+# Avoids strong V→I cadences — the music "floats" without resolving sharply.
+# Extended chords (min7, maj7) preferred over raw triads.
+#
+# Reference artists: Fur Coat, Hoj, Patrice Bäumel, Âme
+
+genre: organic house
+default_mode: natural minor
+voicing: extended           # min7, maj7, halfdim7
+
+# Preferred scale degree sequences (0-based).
+# Listed in priority order — higher in list = preferred.
+progressions:
+  - degrees: [0, 5, 2, 6]   # i - VI - III - VII  (most hypnotic)
+    label: "i - VI - III - VII"
+    weight: 4
+  - degrees: [0, 3, 6, 2]   # i - iv - VII - III
+    label: "i - iv - VII - III"
+    weight: 3
+  - degrees: [0, 5, 3, 6]   # i - VI - iv - VII
+    label: "i - VI - iv - VII"
+    weight: 3
+  - degrees: [0, 2, 5, 3]   # i - III - VI - iv
+    label: "i - III - VI - iv"
+    weight: 2
+
+# Which degrees are "home" (stable resting points)
+tonic_degrees: [0]
+
+# Degrees to avoid as penultimate chord (avoid strong dominant resolution)
+avoid_penultimate: [4]   # degree iv (v in minor = weak, but degree 4 = v-chord)
+
+# Mood tags this genre suits
+moods:
+  - dark
+  - dreamy
+  - hypnotic
+
+# Preferred extensions when voicing_style = extended
+extensions:
+  minor: min7
+  major: maj7
+  dim: halfdim7
