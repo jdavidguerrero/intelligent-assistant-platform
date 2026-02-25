@@ -36,3 +36,59 @@ extensions:
   minor: min7
   major: maj7
   dim: dim7
+
+# ---------------------------------------------------------------------------
+# Bass patterns — 16-step grid, one bar template, transposed per chord root
+# Format: [step, semitone_offset_from_root, duration_steps, velocity]
+# ---------------------------------------------------------------------------
+bass_patterns:
+  - style: root
+    base_octave: 2
+    notes:
+      - [0,  0,  4, 100]    # root, beat 1
+      - [4,  5,  2,  88]    # fourth, beat 2 (jazzy movement)
+      - [6,  7,  2,  82]    # fifth, offbeat 2
+      - [8,  0,  4,  96]    # root, beat 3
+      - [12, -5, 2,  86]    # fourth below (going down for warmth)
+      - [14, 0,  2,  78]    # root, return
+
+  - style: walk
+    base_octave: 2
+    notes:
+      - [0,  0,  2, 100]    # root
+      - [2,  2,  2,  84]    # major second
+      - [4,  5,  2,  90]    # fourth
+      - [6,  7,  2,  84]    # fifth
+      - [8,  10, 2,  80]    # flat-seventh
+      - [10, 12, 2,  84]    # octave
+      - [12, 7,  2,  88]    # fifth, descending
+      - [14, 0,  2,  78]    # root, cadence
+
+# ---------------------------------------------------------------------------
+# Drum patterns — deep house: groovier hi-hat, warm and less mechanical
+# ---------------------------------------------------------------------------
+drum_patterns:
+  velocity_base:
+    kick:    108
+    snare:    88
+    clap:     80
+    hihat_c:  68
+    hihat_o:  75
+
+  grid:
+    # Kick: 4-on-the-floor with slight dynamic softening on 3
+    kick:    [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
+    # Snare on 2 and 4
+    snare:   [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+    # Clap on beat 2 only — deep house restraint
+    clap:    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    # Hi-hat: swung 8ths (skip beat subdivision for warmth)
+    hihat_c: [1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0]
+    # Open hi-hat on beats 2 and 4 — creates that "airy" deep house feel
+    hihat_o: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+
+  fill:
+    every_n_bars: 4
+    kick:    [1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0]
+    snare:   [0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 0]
+    hihat_c: [1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]
