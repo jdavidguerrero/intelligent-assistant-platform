@@ -1,0 +1,70 @@
+# Progressive House — Master Chain
+#
+# Target: -7 LUFS. Big, epic, wide. Enhanced low-end authority, shimmering
+# air, moderate stereo width, enough loudness for dance floor impact.
+# References: Solomun, Dixon, &ME, Patrice Bäumel (festival sets)
+
+genre: progressive house
+stage: master
+description: "Epic mastering chain — wide, driving, dance floor authority, -7 LUFS target"
+
+processors:
+  - name: "Linear Phase EQ"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3 (Linear Phase)"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency_hp, "20 Hz"]
+      - [type_hp, "high_pass"]
+      - [slope_hp, "12 dB/oct"]
+      - [frequency_low, "80 Hz"]
+      - [type_low, "bell"]
+      - [gain_low, "+1.2 dB"]
+      - [q_low, "0.8"]
+      - [frequency_air, "12000 Hz"]
+      - [type_air, "high_shelf"]
+      - [gain_air, "+1.5 dB"]
+
+  - name: "Multiband Compressor"
+    proc_type: multiband_comp
+    plugin_primary: "FabFilter Pro-MB"
+    plugin_fallback: "Ableton Multiband Dynamics"
+    params:
+      - [low_band_hz, "200 Hz"]
+      - [low_ratio, "2:1"]
+      - [low_attack, "70 ms"]
+      - [low_release, "250 ms"]
+      - [mid_band_hz, "2500 Hz"]
+      - [mid_ratio, "1.8:1"]
+      - [mid_attack, "30 ms"]
+      - [high_ratio, "1.4:1"]
+      - [high_attack, "15 ms"]
+
+  - name: "Stereo Imager"
+    proc_type: stereo_widener
+    plugin_primary: "iZotope Ozone Imager"
+    plugin_fallback: "Ableton Utility"
+    params:
+      - [low_width, "0%"]
+      - [mid_width, "100%"]
+      - [high_width, "150%"]
+      - [low_crossover, "180 Hz"]
+
+  - name: "Harmonic Exciter"
+    proc_type: saturation
+    plugin_primary: "Aphex Aural Exciter"
+    plugin_fallback: "Ableton Saturator"
+    params:
+      - [frequency, "8000 Hz"]
+      - [drive, "1.5 dB"]
+      - [mix, "15%"]
+
+  - name: "Brickwall Limiter"
+    proc_type: limiter
+    plugin_primary: "iZotope Ozone Maximizer"
+    plugin_fallback: "Ableton Limiter"
+    params:
+      - [ceiling, "-1.0 dBTP"]
+      - [release, "40 ms"]
+      - [target_lufs, "-7 LUFS"]
+      - [character, "modern"]

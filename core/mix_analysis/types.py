@@ -308,3 +308,249 @@ class MixAnalysis:
 
     sample_rate: int
     """Sample rate of the input signal in Hz."""
+
+
+# ---------------------------------------------------------------------------
+# Signal chain types
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ProcessorParam:
+    """A single (name, value) parameter for a signal processor.
+
+    Values are always stored as strings for YAML-round-trip safety.
+    Numeric values can be recovered with float(param.value).
+    """
+
+    name: str
+    """Parameter name, e.g. 'frequency', 'gain', 'ratio'."""
+
+    value: str
+    """Parameter value as string, e.g. '280 Hz', '-3 dB', '4:1'."""
+
+
+@dataclass(frozen=True)
+class Processor:
+    """A single stage in a signal processing chain.
+
+    Provides primary (preferred 3rd-party) and fallback (Ableton stock)
+    plugin suggestions so users without every plugin can still apply the fix.
+
+    Invariants:
+        params is a tuple of ProcessorParam (hashable, serialisable)
+    """
+
+    name: str
+    """Human-readable processor name, e.g. 'Low-Mid Cleanup EQ'."""
+
+    proc_type: str
+    """Processor category: 'eq', 'compressor', 'limiter', 'saturation',
+    'stereo_widener', 'de_esser', 'multiband_comp'."""
+
+    plugin_primary: str
+    """Recommended 3rd-party plugin, e.g. 'FabFilter Pro-Q 3'."""
+
+    plugin_fallback: str
+    """Ableton-stock alternative, e.g. 'Ableton EQ Eight'."""
+
+    params: tuple[ProcessorParam, ...]
+    """Ordered processing parameters."""
+
+    def get_param(self, name: str) -> str | None:
+        """Return the value of a named parameter, or None if not found."""
+        for p in self.params:
+            if p.name == name:
+                return p.value
+        return None
+
+
+@dataclass(frozen=True)
+class SignalChain:
+    """An ordered sequence of processors for a specific stage and genre.
+
+    Stages: 'mix_bus', 'master', 'kick', 'bass', 'pads', 'leads', 'drums'.
+
+    Invariants:
+        len(processors) >= 1
+    """
+
+    genre: str
+    """Target genre, e.g. 'organic house'."""
+
+    stage: str
+    """Processing stage name."""
+
+    description: str
+    """One-sentence description of the chain's character."""
+
+    processors: tuple[Processor, ...]
+    """Ordered list of processors — applied left to right."""
+
+
+# ---------------------------------------------------------------------------
+# Recommendations
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class FixStep:
+    """A single action step in a mix problem fix procedure.
+
+    Each step addresses one aspect of the problem with a specific processor
+    setting, targeting a named bus or track.
+    """
+
+    action: str
+    """Human-readable action description with specific parameter values.
+    E.g. 'Cut 3.0 dB at 280 Hz (Q=2.0) on pad bus'."""
+
+    bus: str
+    """Target bus or track, e.g. 'pad bus', 'master bus', 'bass bus'."""
+
+    plugin_primary: str
+    """Recommended plugin, e.g. 'FabFilter Pro-Q 3'."""
+
+    plugin_fallback: str
+    """Ableton-stock fallback, e.g. 'Ableton EQ Eight'."""
+
+    params: tuple[ProcessorParam, ...]
+    """Exact parameter values for this step."""
+
+
+@dataclass(frozen=True)
+class Recommendation:
+    """A complete, data-driven fix for a detected mix problem.
+
+    Parameters in `steps` are computed from the actual measured values
+    in the analysis (not generic suggestions).
+
+    Invariants:
+        0.0 <= severity <= 10.0
+    """
+
+    problem_category: str
+    """The problem type being addressed, e.g. 'muddiness'."""
+
+    genre: str
+    """Genre context used for target values."""
+
+    severity: float
+    """Severity of the original problem (0–10), from MixProblem."""
+
+    summary: str
+    """One-line prescription: what to do, where, with what values.
+    E.g. 'Cut 3.1 dB at 280 Hz Q=2.0 on pad bus'."""
+
+    steps: tuple[FixStep, ...]
+    """Ordered steps to execute the fix."""
+
+    rag_query: str
+    """Suggested search query for RAG knowledge base.
+    Populated by recommend_fix(), used by MixAnalysisEngine for citations."""
+
+    rag_citations: tuple[str, ...]
+    """Knowledge base citations (empty until enhanced by RAG)."""
+
+
+# ---------------------------------------------------------------------------
+# Mastering analysis
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class SectionDynamics:
+    """Dynamic profile for one section of the track (e.g. intro, drop)."""
+
+    label: str
+    """Section label: 'intro', 'build', 'drop', 'breakdown'."""
+
+    start_sec: float
+    rms_db: float
+    peak_db: float
+    crest_factor: float
+
+
+@dataclass(frozen=True)
+class MasterAnalysis:
+    """Mastering-grade loudness and readiness analysis.
+
+    Includes the three LUFS windows defined in BS.1770 / EBU R128,
+    true peak with 4x oversampling, and a 0–100 readiness score.
+
+    Invariants:
+        -70.0 <= lufs_integrated <= 0.0
+        lufs_momentary_max >= lufs_integrated
+        true_peak_db <= 0.0  (should never exceed 0 dBFS)
+        0.0 <= readiness_score <= 100.0
+    """
+
+    lufs_integrated: float
+    """Integrated loudness (BS.1770-4 gated). Genre targets: −9 to −6 LUFS."""
+
+    lufs_short_term_max: float
+    """Maximum short-term loudness (3 s window). Identifies loudest section."""
+
+    lufs_momentary_max: float
+    """Maximum momentary loudness (400 ms window). Identifies loudest instant."""
+
+    true_peak_db: float
+    """True peak with 4x oversampling (ITU-R BS.1770). Ceiling: −1.0 dBTP."""
+
+    inter_sample_peaks: int
+    """Count of frames where 4x-upsampled peak exceeds original sample peak.
+    >0 means potential inter-sample clipping on D/A conversion."""
+
+    crest_factor: float
+    """Overall peak-to-RMS ratio in dB. Genre target: 8–12 dB for organic house."""
+
+    sections: tuple[SectionDynamics, ...]
+    """Per-section dynamics (4 equal sections: intro / build / drop / outro)."""
+
+    spectral_balance: str
+    """Subjective balance: 'dark', 'slightly dark', 'neutral', 'slightly bright',
+    'bright'. Derived from spectral tilt vs genre target."""
+
+    readiness_score: float
+    """Master readiness 0–100. 100 = meets all genre targets, 0 = all fail."""
+
+    issues: tuple[str, ...]
+    """List of issues reducing the readiness score, ordered by severity."""
+
+
+# ---------------------------------------------------------------------------
+# Top-level reports
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class MixReport:
+    """Complete mix analysis: frequency + stereo + dynamics + transients
+    + detected problems + prescriptive recommendations.
+
+    Produced by MixAnalysisEngine.full_mix_analysis() in ingestion/.
+    """
+
+    frequency: FrequencyProfile
+    stereo: StereoImage | None
+    dynamics: DynamicProfile
+    transients: TransientProfile
+    problems: tuple[MixProblem, ...]
+    recommendations: tuple[Recommendation, ...]
+    genre: str
+    duration_sec: float
+    sample_rate: int
+
+
+@dataclass(frozen=True)
+class MasterReport:
+    """Mastering analysis + suggested signal chain.
+
+    Produced by MixAnalysisEngine.master_analysis() in ingestion/.
+    """
+
+    master: MasterAnalysis
+    suggested_chain: SignalChain
+    genre: str
+    duration_sec: float
+    sample_rate: int
