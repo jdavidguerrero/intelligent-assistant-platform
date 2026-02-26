@@ -201,6 +201,16 @@ function onClientMessage(ws, rawData) {
             }));
             break;
 
+        case 'call_method':
+            // Invoke an LOM method (e.g. start_playing, stop_playing)
+            Max.outlet('call_method', JSON.stringify({
+                id,
+                lom_path: msg.lom_path,
+                method: msg.method,
+                args: msg.args || []
+            }));
+            break;
+
         default:
             ws.send(JSON.stringify({ type: 'error', message: `Unknown message type: ${msg.type}` }));
     }

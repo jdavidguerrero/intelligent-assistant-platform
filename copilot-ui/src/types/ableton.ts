@@ -73,6 +73,10 @@ export interface SessionSummary {
   scene_count: number
   track_count?: number
   current_song_time?: number
+  metronome?: boolean
+  loop?: boolean
+  session_record?: boolean
+  overdub?: boolean
 }
 
 // WebSocket message types
@@ -89,4 +93,5 @@ export type WsOutgoing =
   | { type: 'get_session' }
   | { type: 'set_parameter'; lom_path: string; value: number; id?: string }
   | { type: 'set_property'; lom_path: string; property: string; value: number | string; id?: string }
+  | { type: 'call_method'; lom_path: string; method: string; args?: (string | number)[]; id?: string }
   | { type: 'ping' }

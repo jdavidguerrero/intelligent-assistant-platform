@@ -26,7 +26,7 @@ export default function App() {
       <Header />
 
       {/* Three-panel body below header */}
-      <div className="flex flex-1 overflow-hidden" style={{ marginTop: '44px' }}>
+      <div className="flex flex-1 overflow-hidden">
 
         {/* Left panel — Session View */}
         <div

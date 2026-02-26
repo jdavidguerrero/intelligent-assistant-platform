@@ -22,6 +22,18 @@ function typeColor(type: TrackType): string {
   }
 }
 
+/**
+ * Decode Ableton's packed integer color (0xRRGGBB) to a CSS hex string.
+ * Falls back to the track-type color when not set or zero.
+ */
+function abletonColor(raw: number | undefined, fallback: string): string {
+  if (!raw || raw === 0) return fallback
+  const r = (raw >> 16) & 0xFF
+  const g = (raw >> 8)  & 0xFF
+  const b =  raw        & 0xFF
+  return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`
+}
+
 function dbToFader(db: number): number {
   // -60 to +6 dB → 0 to 1
   return Math.max(0, Math.min(1, (db + 60) / 66))
@@ -40,7 +52,9 @@ function typeIcon(type: TrackType): string {
 
 export function TrackStrip({ track, isSelected, onSelect }: TrackStripProps) {
   const applyTrackProperty = useSessionStore((s) => s.applyTrackProperty)
-  const color = typeColor(track.type)
+  // Use Ableton's actual track color (packed int) — fallback to type-based color
+  const typeFallback = typeColor(track.type)
+  const color = abletonColor(track.color, typeFallback)
 
   // Support both lom_scanner (0-1 linear) and Python API (dB) volume formats
   const faderValue =

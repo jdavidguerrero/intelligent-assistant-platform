@@ -152,6 +152,10 @@ class AbletonWsService {
     this.send({ type: 'set_property', lom_path: lomPath, property, value, id })
   }
 
+  callMethod(lomPath: string, method: string, args?: (string | number)[], id?: string): void {
+    this.send({ type: 'call_method', lom_path: lomPath, method, args, id })
+  }
+
   // Subscriptions — return unsubscribe function
   onSessionState(cb: Callback<SessionSummary>): () => void {
     this.onSessionStateCbs.add(cb)

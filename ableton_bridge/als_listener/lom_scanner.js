@@ -48,12 +48,15 @@ autowatch = 1;
 
 /**
  * Safe LiveAPI.get() that returns a default on error.
+ * Guards against id==0 objects to prevent "no valid object set" console spam.
  * @param {LiveAPI} api
  * @param {string}  prop
  * @param {*}       [fallback]
  */
 function safeGet(api, prop, fallback) {
     try {
+        // id==0 means the path didn't resolve — skip to avoid console spam
+        if (!api || api.id == 0) return fallback !== undefined ? fallback : null;
         var result = api.get(prop);
         if (result === null || result === undefined || result.length === 0) {
             return fallback !== undefined ? fallback : null;
@@ -72,10 +75,13 @@ function safeGet(api, prop, fallback) {
 function getChildList(api, prop) {
     var raw;
     try {
+        // Guard against unresolved LOM objects to avoid "no valid object set" spam
+        if (!api || api.id == 0) return [];
         raw = api.get(prop);
     } catch (e) {
         return [];
     }
+    if (!raw || raw.length === 0) return [];
     var result = [];
     for (var i = 0; i + 1 < raw.length; i += 2) {
         result.push({ id: raw[i], path: raw[i + 1] });
@@ -207,6 +213,25 @@ function scanTrack(path, idx, isReturn) {
 
 function scanMasterTrack() {
     var api = new LiveAPI(null, 'live_set master_track');
+    // Navigate LOM tree for volume/pan (dot-notation is not supported by LiveAPI)
+    var volRaw = 0.85; // default = 0 dB
+    var panRaw = 0.5;
+    try {
+        var mixerChildren = getChildList(api, 'mixer_device');
+        if (mixerChildren.length > 0) {
+            var mApi = new LiveAPI(null, mixerChildren[0].path);
+            var volChildren = getChildList(mApi, 'volume');
+            var panChildren = getChildList(mApi, 'panning');
+            if (volChildren.length > 0) {
+                var vApi = new LiveAPI(null, volChildren[0].path);
+                volRaw = safeGet(vApi, 'value', 0.85);
+            }
+            if (panChildren.length > 0) {
+                var pApi = new LiveAPI(null, panChildren[0].path);
+                panRaw = safeGet(pApi, 'value', 0.5);
+            }
+        }
+    } catch (e) { /* use defaults */ }
     return {
         name:     'Master',
         index:    0,
@@ -214,9 +239,9 @@ function scanMasterTrack() {
         arm:      false,
         solo:     false,
         mute:     false,
-        volume:   safeGet(api, 'mixer_device.volume.value', 0.85),
-        pan:      0.5,
-        color:    0,
+        volume:   volRaw,
+        pan:      panRaw,
+        color:    safeGet(api, 'color', 0),
         lom_path: 'live_set master_track',
         devices:  [],
         clips:    []
@@ -250,7 +275,11 @@ function scan() {
         time_sig_denominator: safeGet(rootApi, 'signature_denominator', 4),
         is_playing:         safeGet(rootApi, 'is_playing', 0) ? true : false,
         current_song_time:  safeGet(rootApi, 'current_song_time', 0),
-        scene_count:        getChildList(rootApi, 'scenes').length
+        scene_count:        getChildList(rootApi, 'scenes').length,
+        metronome:          safeGet(rootApi, 'metronome', 0) ? true : false,
+        loop:               safeGet(rootApi, 'loop', 0) ? true : false,
+        session_record:     safeGet(rootApi, 'session_record', 0) ? true : false,
+        overdub:            safeGet(rootApi, 'overdub', 0) ? true : false
     };
 
     // Send to node.script via outlet 0
@@ -284,6 +313,28 @@ function set_property(jsonStr) {
         var api = new LiveAPI(null, cmd.lom_path);
         api.set(cmd.property, cmd.value);
         outlet(0, 'ack', JSON.stringify({ type: 'ack', lom_path: cmd.lom_path, property: cmd.property, value: cmd.value }));
+    } catch (e) {
+        outlet(0, 'error', JSON.stringify({ type: 'error', message: '' + e }));
+    }
+}
+
+/**
+ * Handle call_method commands — invokes an LOM method (e.g. start_playing).
+ * msg format: '{"lom_path":"live_set","method":"start_playing"}'
+ *             '{"lom_path":"live_set","method":"jump_to_next_cue"}'
+ */
+function call_method(jsonStr) {
+    try {
+        var cmd = JSON.parse(jsonStr);
+        var api = new LiveAPI(null, cmd.lom_path);
+        if (cmd.args && cmd.args.length > 0) {
+            // Build the args array for api.call — concat method name with args
+            var callArgs = [cmd.method].concat(cmd.args);
+            api.call.apply(api, callArgs);
+        } else {
+            api.call(cmd.method);
+        }
+        outlet(0, 'ack', JSON.stringify({ type: 'ack', lom_path: cmd.lom_path, method: cmd.method }));
     } catch (e) {
         outlet(0, 'error', JSON.stringify({ type: 'error', message: '' + e }));
     }
