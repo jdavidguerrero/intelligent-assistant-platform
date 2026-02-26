@@ -60,7 +60,12 @@
  *   - Clip notes are NOT scanned on initial scan (too slow).  Use 'scan_clip_notes' message.
  */
 
-autowatch = 1;
+// autowatch = 0: disabled intentionally.
+// With autowatch = 1, Max sends an automatic bang out of js outlet 0 when it
+// detects the script file has changed on disk. That bang reaches node.script
+// inlet 0 before Node.js is ready → "Node script not ready can't handle message bang".
+// To reload after a deploy: use the restart button or remove + re-add the device.
+autowatch = 0;
 
 /* ── Helpers ───────────────────────────────────────────────────────────── */
 
