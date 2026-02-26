@@ -1,0 +1,36 @@
+# Melodic Techno — mix target profile
+#
+# Aesthetic: cold, industrial, hypnotic drive. Hard-hitting kick with sub weight,
+# sibilant hi-hats, sparse mids, wide atmospheric pads. Heavily compressed.
+# Reference artists: Tale Of Us, Afterlife label, Massano, Enrico Sangiuliano
+
+genre: melodic techno
+
+# Frequency band targets (dB relative to overall RMS)
+bands:
+  sub: -5.0        # 20-60 Hz: significant sub weight
+  low: -5.0        # 60-200 Hz: punchy kick body
+  low_mid: -10.0   # 200-500 Hz: scooped, cold
+  mid: -12.0       # 500-2kHz: recessed, industrial feel
+  high_mid: -11.0  # 2-6kHz: forward presence (transient definition)
+  high: -14.0      # 6-12kHz: crisp hi-hats
+  air: -20.0       # 12-20kHz: open top
+
+thresholds:
+  muddiness_db: 2.5
+  harshness_db: 2.5
+  boominess_db: 3.5
+  thinness_db: 4.0
+
+stereo:
+  overall_width_min: 0.35
+  overall_width_max: 0.90
+  low_width_max: 0.10       # very centered lows
+  high_width_min: 0.45      # wide atmosphere in highs
+
+dynamics:
+  lufs_min: -9.0
+  lufs_max: -5.0
+  crest_min: 6.0    # techno is more compressed
+  crest_max: 12.0
+  peak_max_db: -0.5

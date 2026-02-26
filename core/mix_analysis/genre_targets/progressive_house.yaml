@@ -1,0 +1,35 @@
+# Progressive House — mix target profile
+#
+# Aesthetic: driving, emotional, epic builds. Full-range energy, prominent
+# high frequencies for euphoric feel, tightly controlled low-end.
+# Reference artists: Solomun, Dixon, &ME, Rampa
+
+genre: progressive house
+
+bands:
+  sub: -6.0        # 20-60 Hz: sub present
+  low: -5.0        # 60-200 Hz: driving bass weight
+  low_mid: -9.0    # 200-500 Hz: controlled
+  mid: -9.0        # 500-2kHz: present (synths, vocals)
+  high_mid: -10.0  # 2-6kHz: slightly forward (emotion, clarity)
+  high: -13.0      # 6-12kHz: bright, open
+  air: -19.0       # 12-20kHz: airy, euphoric top
+
+thresholds:
+  muddiness_db: 3.0
+  harshness_db: 2.5
+  boominess_db: 3.5
+  thinness_db: 4.0
+
+stereo:
+  overall_width_min: 0.35
+  overall_width_max: 0.88
+  low_width_max: 0.15
+  high_width_min: 0.40
+
+dynamics:
+  lufs_min: -9.0
+  lufs_max: -6.0
+  crest_min: 7.0
+  crest_max: 13.0
+  peak_max_db: -0.5
