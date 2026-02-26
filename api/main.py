@@ -2,7 +2,9 @@ from fastapi import FastAPI
 from fastapi.responses import Response
 
 from api.deps import get_response_cache
+from api.routes.analyze import router as analyze_router
 from api.routes.ask import router as ask_router
+from api.routes.generate import router as generate_router
 from api.routes.memory import router as memory_router
 from api.routes.search import router as search_router
 from infrastructure.metrics import get_metrics_response
@@ -12,6 +14,8 @@ app = FastAPI(title="Intelligent Assistant")
 app.include_router(search_router)
 app.include_router(ask_router)
 app.include_router(memory_router)
+app.include_router(analyze_router)
+app.include_router(generate_router)
 
 
 @app.get("/health")
