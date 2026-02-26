@@ -241,4 +241,8 @@ Max.addHandler('stop', () => {
     }
 });
 
-Max.post('ALS Listener: script loaded. Send "bang" or "start" to launch server.');
+Max.post('ALS Listener: script loaded — auto-starting WebSocket server...');
+
+// Auto-start immediately on load. The external bang/start still works as
+// a manual restart (guarded by isInitialized in startServer).
+startServer();
