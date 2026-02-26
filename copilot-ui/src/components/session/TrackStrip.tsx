@@ -71,24 +71,24 @@ export function TrackStrip({ track, isSelected, onSelect }: TrackStripProps) {
   const isReturn = track.type === 'return'
 
   function toggleMute() {
-    if (!track.lom_path) return
+    if (!track.lom_path && !track.lom_id) return
     const next = !track.mute
     applyTrackProperty(track.index, isReturn, 'mute', next)
-    abletonWs.setProperty(track.lom_path, 'mute', next ? 1 : 0)
+    abletonWs.setProperty(track.lom_path ?? '', 'mute', next ? 1 : 0, undefined, track.lom_id)
   }
 
   function toggleSolo() {
-    if (!track.lom_path) return
+    if (!track.lom_path && !track.lom_id) return
     const next = !track.solo
     applyTrackProperty(track.index, isReturn, 'solo', next)
-    abletonWs.setProperty(track.lom_path, 'solo', next ? 1 : 0)
+    abletonWs.setProperty(track.lom_path ?? '', 'solo', next ? 1 : 0, undefined, track.lom_id)
   }
 
   function toggleArm() {
-    if (!track.lom_path) return
+    if (!track.lom_path && !track.lom_id) return
     const next = !track.arm
     applyTrackProperty(track.index, isReturn, 'arm', next)
-    abletonWs.setProperty(track.lom_path, 'arm', next ? 1 : 0)
+    abletonWs.setProperty(track.lom_path ?? '', 'arm', next ? 1 : 0, undefined, track.lom_id)
   }
 
   return (

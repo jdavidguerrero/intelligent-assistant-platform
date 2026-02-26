@@ -34,21 +34,23 @@
  *     ├── return_tracks[R]
  *     └── master_track
  *
- * ID-based navigation
- * ───────────────────
- *   LiveAPI objects are created using the "id N" string returned by
- *   api.get('tracks') etc. rather than by path string.  Path-string
- *   construction (e.g. new LiveAPI(null, 'live_set tracks 0')) fails
- *   silently in some Max/Ableton versions — the resulting object has id=0
- *   and all get/set calls are no-ops.  Using "id N" format always resolves.
+ * Integer-ID navigation
+ * ──────────────────────
+ *   LiveAPI objects are navigated using api.id = N (integer setter).
+ *   This is the most reliable form in all Max/Ableton versions:
+ *     1. Create a throwaway LiveAPI pointing to live_set (always resolves)
+ *     2. Set api.id = N (integer extracted from "id N" string)
+ *     3. api now points to the requested object — name/color/etc work
  *
- *   lom_path fields stored on tracks/devices/parameters are therefore the
- *   "id N" string (e.g. "id 3"), not the human-readable LOM path.  The
- *   action handlers (set_parameter, set_property, call_method) receive these
- *   IDs from the frontend and use new LiveAPI(null, id) to resolve objects.
+ *   Why NOT new LiveAPI(null, "live_set tracks 0"):
+ *     Path-string construction silently returns id=0 in some Max versions.
  *
- *   Exception: live_set root and live_set master_track use the string path
- *   because they are root objects that always resolve correctly by path.
+ *   Why NOT new LiveAPI(null, "id 3"):
+ *     "id N" string fails with "set path: invalid path" in this environment.
+ *
+ *   lom_path fields stored on tracks/devices/parameters are the integer IDs
+ *   as plain numbers (e.g. 3, not "id 3"), so action handlers can do:
+ *     var api = new LiveAPI(null, 'live_set'); api.id = cmd.lom_id;
  *
  * Performance notes
  * ─────────────────
@@ -63,16 +65,37 @@ autowatch = 1;
 /* ── Helpers ───────────────────────────────────────────────────────────── */
 
 /**
+ * Extract an integer LiveAPI id from the "id N" strings returned by api.get().
+ * "id 3" → 3.  Returns 0 if parsing fails.
+ */
+function idStrToInt(idStr) {
+    if (typeof idStr !== 'string') return 0;
+    var parts = idStr.split(' ');
+    if (parts.length < 2) return 0;
+    var n = parseInt(parts[1], 10);
+    return isNaN(n) ? 0 : n;
+}
+
+/**
+ * Create a LiveAPI that points to the object with the given integer id.
+ * Uses the id setter (api.id = N) which is reliable across all Max versions.
+ */
+function apiById(intId) {
+    var api = new LiveAPI(null, 'live_set'); // always-valid root to bootstrap
+    api.id = intId;
+    return api;
+}
+
+/**
  * Safe LiveAPI.get() that returns a default on error.
- * Guards against unresolved objects (id falsy) to prevent console spam.
+ * Guards against unresolved objects (id == 0) to prevent console spam.
  * @param {LiveAPI} api
  * @param {string}  prop
  * @param {*}       [fallback]
  */
 function safeGet(api, prop, fallback) {
     try {
-        // !api.id means the object didn't resolve — skip to avoid console spam
-        if (!api || !api.id) return fallback !== undefined ? fallback : null;
+        if (!api || api.id == 0) return fallback !== undefined ? fallback : null;
         var result = api.get(prop);
         if (result === null || result === undefined || result.length === 0) {
             return fallback !== undefined ? fallback : null;
@@ -85,22 +108,35 @@ function safeGet(api, prop, fallback) {
 
 /**
  * Get a child-object list from the LOM.
- * LiveAPI.get('tracks') returns [id, path, id, path, …]
- * Returns array of {id, path} objects.
+ * LiveAPI.get('tracks') returns [idStr, path, idStr, path, …] alternating.
+ * Returns array of {intId, path} objects.  intId is the integer form of "id N".
  */
 function getChildList(api, prop) {
     var raw;
     try {
-        // Guard against unresolved LOM objects to avoid "no valid object set" spam
-        if (!api || !api.id) return [];
+        if (!api || api.id == 0) return [];
         raw = api.get(prop);
     } catch (e) {
         return [];
     }
     if (!raw || raw.length === 0) return [];
+
+    // Detect format: "id N" strings interleaved with path strings
+    // Each pair is [idStr, pathStr].  If raw.length is odd or first element
+    // doesn't look like "id N", fall back to treating every element as an id.
     var result = [];
-    for (var i = 0; i + 1 < raw.length; i += 2) {
-        result.push({ id: raw[i], path: raw[i + 1] });
+    var isInterleaved = (raw.length % 2 === 0) && (typeof raw[0] === 'string') && (raw[0].indexOf('id ') === 0);
+    if (isInterleaved) {
+        for (var i = 0; i + 1 < raw.length; i += 2) {
+            var intId = idStrToInt(raw[i]);
+            if (intId > 0) result.push({ intId: intId, path: raw[i + 1] });
+        }
+    } else {
+        // Possibly only IDs (no path column)
+        for (var j = 0; j < raw.length; j++) {
+            var intId2 = idStrToInt(raw[j]);
+            if (intId2 > 0) result.push({ intId: intId2, path: '' });
+        }
     }
     return result;
 }
@@ -111,7 +147,7 @@ function scanParameters(deviceApi, trackIdx, devIdx) {
     var children = getChildList(deviceApi, 'parameters');
     var params = [];
     for (var i = 0; i < children.length; i++) {
-        var pApi = new LiveAPI(null, children[i].id);
+        var pApi = apiById(children[i].intId);
         params.push({
             name:         safeGet(pApi, 'name', 'Parameter ' + i),
             value:        safeGet(pApi, 'value', 0),
@@ -120,7 +156,8 @@ function scanParameters(deviceApi, trackIdx, devIdx) {
             default:      safeGet(pApi, 'default_value', 0),
             display:      safeGet(pApi, 'str_for_value', ''),
             is_quantized: safeGet(pApi, 'is_quantized', 0) ? true : false,
-            lom_path:     children[i].id,
+            lom_id:       children[i].intId,
+            lom_path:     'live_set tracks ' + trackIdx + ' devices ' + devIdx + ' parameters ' + i,
             index:        i
         });
     }
@@ -133,12 +170,13 @@ function scanDevices(trackApi, trackIdx) {
     var children = getChildList(trackApi, 'devices');
     var devices = [];
     for (var i = 0; i < children.length; i++) {
-        var dApi = new LiveAPI(null, children[i].id);
+        var dApi = apiById(children[i].intId);
         devices.push({
             name:       safeGet(dApi, 'name', 'Device ' + i),
             class_name: safeGet(dApi, 'class_name', ''),
             is_active:  safeGet(dApi, 'is_active', 1) ? true : false,
-            lom_path:   children[i].id,
+            lom_id:     children[i].intId,
+            lom_path:   'live_set tracks ' + trackIdx + ' devices ' + i,
             index:      i,
             parameters: scanParameters(dApi, trackIdx, i)
         });
@@ -152,14 +190,14 @@ function scanClips(trackApi, trackIdx) {
     var slots = getChildList(trackApi, 'clip_slots');
     var clips = [];
     for (var i = 0; i < slots.length; i++) {
-        var slotApi = new LiveAPI(null, slots[i].id);
+        var slotApi = apiById(slots[i].intId);
         var hasClip = safeGet(slotApi, 'has_clip', 0);
         if (!hasClip) continue;
 
         var clipChildren = getChildList(slotApi, 'clip');
         if (!clipChildren.length) continue;
 
-        var cApi = new LiveAPI(null, clipChildren[0].id);
+        var cApi = apiById(clipChildren[0].intId);
         clips.push({
             name:         safeGet(cApi, 'name', ''),
             length:       safeGet(cApi, 'length', 0),
@@ -167,9 +205,10 @@ function scanClips(trackApi, trackIdx) {
             is_triggered: safeGet(cApi, 'is_triggered', 0) ? true : false,
             is_midi:      safeGet(cApi, 'is_midi_clip', 0) ? true : false,
             color:        safeGet(cApi, 'color', 0),
-            lom_path:     clipChildren[0].id,
+            lom_id:       clipChildren[0].intId,
+            lom_path:     'live_set tracks ' + trackIdx + ' clip_slots ' + i + ' clip',
             slot_index:   i,
-            notes:        []   // populated on demand via 'scan_clip_notes' message
+            notes:        []
         });
     }
     return clips;
@@ -177,8 +216,8 @@ function scanClips(trackApi, trackIdx) {
 
 /* ── Track scanner ─────────────────────────────────────────────────────── */
 
-function scanTrack(trackId, idx, isReturn) {
-    var api = new LiveAPI(null, trackId);
+function scanTrack(trackIntId, idx, isReturn) {
+    var api = apiById(trackIntId);
 
     // Mixer device for volume/pan
     var volRaw = 0.85; // default = 0 dB
@@ -186,15 +225,15 @@ function scanTrack(trackId, idx, isReturn) {
     try {
         var mixerChildren = getChildList(api, 'mixer_device');
         if (mixerChildren.length > 0) {
-            var mApi = new LiveAPI(null, mixerChildren[0].id);
+            var mApi = apiById(mixerChildren[0].intId);
             var volChildren = getChildList(mApi, 'volume');
             var panChildren = getChildList(mApi, 'panning');
             if (volChildren.length > 0) {
-                var vApi = new LiveAPI(null, volChildren[0].id);
+                var vApi = apiById(volChildren[0].intId);
                 volRaw = safeGet(vApi, 'value', 0.85);
             }
             if (panChildren.length > 0) {
-                var pApi = new LiveAPI(null, panChildren[0].id);
+                var pApi = apiById(panChildren[0].intId);
                 panRaw = safeGet(pApi, 'value', 0.5);
             }
         }
@@ -203,6 +242,7 @@ function scanTrack(trackId, idx, isReturn) {
     var trackType = safeGet(api, 'type', 0);
     var typeNames = ['audio', 'midi', 'return', 'master', 'group'];
     var typeStr = typeNames[trackType] || 'audio';
+    var prefix = isReturn ? 'live_set return_tracks ' : 'live_set tracks ';
 
     return {
         name:     safeGet(api, 'name', 'Track ' + idx),
@@ -214,7 +254,8 @@ function scanTrack(trackId, idx, isReturn) {
         volume:   volRaw,
         pan:      panRaw,
         color:    safeGet(api, 'color', 0),
-        lom_path: trackId,
+        lom_id:   trackIntId,
+        lom_path: prefix + idx,
         devices:  isReturn ? [] : scanDevices(api, idx),
         clips:    isReturn ? [] : scanClips(api, idx)
     };
@@ -224,21 +265,20 @@ function scanTrack(trackId, idx, isReturn) {
 
 function scanMasterTrack() {
     var api = new LiveAPI(null, 'live_set master_track');
-    // Navigate LOM tree for volume/pan (dot-notation is not supported by LiveAPI)
-    var volRaw = 0.85; // default = 0 dB
+    var volRaw = 0.85;
     var panRaw = 0.5;
     try {
         var mixerChildren = getChildList(api, 'mixer_device');
         if (mixerChildren.length > 0) {
-            var mApi = new LiveAPI(null, mixerChildren[0].id);
+            var mApi = apiById(mixerChildren[0].intId);
             var volChildren = getChildList(mApi, 'volume');
             var panChildren = getChildList(mApi, 'panning');
             if (volChildren.length > 0) {
-                var vApi = new LiveAPI(null, volChildren[0].id);
+                var vApi = apiById(volChildren[0].intId);
                 volRaw = safeGet(vApi, 'value', 0.85);
             }
             if (panChildren.length > 0) {
-                var pApi = new LiveAPI(null, panChildren[0].id);
+                var pApi = apiById(panChildren[0].intId);
                 panRaw = safeGet(pApi, 'value', 0.5);
             }
         }
@@ -253,6 +293,7 @@ function scanMasterTrack() {
         volume:   volRaw,
         pan:      panRaw,
         color:    safeGet(api, 'color', 0),
+        lom_id:   api.id,
         lom_path: 'live_set master_track',
         devices:  [],
         clips:    []
@@ -264,17 +305,37 @@ function scanMasterTrack() {
 function scan() {
     var rootApi = new LiveAPI(null, 'live_set');
 
+    // ── Diagnostic: log first few raw values to confirm format ──────────
+    try {
+        var rawTracks = rootApi.get('tracks');
+        if (rawTracks && rawTracks.length >= 2) {
+            post('ALS diag: tracks[0]=' + rawTracks[0] + ' tracks[1]=' + rawTracks[1] + '\n');
+        }
+        // Test id setter: does apiById work for first track?
+        if (rawTracks && rawTracks.length >= 1) {
+            var testId = idStrToInt(rawTracks[0]);
+            if (testId > 0) {
+                var testApi = apiById(testId);
+                var testName = (testApi.id > 0) ? 'id_ok:' + testApi.id : 'id_zero';
+                post('ALS diag: apiById(' + testId + ') → ' + testName + ' name=' + JSON.stringify(testApi.get('name')) + '\n');
+            }
+        }
+    } catch (e) {
+        post('ALS diag error: ' + e + '\n');
+    }
+    // ── End diagnostic ───────────────────────────────────────────────────
+
     var trackList = getChildList(rootApi, 'tracks');
     var returnList = getChildList(rootApi, 'return_tracks');
 
     var tracks = [];
     for (var i = 0; i < trackList.length; i++) {
-        tracks.push(scanTrack(trackList[i].id, i, false));
+        tracks.push(scanTrack(trackList[i].intId, i, false));
     }
 
     var returnTracks = [];
     for (var j = 0; j < returnList.length; j++) {
-        returnTracks.push(scanTrack(returnList[j].id, j, true));
+        returnTracks.push(scanTrack(returnList[j].intId, j, true));
     }
 
     var session = {
@@ -293,7 +354,6 @@ function scan() {
         overdub:              safeGet(rootApi, 'overdub', 0) ? true : false
     };
 
-    // Send to node.script via outlet 0
     outlet(0, 'session_data', JSON.stringify(session));
 }
 
@@ -301,14 +361,20 @@ function scan() {
 
 /**
  * Handle set_parameter commands from node.script.
- * msg format: '{"lom_path":"id 5","value":0.72}'
+ * msg format: '{"lom_id":5,"value":0.72}'  — preferred (uses integer id)
+ *             '{"lom_path":"live_set tracks 0 devices 1 parameters 5","value":0.72}' — fallback
  */
 function set_parameter(jsonStr) {
     try {
         var cmd = JSON.parse(jsonStr);
-        var api = new LiveAPI(null, cmd.lom_path);
+        var api;
+        if (cmd.lom_id) {
+            api = apiById(cmd.lom_id);
+        } else {
+            api = new LiveAPI(null, cmd.lom_path);
+        }
         api.set('value', cmd.value);
-        outlet(0, 'ack', JSON.stringify({ type: 'ack', lom_path: cmd.lom_path, value: cmd.value }));
+        outlet(0, 'ack', JSON.stringify({ type: 'ack', lom_id: cmd.lom_id || 0, value: cmd.value }));
     } catch (e) {
         outlet(0, 'error', JSON.stringify({ type: 'error', message: '' + e }));
     }
@@ -316,15 +382,20 @@ function set_parameter(jsonStr) {
 
 /**
  * Handle set_property commands (track arm/solo/mute, live_set transport props, etc.)
- * msg format: '{"lom_path":"id 3","property":"mute","value":1}'
- *             '{"lom_path":"live_set","property":"loop","value":1}'
+ * msg format: '{"lom_id":3,"property":"mute","value":1}'           — preferred
+ *             '{"lom_path":"live_set","property":"loop","value":1}' — for root objects
  */
 function set_property(jsonStr) {
     try {
         var cmd = JSON.parse(jsonStr);
-        var api = new LiveAPI(null, cmd.lom_path);
+        var api;
+        if (cmd.lom_id) {
+            api = apiById(cmd.lom_id);
+        } else {
+            api = new LiveAPI(null, cmd.lom_path);
+        }
         api.set(cmd.property, cmd.value);
-        outlet(0, 'ack', JSON.stringify({ type: 'ack', lom_path: cmd.lom_path, property: cmd.property, value: cmd.value }));
+        outlet(0, 'ack', JSON.stringify({ type: 'ack', lom_id: cmd.lom_id || 0, property: cmd.property, value: cmd.value }));
     } catch (e) {
         outlet(0, 'error', JSON.stringify({ type: 'error', message: '' + e }));
     }
@@ -333,20 +404,24 @@ function set_property(jsonStr) {
 /**
  * Handle call_method commands — invokes an LOM method (e.g. start_playing).
  * msg format: '{"lom_path":"live_set","method":"start_playing"}'
- *             '{"lom_path":"live_set","method":"jump_to_next_cue"}'
+ *             '{"lom_id":3,"method":"fire"}'
  */
 function call_method(jsonStr) {
     try {
         var cmd = JSON.parse(jsonStr);
-        var api = new LiveAPI(null, cmd.lom_path);
+        var api;
+        if (cmd.lom_id) {
+            api = apiById(cmd.lom_id);
+        } else {
+            api = new LiveAPI(null, cmd.lom_path);
+        }
         if (cmd.args && cmd.args.length > 0) {
-            // Build the args array for api.call — concat method name with args
             var callArgs = [cmd.method].concat(cmd.args);
             api.call.apply(api, callArgs);
         } else {
             api.call(cmd.method);
         }
-        outlet(0, 'ack', JSON.stringify({ type: 'ack', lom_path: cmd.lom_path, method: cmd.method }));
+        outlet(0, 'ack', JSON.stringify({ type: 'ack', lom_id: cmd.lom_id || 0, method: cmd.method }));
     } catch (e) {
         outlet(0, 'error', JSON.stringify({ type: 'error', message: '' + e }));
     }
@@ -363,7 +438,6 @@ var _THROTTLE_MS = 33; // ~30 fps
  * Observers fire when any tracked parameter changes and send 'delta' messages.
  */
 function install_observers() {
-    // Remove old observers
     for (var i = 0; i < _observers.length; i++) {
         try { _observers[i].id = 'undefined'; } catch (e) {}
     }
@@ -373,29 +447,30 @@ function install_observers() {
     var trackList = getChildList(rootApi, 'tracks');
 
     for (var ti = 0; ti < trackList.length; ti++) {
-        var tApi = new LiveAPI(null, trackList[ti].id);
+        var tApi = apiById(trackList[ti].intId);
         var devList = getChildList(tApi, 'devices');
         for (var di = 0; di < devList.length; di++) {
-            var dApi = new LiveAPI(null, devList[di].id);
+            var dApi = apiById(devList[di].intId);
             var paramList = getChildList(dApi, 'parameters');
             for (var pi = 0; pi < paramList.length; pi++) {
-                (function(tIdx, dIdx, pIdx, pId) {
+                (function(tIdx, dIdx, pIdx, pIntId) {
                     var obs = new LiveAPI(function() {
                         var now = Date.now();
                         if (now - _lastBroadcast < _THROTTLE_MS) return;
                         _lastBroadcast = now;
-                        var pApi2 = new LiveAPI(null, pId);
+                        var pApi2 = apiById(pIntId);
                         var delta = {
                             type:     'parameter_delta',
-                            lom_path: pId,
+                            lom_id:   pIntId,
+                            lom_path: 'live_set tracks ' + tIdx + ' devices ' + dIdx + ' parameters ' + pIdx,
                             value:    safeGet(pApi2, 'value', 0),
                             display:  safeGet(pApi2, 'str_for_value', '')
                         };
                         outlet(0, 'delta', JSON.stringify(delta));
-                    }, pId);
+                    }, pIntId);
                     obs.property = 'value';
                     _observers.push(obs);
-                })(ti, di, pi, paramList[pi].id);
+                })(ti, di, pi, paramList[pi].intId);
             }
         }
     }
@@ -405,6 +480,5 @@ function install_observers() {
 
 /* ── Max message handlers ──────────────────────────────────────────────── */
 
-// Called when Max sends 'scan' to inlet 0
 function msg_int(v) { /* ignore */ }
 function bang() { scan(); }

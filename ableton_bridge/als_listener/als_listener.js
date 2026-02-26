@@ -184,10 +184,11 @@ function onClientMessage(ws, rawData) {
             break;
 
         case 'set_parameter':
-            // Forward to lom_scanner.js
+            // Forward to lom_scanner.js — prefer lom_id (integer) over lom_path for reliable resolution
             Max.outlet('set_parameter', JSON.stringify({
                 id,
-                lom_path: msg.lom_path,
+                lom_id:   msg.lom_id   || null,
+                lom_path: msg.lom_path || '',
                 value: msg.value
             }));
             break;
@@ -195,7 +196,8 @@ function onClientMessage(ws, rawData) {
         case 'set_property':
             Max.outlet('set_property', JSON.stringify({
                 id,
-                lom_path: msg.lom_path,
+                lom_id:   msg.lom_id   || null,
+                lom_path: msg.lom_path || '',
                 property: msg.property,
                 value: msg.value
             }));
@@ -205,7 +207,8 @@ function onClientMessage(ws, rawData) {
             // Invoke an LOM method (e.g. start_playing, stop_playing)
             Max.outlet('call_method', JSON.stringify({
                 id,
-                lom_path: msg.lom_path,
+                lom_id:   msg.lom_id   || null,
+                lom_path: msg.lom_path || '',
                 method: msg.method,
                 args: msg.args || []
             }));
