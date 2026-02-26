@@ -14,6 +14,7 @@ export interface Parameter {
   max?: number
   default?: number
   display?: string
+  lom_id?: number        // integer LiveAPI id (preferred for actions)
   lom_path: string
   index: number
   is_quantized: boolean
@@ -24,6 +25,7 @@ export interface Device {
   class_name: string
   is_active: boolean
   parameters?: Parameter[]
+  lom_id?: number        // integer LiveAPI id (preferred for actions)
   lom_path: string
   index: number
 }
@@ -35,6 +37,7 @@ export interface Clip {
   is_playing: boolean
   is_triggered: boolean
   is_midi: boolean
+  lom_id?: number        // integer LiveAPI id
   lom_path: string
   color?: number
   slot_index?: number    // lom_scanner wire format
@@ -56,6 +59,7 @@ export interface Track {
   device_names?: string[] // Python API
   devices?: Device[]
   clips?: Clip[]
+  lom_id?: number        // integer LiveAPI id (preferred for actions in lom_scanner env)
   lom_path?: string
   color?: number
 }
@@ -91,7 +95,7 @@ export type WsIncoming =
 
 export type WsOutgoing =
   | { type: 'get_session' }
-  | { type: 'set_parameter'; lom_path: string; value: number; id?: string }
-  | { type: 'set_property'; lom_path: string; property: string; value: number | string; id?: string }
-  | { type: 'call_method'; lom_path: string; method: string; args?: (string | number)[]; id?: string }
+  | { type: 'set_parameter'; lom_path: string; lom_id?: number; value: number; id?: string }
+  | { type: 'set_property'; lom_path: string; lom_id?: number; property: string; value: number | string; id?: string }
+  | { type: 'call_method'; lom_path: string; lom_id?: number; method: string; args?: (string | number)[]; id?: string }
   | { type: 'ping' }

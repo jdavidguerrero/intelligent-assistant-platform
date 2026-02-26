@@ -144,16 +144,16 @@ class AbletonWsService {
     this.send({ type: 'get_session' })
   }
 
-  setParameter(lomPath: string, value: number, id?: string): void {
-    this.send({ type: 'set_parameter', lom_path: lomPath, value, id })
+  setParameter(lomPath: string, value: number, id?: string, lomId?: number): void {
+    this.send({ type: 'set_parameter', lom_path: lomPath, lom_id: lomId, value, id })
   }
 
-  setProperty(lomPath: string, property: string, value: number | string, id?: string): void {
-    this.send({ type: 'set_property', lom_path: lomPath, property, value, id })
+  setProperty(lomPath: string, property: string, value: number | string, id?: string, lomId?: number): void {
+    this.send({ type: 'set_property', lom_path: lomPath, lom_id: lomId, property, value, id })
   }
 
-  callMethod(lomPath: string, method: string, args?: (string | number)[], id?: string): void {
-    this.send({ type: 'call_method', lom_path: lomPath, method, args, id })
+  callMethod(lomPath: string, method: string, args?: (string | number)[], id?: string, lomId?: number): void {
+    this.send({ type: 'call_method', lom_path: lomPath, lom_id: lomId, method, args, id })
   }
 
   // Subscriptions — return unsubscribe function
