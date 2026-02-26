@@ -28,6 +28,15 @@ progressions:
 tonic_degrees: [0]
 avoid_penultimate: []
 
+# ---------------------------------------------------------------------------
+# Humanization configuration
+# Melodic techno is the tightest: minimal jitter, controlled dynamics
+# ---------------------------------------------------------------------------
+humanize_config:
+  timing_jitter_ms: 2.0        # ±2ms — almost mechanical, techno precision
+  velocity_variation: 8        # ±8 velocity units — controlled dynamics
+  ghost_probability: 0.08      # 8% ghost notes — subtle texture
+
 moods:
   - dark
   - tense
@@ -66,6 +75,29 @@ bass_patterns:
       - [12, 7,  2,  90]    # fifth
       - [14, 0,  2,  82]    # root, resolve
 
+  - style: sub
+    base_octave: 1            # Deep sub: pure sine-like root sustain
+    notes:
+      - [0,  0, 8, 108]       # root, first half (punchy attack)
+      - [8,  0, 8, 100]       # root, second half
+
+  - style: driving
+    base_octave: 2
+    notes:
+      - [0,  0, 2, 110]       # beat 1 (hardest hit — techno punch)
+      - [2,  0, 2,  98]       # offbeat 1
+      - [4,  0, 2, 108]       # beat 2
+      - [6,  0, 2,  96]       # offbeat 2
+      - [8,  0, 2, 110]       # beat 3
+      - [10, 0, 2,  98]       # offbeat 3
+      - [12, 0, 2, 108]       # beat 4
+      - [14, 0, 2,  96]       # offbeat 4
+
+  - style: minimal
+    base_octave: 2
+    notes:
+      - [0, 0, 4, 105]        # root on beat 1 (quarter note — clean and precise)
+
 # ---------------------------------------------------------------------------
 # Drum patterns — driving 16th hi-hats, punchy kick, minimal snare
 # ---------------------------------------------------------------------------
@@ -88,6 +120,21 @@ drum_patterns:
     hihat_c: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     # Open hi-hat on 16th before each beat — forward momentum
     hihat_o: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]
+
+  probability:
+    kick:    [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0]
+    snare:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.98, 0, 0, 0]
+    clap:    [0, 0, 0, 0, 0.95, 0, 0, 0, 0, 0, 0, 0, 0.95, 0, 0, 0]
+    hihat_c: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    hihat_o: [0, 0, 0, 0.90, 0, 0, 0, 0.90, 0, 0, 0, 0.90, 0, 0, 0, 0.90]
+
+  # Techno adds layers quickly — hihat enters early for that driving wall-of-sound
+  energy_layers:
+    1:  [kick]
+    2:  [hihat_c]
+    4:  [clap]
+    6:  [snare]
+    10: [hihat_o]
 
   fill:
     every_n_bars: 4

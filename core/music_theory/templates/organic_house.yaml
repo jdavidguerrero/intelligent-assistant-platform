@@ -29,6 +29,15 @@ progressions:
 # Which degrees are "home" (stable resting points)
 tonic_degrees: [0]
 
+# ---------------------------------------------------------------------------
+# Humanization configuration — used by core/music_theory/humanize.py
+# Organic house is warm and groovy: moderate timing jitter, expressive dynamics
+# ---------------------------------------------------------------------------
+humanize_config:
+  timing_jitter_ms: 5.0        # ±5ms — tight but human
+  velocity_variation: 12       # ±12 velocity units — expressive
+  ghost_probability: 0.12      # 12% ghost hi-hat notes
+
 # Degrees to avoid as penultimate chord (avoid strong dominant resolution)
 avoid_penultimate: [4]   # degree iv (v in minor = weak, but degree 4 = v-chord)
 
@@ -70,6 +79,29 @@ bass_patterns:
       - [12, 12, 2,  85]    # octave, beat 4
       - [14, 7,  2,  75]    # fifth, back into root
 
+  - style: sub
+    base_octave: 1            # Ultra-low: A1=MIDI33, C1=MIDI24 — pure sub bass
+    notes:
+      - [0,  0, 8, 105]       # root, first half-bar (sustained sub hit)
+      - [8,  0, 8,  98]       # root, second half-bar (slight breath/drop)
+
+  - style: driving
+    base_octave: 2
+    notes:
+      - [0,  0, 2, 108]       # beat 1 (downbeat anchor)
+      - [2,  0, 2,  96]       # offbeat 1 (slightly softer)
+      - [4,  0, 2, 106]       # beat 2
+      - [6,  0, 2,  94]       # offbeat 2
+      - [8,  0, 2, 108]       # beat 3 (re-anchor)
+      - [10, 0, 2,  96]       # offbeat 3
+      - [12, 0, 2, 106]       # beat 4
+      - [14, 0, 2,  94]       # offbeat 4 (into next bar)
+
+  - style: minimal
+    base_octave: 2
+    notes:
+      - [0, 0, 6, 100]        # root only on beat 1 (dotted-quarter sustain)
+
 # ---------------------------------------------------------------------------
 # Drum patterns — 16-step grid (16th-note resolution)
 # grid values: 1 = hit, 0 = rest
@@ -95,6 +127,24 @@ drum_patterns:
     hihat_c: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
     # Open hi-hat on offbeat of beats 2 and 4 — floating feel
     hihat_o: [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0]
+
+  # Per-step probabilities for each instrument (only meaningful where grid=1)
+  # Values < 1.0 create occasional missed hits for a human/groove feel
+  probability:
+    kick:    [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0]
+    snare:   [0, 0, 0, 0, 0.95, 0, 0, 0, 0, 0, 0, 0, 0.95, 0, 0, 0]
+    clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.88, 0, 0, 0]
+    hihat_c: [1.0, 0, 0.92, 0, 1.0, 0, 0.92, 0, 1.0, 0, 0.92, 0, 1.0, 0, 0.92, 0]
+    hihat_o: [0, 0, 0, 0, 0, 0, 0.88, 0, 0, 0, 0, 0, 0, 0, 0.88, 0]
+
+  # Energy layers: each threshold adds instruments (additive / delta-based)
+  # energy=1 → kick only | energy=7 → full kit
+  energy_layers:
+    1:  [kick]
+    3:  [snare]
+    5:  [hihat_c]
+    7:  [clap]
+    10: [hihat_o]
 
   fill:
     every_n_bars: 4

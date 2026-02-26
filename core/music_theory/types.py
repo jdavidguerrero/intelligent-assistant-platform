@@ -186,6 +186,9 @@ class BassNote:
         duration_steps: Length in 16th-note steps (1–16)
         velocity:       MIDI velocity (0–127)
         bar:            0-indexed bar number in the pattern
+        tick_offset:    Micro-timing adjustment in MIDI ticks relative to the
+                        quantized grid position (+ = late, - = early).
+                        Populated by humanize_timing(). Default 0 = on-grid.
     """
 
     pitch_midi: int
@@ -193,6 +196,7 @@ class BassNote:
     duration_steps: int
     velocity: int
     bar: int
+    tick_offset: int = 0  # micro-timing: ±N ticks from quantized position
 
     def __post_init__(self) -> None:
         if not (0 <= self.pitch_midi <= 127):
@@ -233,12 +237,16 @@ class DrumHit:
         step:       Grid position within the bar (0–15)
         velocity:   MIDI velocity (0–127)
         bar:        0-indexed bar number in the pattern
+        tick_offset: Micro-timing adjustment in MIDI ticks relative to the
+                     quantized grid position (+ = late, - = early).
+                     Populated by humanize_timing(). Default 0 = on-grid.
     """
 
     instrument: str
     step: int
     velocity: int
     bar: int
+    tick_offset: int = 0  # micro-timing: ±N ticks from quantized position
 
     def __post_init__(self) -> None:
         if not self.instrument:

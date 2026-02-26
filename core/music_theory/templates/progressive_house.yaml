@@ -28,6 +28,15 @@ progressions:
 tonic_degrees: [0]
 avoid_penultimate: []       # dominant preparation is OK in prog house
 
+# ---------------------------------------------------------------------------
+# Humanization configuration
+# Progressive house is clean but emotional — balanced humanization
+# ---------------------------------------------------------------------------
+humanize_config:
+  timing_jitter_ms: 4.0        # ±4ms — tight with slight feel
+  velocity_variation: 10       # ±10 velocity units — moderate dynamics
+  ghost_probability: 0.10      # 10% ghost notes
+
 moods:
   - euphoric
   - neutral
@@ -63,6 +72,29 @@ bass_patterns:
       - [12, 7,  2,  92]    # fifth
       - [14, 10, 2,  82]    # flat-seventh, tension before resolve
 
+  - style: sub
+    base_octave: 1            # Sub bass: pure root, two hits per bar
+    notes:
+      - [0,  0, 8, 108]       # root, first half
+      - [8,  0, 8, 100]       # root, second half
+
+  - style: driving
+    base_octave: 2
+    notes:
+      - [0,  0,  2, 110]      # beat 1 (hardest — prog house energy)
+      - [2,  0,  2,  96]      # offbeat 1
+      - [4,  12, 2, 105]      # octave up on beat 2 — the prog house signature lift
+      - [6,  0,  2,  92]      # back to root
+      - [8,  0,  2, 108]      # beat 3
+      - [10, 0,  2,  96]      # offbeat 3
+      - [12, 0,  2, 105]      # beat 4
+      - [14, 0,  2,  92]      # offbeat 4
+
+  - style: minimal
+    base_octave: 2
+    notes:
+      - [0,  0, 4, 102]       # root on beat 1 (quarter note)
+
 # ---------------------------------------------------------------------------
 # Drum patterns — strong 4-on-the-floor, open hi-hat drive, anthem build
 # ---------------------------------------------------------------------------
@@ -85,6 +117,20 @@ drum_patterns:
     hihat_c: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0]
     # Open hi-hat on offbeats — the "building" texture
     hihat_o: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0]
+
+  probability:
+    kick:    [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0]
+    snare:   [0, 0, 0, 0, 0.95, 0, 0, 0, 0, 0, 0, 0, 0.95, 0, 0, 0]
+    clap:    [0, 0, 0, 0, 0.92, 0, 0, 0, 0, 0, 0, 0, 0.92, 0, 0, 0]
+    hihat_c: [1.0, 0, 0.92, 0, 1.0, 0, 0.92, 0, 1.0, 0, 0.92, 0, 1.0, 0, 0, 0]
+    hihat_o: [0, 0, 0, 0.88, 0, 0, 0, 0.88, 0, 0, 0, 0.88, 0, 0, 0.88, 0]
+
+  energy_layers:
+    1:  [kick]
+    3:  [snare]
+    5:  [hihat_c]
+    7:  [clap]
+    10: [hihat_o]
 
   fill:
     every_n_bars: 4
