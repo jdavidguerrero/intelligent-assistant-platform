@@ -34,6 +34,22 @@
  *     ├── return_tracks[R]
  *     └── master_track
  *
+ * ID-based navigation
+ * ───────────────────
+ *   LiveAPI objects are created using the "id N" string returned by
+ *   api.get('tracks') etc. rather than by path string.  Path-string
+ *   construction (e.g. new LiveAPI(null, 'live_set tracks 0')) fails
+ *   silently in some Max/Ableton versions — the resulting object has id=0
+ *   and all get/set calls are no-ops.  Using "id N" format always resolves.
+ *
+ *   lom_path fields stored on tracks/devices/parameters are therefore the
+ *   "id N" string (e.g. "id 3"), not the human-readable LOM path.  The
+ *   action handlers (set_parameter, set_property, call_method) receive these
+ *   IDs from the frontend and use new LiveAPI(null, id) to resolve objects.
+ *
+ *   Exception: live_set root and live_set master_track use the string path
+ *   because they are root objects that always resolve correctly by path.
+ *
  * Performance notes
  * ─────────────────
  *   - A session with 20 tracks × 5 devices × 40 params = 4 000 API calls.
@@ -48,15 +64,15 @@ autowatch = 1;
 
 /**
  * Safe LiveAPI.get() that returns a default on error.
- * Guards against id==0 objects to prevent "no valid object set" console spam.
+ * Guards against unresolved objects (id falsy) to prevent console spam.
  * @param {LiveAPI} api
  * @param {string}  prop
  * @param {*}       [fallback]
  */
 function safeGet(api, prop, fallback) {
     try {
-        // id==0 means the path didn't resolve — skip to avoid console spam
-        if (!api || api.id == 0) return fallback !== undefined ? fallback : null;
+        // !api.id means the object didn't resolve — skip to avoid console spam
+        if (!api || !api.id) return fallback !== undefined ? fallback : null;
         var result = api.get(prop);
         if (result === null || result === undefined || result.length === 0) {
             return fallback !== undefined ? fallback : null;
@@ -76,7 +92,7 @@ function getChildList(api, prop) {
     var raw;
     try {
         // Guard against unresolved LOM objects to avoid "no valid object set" spam
-        if (!api || api.id == 0) return [];
+        if (!api || !api.id) return [];
         raw = api.get(prop);
     } catch (e) {
         return [];
@@ -95,8 +111,7 @@ function scanParameters(deviceApi, trackIdx, devIdx) {
     var children = getChildList(deviceApi, 'parameters');
     var params = [];
     for (var i = 0; i < children.length; i++) {
-        var pApi = new LiveAPI(null, children[i].path);
-        var lomPath = 'live_set tracks ' + trackIdx + ' devices ' + devIdx + ' parameters ' + i;
+        var pApi = new LiveAPI(null, children[i].id);
         params.push({
             name:         safeGet(pApi, 'name', 'Parameter ' + i),
             value:        safeGet(pApi, 'value', 0),
@@ -105,7 +120,7 @@ function scanParameters(deviceApi, trackIdx, devIdx) {
             default:      safeGet(pApi, 'default_value', 0),
             display:      safeGet(pApi, 'str_for_value', ''),
             is_quantized: safeGet(pApi, 'is_quantized', 0) ? true : false,
-            lom_path:     lomPath,
+            lom_path:     children[i].id,
             index:        i
         });
     }
@@ -118,13 +133,12 @@ function scanDevices(trackApi, trackIdx) {
     var children = getChildList(trackApi, 'devices');
     var devices = [];
     for (var i = 0; i < children.length; i++) {
-        var dApi = new LiveAPI(null, children[i].path);
-        var lomPath = 'live_set tracks ' + trackIdx + ' devices ' + i;
+        var dApi = new LiveAPI(null, children[i].id);
         devices.push({
             name:       safeGet(dApi, 'name', 'Device ' + i),
             class_name: safeGet(dApi, 'class_name', ''),
             is_active:  safeGet(dApi, 'is_active', 1) ? true : false,
-            lom_path:   lomPath,
+            lom_path:   children[i].id,
             index:      i,
             parameters: scanParameters(dApi, trackIdx, i)
         });
@@ -138,15 +152,14 @@ function scanClips(trackApi, trackIdx) {
     var slots = getChildList(trackApi, 'clip_slots');
     var clips = [];
     for (var i = 0; i < slots.length; i++) {
-        var slotApi = new LiveAPI(null, slots[i].path);
+        var slotApi = new LiveAPI(null, slots[i].id);
         var hasClip = safeGet(slotApi, 'has_clip', 0);
         if (!hasClip) continue;
 
         var clipChildren = getChildList(slotApi, 'clip');
         if (!clipChildren.length) continue;
 
-        var cApi = new LiveAPI(null, clipChildren[0].path);
-        var lomPath = 'live_set tracks ' + trackIdx + ' clip_slots ' + i + ' clip';
+        var cApi = new LiveAPI(null, clipChildren[0].id);
         clips.push({
             name:         safeGet(cApi, 'name', ''),
             length:       safeGet(cApi, 'length', 0),
@@ -154,7 +167,7 @@ function scanClips(trackApi, trackIdx) {
             is_triggered: safeGet(cApi, 'is_triggered', 0) ? true : false,
             is_midi:      safeGet(cApi, 'is_midi_clip', 0) ? true : false,
             color:        safeGet(cApi, 'color', 0),
-            lom_path:     lomPath,
+            lom_path:     clipChildren[0].id,
             slot_index:   i,
             notes:        []   // populated on demand via 'scan_clip_notes' message
         });
@@ -164,10 +177,8 @@ function scanClips(trackApi, trackIdx) {
 
 /* ── Track scanner ─────────────────────────────────────────────────────── */
 
-function scanTrack(path, idx, isReturn) {
-    var api = new LiveAPI(null, path);
-    var prefix = isReturn ? 'live_set return_tracks ' : 'live_set tracks ';
-    var lomPath = prefix + idx;
+function scanTrack(trackId, idx, isReturn) {
+    var api = new LiveAPI(null, trackId);
 
     // Mixer device for volume/pan
     var volRaw = 0.85; // default = 0 dB
@@ -175,15 +186,15 @@ function scanTrack(path, idx, isReturn) {
     try {
         var mixerChildren = getChildList(api, 'mixer_device');
         if (mixerChildren.length > 0) {
-            var mApi = new LiveAPI(null, mixerChildren[0].path);
+            var mApi = new LiveAPI(null, mixerChildren[0].id);
             var volChildren = getChildList(mApi, 'volume');
             var panChildren = getChildList(mApi, 'panning');
             if (volChildren.length > 0) {
-                var vApi = new LiveAPI(null, volChildren[0].path);
+                var vApi = new LiveAPI(null, volChildren[0].id);
                 volRaw = safeGet(vApi, 'value', 0.85);
             }
             if (panChildren.length > 0) {
-                var pApi = new LiveAPI(null, panChildren[0].path);
+                var pApi = new LiveAPI(null, panChildren[0].id);
                 panRaw = safeGet(pApi, 'value', 0.5);
             }
         }
@@ -203,7 +214,7 @@ function scanTrack(path, idx, isReturn) {
         volume:   volRaw,
         pan:      panRaw,
         color:    safeGet(api, 'color', 0),
-        lom_path: lomPath,
+        lom_path: trackId,
         devices:  isReturn ? [] : scanDevices(api, idx),
         clips:    isReturn ? [] : scanClips(api, idx)
     };
@@ -219,15 +230,15 @@ function scanMasterTrack() {
     try {
         var mixerChildren = getChildList(api, 'mixer_device');
         if (mixerChildren.length > 0) {
-            var mApi = new LiveAPI(null, mixerChildren[0].path);
+            var mApi = new LiveAPI(null, mixerChildren[0].id);
             var volChildren = getChildList(mApi, 'volume');
             var panChildren = getChildList(mApi, 'panning');
             if (volChildren.length > 0) {
-                var vApi = new LiveAPI(null, volChildren[0].path);
+                var vApi = new LiveAPI(null, volChildren[0].id);
                 volRaw = safeGet(vApi, 'value', 0.85);
             }
             if (panChildren.length > 0) {
-                var pApi = new LiveAPI(null, panChildren[0].path);
+                var pApi = new LiveAPI(null, panChildren[0].id);
                 panRaw = safeGet(pApi, 'value', 0.5);
             }
         }
@@ -258,28 +269,28 @@ function scan() {
 
     var tracks = [];
     for (var i = 0; i < trackList.length; i++) {
-        tracks.push(scanTrack(trackList[i].path, i, false));
+        tracks.push(scanTrack(trackList[i].id, i, false));
     }
 
     var returnTracks = [];
     for (var j = 0; j < returnList.length; j++) {
-        returnTracks.push(scanTrack(returnList[j].path, j, true));
+        returnTracks.push(scanTrack(returnList[j].id, j, true));
     }
 
     var session = {
-        tracks:             tracks,
-        return_tracks:      returnTracks,
-        master_track:       scanMasterTrack(),
-        tempo:              safeGet(rootApi, 'tempo', 120),
-        time_sig_numerator: safeGet(rootApi, 'signature_numerator', 4),
+        tracks:               tracks,
+        return_tracks:        returnTracks,
+        master_track:         scanMasterTrack(),
+        tempo:                safeGet(rootApi, 'tempo', 120),
+        time_sig_numerator:   safeGet(rootApi, 'signature_numerator', 4),
         time_sig_denominator: safeGet(rootApi, 'signature_denominator', 4),
-        is_playing:         safeGet(rootApi, 'is_playing', 0) ? true : false,
-        current_song_time:  safeGet(rootApi, 'current_song_time', 0),
-        scene_count:        getChildList(rootApi, 'scenes').length,
-        metronome:          safeGet(rootApi, 'metronome', 0) ? true : false,
-        loop:               safeGet(rootApi, 'loop', 0) ? true : false,
-        session_record:     safeGet(rootApi, 'session_record', 0) ? true : false,
-        overdub:            safeGet(rootApi, 'overdub', 0) ? true : false
+        is_playing:           safeGet(rootApi, 'is_playing', 0) ? true : false,
+        current_song_time:    safeGet(rootApi, 'current_song_time', 0),
+        scene_count:          getChildList(rootApi, 'scenes').length,
+        metronome:            safeGet(rootApi, 'metronome', 0) ? true : false,
+        loop:                 safeGet(rootApi, 'loop', 0) ? true : false,
+        session_record:       safeGet(rootApi, 'session_record', 0) ? true : false,
+        overdub:              safeGet(rootApi, 'overdub', 0) ? true : false
     };
 
     // Send to node.script via outlet 0
@@ -290,7 +301,7 @@ function scan() {
 
 /**
  * Handle set_parameter commands from node.script.
- * msg format: '{"lom_path":"live_set tracks 0 devices 1 parameters 5","value":0.72}'
+ * msg format: '{"lom_path":"id 5","value":0.72}'
  */
 function set_parameter(jsonStr) {
     try {
@@ -304,8 +315,9 @@ function set_parameter(jsonStr) {
 }
 
 /**
- * Handle set_property commands (track arm/solo/mute etc.)
- * msg format: '{"lom_path":"live_set tracks 0","property":"mute","value":1}'
+ * Handle set_property commands (track arm/solo/mute, live_set transport props, etc.)
+ * msg format: '{"lom_path":"id 3","property":"mute","value":1}'
+ *             '{"lom_path":"live_set","property":"loop","value":1}'
  */
 function set_property(jsonStr) {
     try {
@@ -361,29 +373,29 @@ function install_observers() {
     var trackList = getChildList(rootApi, 'tracks');
 
     for (var ti = 0; ti < trackList.length; ti++) {
-        var tApi = new LiveAPI(null, trackList[ti].path);
+        var tApi = new LiveAPI(null, trackList[ti].id);
         var devList = getChildList(tApi, 'devices');
         for (var di = 0; di < devList.length; di++) {
-            var dApi = new LiveAPI(null, devList[di].path);
+            var dApi = new LiveAPI(null, devList[di].id);
             var paramList = getChildList(dApi, 'parameters');
             for (var pi = 0; pi < paramList.length; pi++) {
-                (function(tIdx, dIdx, pIdx, pPath) {
+                (function(tIdx, dIdx, pIdx, pId) {
                     var obs = new LiveAPI(function() {
                         var now = Date.now();
                         if (now - _lastBroadcast < _THROTTLE_MS) return;
                         _lastBroadcast = now;
-                        var pApi2 = new LiveAPI(null, pPath);
+                        var pApi2 = new LiveAPI(null, pId);
                         var delta = {
                             type:     'parameter_delta',
-                            lom_path: 'live_set tracks ' + tIdx + ' devices ' + dIdx + ' parameters ' + pIdx,
+                            lom_path: pId,
                             value:    safeGet(pApi2, 'value', 0),
                             display:  safeGet(pApi2, 'str_for_value', '')
                         };
                         outlet(0, 'delta', JSON.stringify(delta));
-                    }, pPath);
+                    }, pId);
                     obs.property = 'value';
                     _observers.push(obs);
-                })(ti, di, pi, paramList[pi].path);
+                })(ti, di, pi, paramList[pi].id);
             }
         }
     }
