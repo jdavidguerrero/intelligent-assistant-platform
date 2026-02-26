@@ -270,16 +270,32 @@ function scanTrack(trackIntId, idx, isReturn, deep) {
         }
     } catch (e) { /* use defaults */ }
 
-    var trackType = safeGet(api, 'type', 0);
-    var typeNames = ['audio', 'midi', 'return', 'master', 'group'];
-    var typeStr = typeNames[trackType] || 'audio';
+    // Live 11/12 removed the 'type' property from the Track LOM object.
+    // Infer track type from properties that DO exist:
+    //   is_foldable=1 → group track
+    //   has_midi_input=1 → midi track
+    //   isReturn flag (passed in from scan loop) → return track
+    var typeStr;
+    if (isReturn) {
+        typeStr = 'return';
+    } else {
+        var isFoldable  = safeGet(api, 'is_foldable',   0) ? true : false;
+        var hasMidiIn   = safeGet(api, 'has_midi_input', 0) ? true : false;
+        typeStr = isFoldable ? 'group' : (hasMidiIn ? 'midi' : 'audio');
+    }
+
+    // arm: only valid on regular (non-return) tracks.
+    // Calling api.get('arm') on a return track logs "Main and Return Tracks
+    // have no 'Arm' state!" to the Max console on every scan.
+    var armVal = isReturn ? false : (safeGet(api, 'arm', 0) ? true : false);
+
     var prefix = isReturn ? 'live_set return_tracks ' : 'live_set tracks ';
 
     return {
         name:     safeGet(api, 'name', 'Track ' + idx),
         index:    idx,
         type:     typeStr,
-        arm:      safeGet(api, 'arm', 0) ? true : false,
+        arm:      armVal,
         solo:     safeGet(api, 'solo', 0) ? true : false,
         mute:     safeGet(api, 'mute', 0) ? true : false,
         volume:   volRaw,
