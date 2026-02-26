@@ -16,10 +16,15 @@
  *
  * Communication
  * ─────────────
- *   Inlet 0:  'scan'   — perform full session scan, send via outlet 0
- *             'delta <json>' — broadcast a parameter delta event
- *   Outlet 0: 'session_data <jsonString>'  (→ node.script inlet)
- *             'delta <jsonString>'          (→ node.script inlet)
+ *   Inlet 0:  'scan'                — perform full session scan
+ *             'set_parameter <json>' — write a device parameter
+ *             'set_property <json>'  — write a track/set property
+ *             'call_method <json>'   — invoke an LOM method
+ *   Outlet 0: (intentionally disconnected — bang trap)
+ *   Outlet 1: 'session_data <jsonString>'  (→ node.script inlet 0)
+ *             'delta <jsonString>'          (→ node.script inlet 0)
+ *             'ack <jsonString>'            (→ node.script inlet 0)
+ *             'error <jsonString>'          (→ node.script inlet 0)
  *
  * LOM Tree traversal
  * ──────────────────
