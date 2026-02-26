@@ -134,6 +134,22 @@ Max.addHandler('session_data', (jsonStr) => {
 });
 
 /**
+ * On-demand device parameters arrived from lom_scanner.js.
+ * 'device_params <jsonString>'
+ */
+Max.addHandler('device_params', (jsonStr) => {
+    broadcast({ type: 'device_params', data: JSON.parse(jsonStr) });
+});
+
+/**
+ * On-demand track clips arrived from lom_scanner.js.
+ * 'track_clips <jsonString>'
+ */
+Max.addHandler('track_clips', (jsonStr) => {
+    broadcast({ type: 'track_clips', data: JSON.parse(jsonStr) });
+});
+
+/**
  * Real-time parameter delta arrived from lom_scanner.js observer.
  * 'delta <jsonString>'
  */
@@ -211,6 +227,25 @@ function onClientMessage(ws, rawData) {
                 lom_path: msg.lom_path || '',
                 method: msg.method,
                 args: msg.args || []
+            }));
+            break;
+
+        case 'get_device_params':
+            // On-demand: request parameters for one device.
+            // msg: { type, device_lom_id, track_idx, dev_idx }
+            Max.outlet('scan_params_for_device', JSON.stringify({
+                device_lom_id: msg.device_lom_id,
+                track_idx:     msg.track_idx,
+                dev_idx:       msg.dev_idx
+            }));
+            break;
+
+        case 'get_track_clips':
+            // On-demand: request clip list for one track.
+            // msg: { type, track_lom_id, track_idx }
+            Max.outlet('scan_clips_for_track', JSON.stringify({
+                track_lom_id: msg.track_lom_id,
+                track_idx:    msg.track_idx
             }));
             break;
 

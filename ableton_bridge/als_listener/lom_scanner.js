@@ -181,7 +181,15 @@ function scanParameters(deviceApi, trackIdx, devIdx) {
 
 /* ── Device scanner ────────────────────────────────────────────────────── */
 
-function scanDevices(trackApi, trackIdx) {
+/**
+ * Scan devices for a track.
+ * @param {LiveAPI} trackApi
+ * @param {number}  trackIdx
+ * @param {boolean} [deep=false]  When false, parameters are NOT scanned (fast path).
+ *                                Pass true only for on-demand deep scans to avoid
+ *                                blocking the Max/Ableton main thread.
+ */
+function scanDevices(trackApi, trackIdx, deep) {
     var children = getChildList(trackApi, 'devices');
     var devices = [];
     for (var i = 0; i < children.length; i++) {
@@ -193,7 +201,7 @@ function scanDevices(trackApi, trackIdx) {
             lom_id:     children[i].intId,
             lom_path:   'live_set tracks ' + trackIdx + ' devices ' + i,
             index:      i,
-            parameters: scanParameters(dApi, trackIdx, i)
+            parameters: deep ? scanParameters(dApi, trackIdx, i) : []
         });
     }
     return devices;
@@ -231,7 +239,15 @@ function scanClips(trackApi, trackIdx) {
 
 /* ── Track scanner ─────────────────────────────────────────────────────── */
 
-function scanTrack(trackIntId, idx, isReturn) {
+/**
+ * Scan a single track.
+ * @param {number}  trackIntId  Integer LiveAPI id of the track.
+ * @param {number}  idx         Track index in its list (tracks or return_tracks).
+ * @param {boolean} isReturn    True for return tracks.
+ * @param {boolean} [deep=false] When false, devices have no parameters and clips
+ *                               are not scanned — keeps the initial scan fast.
+ */
+function scanTrack(trackIntId, idx, isReturn, deep) {
     var api = apiById(trackIntId);
 
     // Mixer device for volume/pan
@@ -271,8 +287,8 @@ function scanTrack(trackIntId, idx, isReturn) {
         color:    safeGet(api, 'color', 0),
         lom_id:   trackIntId,
         lom_path: prefix + idx,
-        devices:  isReturn ? [] : scanDevices(api, idx),
-        clips:    isReturn ? [] : scanClips(api, idx)
+        devices:  isReturn ? [] : scanDevices(api, idx, deep),
+        clips:    (isReturn || !deep) ? [] : scanClips(api, idx)
     };
 }
 
@@ -351,14 +367,19 @@ function scan() {
     var trackList = getChildList(rootApi, 'tracks');
     var returnList = getChildList(rootApi, 'return_tracks');
 
+    // ── Fast path: deep=false skips parameters and clips.
+    // A session with 20 tracks × 5 devices × 40 params = 4 000 synchronous
+    // LiveAPI.get() calls, which blocks Ableton's main thread for several seconds.
+    // We scan only track metadata + device names here (~5-10 calls per track).
+    // Parameters are loaded on-demand via 'scan_params_for_device'.
     var tracks = [];
     for (var i = 0; i < trackList.length; i++) {
-        tracks.push(scanTrack(trackList[i].intId, i, false));
+        tracks.push(scanTrack(trackList[i].intId, i, false, false));
     }
 
     var returnTracks = [];
     for (var j = 0; j < returnList.length; j++) {
-        returnTracks.push(scanTrack(returnList[j].intId, j, true));
+        returnTracks.push(scanTrack(returnList[j].intId, j, true, false));
     }
 
     var session = {
@@ -499,6 +520,97 @@ function install_observers() {
     }
 
     post('ALS Listener: installed ' + _observers.length + ' parameter observers\n');
+}
+
+/* ── On-demand deep scans ──────────────────────────────────────────────── */
+
+/**
+ * Scan parameters for a single device — called after the fast initial scan.
+ * Send this message from node.script when the UI requests a device's parameters.
+ *
+ * msg format: '{"device_lom_id":42,"track_idx":0,"dev_idx":1}'
+ *
+ * Response outlet: 'device_params <json>'
+ * JSON: { type, device_lom_id, track_idx, dev_idx, parameters: [...] }
+ */
+function scan_params_for_device(jsonStr) {
+    try {
+        var cmd = JSON.parse(jsonStr);
+        var dApi = apiById(cmd.device_lom_id);
+        var params = scanParameters(dApi, cmd.track_idx, cmd.dev_idx);
+        outlet(0, 'device_params', JSON.stringify({
+            type:          'device_params',
+            device_lom_id: cmd.device_lom_id,
+            track_idx:     cmd.track_idx,
+            dev_idx:       cmd.dev_idx,
+            parameters:    params
+        }));
+    } catch (e) {
+        outlet(0, 'error', JSON.stringify({ type: 'error', message: '' + e }));
+    }
+}
+
+/**
+ * Scan clips for a single track — called on-demand after the fast initial scan.
+ *
+ * msg format: '{"track_lom_id":238,"track_idx":0}'
+ *
+ * Response outlet: 'track_clips <json>'
+ * JSON: { type, track_lom_id, track_idx, clips: [...] }
+ */
+function scan_clips_for_track(jsonStr) {
+    try {
+        var cmd = JSON.parse(jsonStr);
+        var tApi = apiById(cmd.track_lom_id);
+        var clips = scanClips(tApi, cmd.track_idx);
+        outlet(0, 'track_clips', JSON.stringify({
+            type:         'track_clips',
+            track_lom_id: cmd.track_lom_id,
+            track_idx:    cmd.track_idx,
+            clips:        clips
+        }));
+    } catch (e) {
+        outlet(0, 'error', JSON.stringify({ type: 'error', message: '' + e }));
+    }
+}
+
+/**
+ * Full deep scan — includes parameters and clips for all tracks.
+ * USE WITH CAUTION: blocks for several seconds on large sessions.
+ * Prefer 'scan' (fast) + on-demand 'scan_params_for_device' in production.
+ */
+function scan_deep() {
+    var rootApi = new LiveAPI(null, 'live_set');
+    var trackList  = getChildList(rootApi, 'tracks');
+    var returnList = getChildList(rootApi, 'return_tracks');
+
+    var tracks = [];
+    for (var i = 0; i < trackList.length; i++) {
+        tracks.push(scanTrack(trackList[i].intId, i, false, true));
+    }
+    var returnTracks = [];
+    for (var j = 0; j < returnList.length; j++) {
+        returnTracks.push(scanTrack(returnList[j].intId, j, true, true));
+    }
+
+    var session = {
+        tracks:               tracks,
+        return_tracks:        returnTracks,
+        master_track:         scanMasterTrack(),
+        tempo:                safeGet(rootApi, 'tempo', 120),
+        time_sig_numerator:   safeGet(rootApi, 'signature_numerator', 4),
+        time_sig_denominator: safeGet(rootApi, 'signature_denominator', 4),
+        is_playing:           safeGet(rootApi, 'is_playing', 0) ? true : false,
+        current_song_time:    safeGet(rootApi, 'current_song_time', 0),
+        scene_count:          getChildList(rootApi, 'scenes').length,
+        metronome:            safeGet(rootApi, 'metronome', 0) ? true : false,
+        loop:                 safeGet(rootApi, 'loop', 0) ? true : false,
+        session_record:       safeGet(rootApi, 'session_record', 0) ? true : false,
+        overdub:              safeGet(rootApi, 'overdub', 0) ? true : false
+    };
+
+    outlet(0, 'session_data', JSON.stringify(session));
+    post('ALS Listener: deep scan complete (' + tracks.length + ' tracks)\n');
 }
 
 /* ── Max message handlers ──────────────────────────────────────────────── */
