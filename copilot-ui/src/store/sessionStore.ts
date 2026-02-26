@@ -9,6 +9,12 @@ interface SessionStore {
   selectedTrackIndex: number | null
   setSession: (session: SessionSummary) => void
   applyParameterDelta: (lomPath: string, value: number, display: string) => void
+  applyTrackProperty: (
+    trackIndex: number,
+    isReturn: boolean,
+    property: 'arm' | 'solo' | 'mute',
+    value: boolean
+  ) => void
   setWsStatus: (status: WsStatus, error?: string) => void
   setLastPingMs: (ms: number) => void
   selectTrack: (index: number | null) => void
@@ -23,6 +29,20 @@ export const useSessionStore = create<SessionStore>((set, get) => ({
   selectedTrackIndex: null,
 
   setSession: (session) => set({ session }),
+
+  applyTrackProperty: (trackIndex, isReturn, property, value) => {
+    const session = get().session
+    if (!session) return
+    const patch = (tracks: SessionSummary['tracks']) =>
+      tracks.map((t, i) => (i === trackIndex ? { ...t, [property]: value } : t))
+    set({
+      session: {
+        ...session,
+        tracks:        isReturn ? session.tracks        : patch(session.tracks),
+        return_tracks: isReturn ? patch(session.return_tracks) : session.return_tracks,
+      },
+    })
+  },
 
   applyParameterDelta: (lomPath, value, _display) => {
     const session = get().session

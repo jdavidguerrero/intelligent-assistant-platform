@@ -1,12 +1,19 @@
-// Types mirroring core/ableton/types.py — the Python source of truth
+// Types mirroring core/ableton/types.py + lom_scanner.js wire format.
+// Optional fields exist in both shapes so either source can populate the interface.
 
 export interface Parameter {
   name: string
   value: number
-  min_value: number
-  max_value: number
-  default_value: number
-  display_value: string
+  // Python API fields
+  min_value?: number
+  max_value?: number
+  default_value?: number
+  display_value?: string
+  // lom_scanner.js wire fields
+  min?: number
+  max?: number
+  default?: number
+  display?: string
   lom_path: string
   index: number
   is_quantized: boolean
@@ -23,12 +30,14 @@ export interface Device {
 
 export interface Clip {
   name: string
-  length_bars: number
+  length_bars?: number   // Python API
+  length?: number        // lom_scanner wire format (beats)
   is_playing: boolean
   is_triggered: boolean
   is_midi: boolean
   lom_path: string
   color?: number
+  slot_index?: number    // lom_scanner wire format
 }
 
 export type TrackType = 'audio' | 'midi' | 'return' | 'master' | 'group'
@@ -40,10 +49,11 @@ export interface Track {
   arm: boolean
   solo: boolean
   mute: boolean
-  volume_db: number
+  volume_db?: number     // Python API (dB scale)
+  volume?: number        // lom_scanner wire format (0–1 raw)
   pan?: number
-  device_count: number
-  device_names: string[]
+  device_count?: number  // Python API
+  device_names?: string[] // Python API
   devices?: Device[]
   clips?: Clip[]
   lom_path?: string
@@ -55,10 +65,14 @@ export interface SessionSummary {
   return_tracks: Track[]
   master_track: Track | null
   tempo: number
-  time_signature: string
+  // Python API uses a single string; lom_scanner sends numerator + denominator separately
+  time_signature?: string
+  time_sig_numerator?: number
+  time_sig_denominator?: number
   is_playing: boolean
   scene_count: number
-  track_count: number
+  track_count?: number
+  current_song_time?: number
 }
 
 // WebSocket message types
