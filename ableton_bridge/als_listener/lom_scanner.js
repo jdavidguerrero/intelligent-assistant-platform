@@ -10,7 +10,7 @@
  *   Max patch
  *     [js lom_scanner.js] ←── triggered by 'scan' message
  *          │
- *          │  outlet(0, 'session_data', jsonString)
+ *          │  outlet(1, 'session_data', jsonString)
  *          ▼
  *     [node.script als_listener.js] ──► WebSocket clients
  *
@@ -60,12 +60,19 @@
  *   - Clip notes are NOT scanned on initial scan (too slow).  Use 'scan_clip_notes' message.
  */
 
-// autowatch = 0: disabled intentionally.
-// With autowatch = 1, Max sends an automatic bang out of js outlet 0 when it
-// detects the script file has changed on disk. That bang reaches node.script
-// inlet 0 before Node.js is ready → "Node script not ready can't handle message bang".
-// To reload after a deploy: use the restart button or remove + re-add the device.
+// autowatch = 0: disabled intentionally — prevents disk-change bangs on outlet 0.
 autowatch = 0;
+
+// outlets = 2: outlet 0 is intentionally left DISCONNECTED in the patch.
+// Max's js object sends a compile-time bang from outlet 0 when the script first
+// loads, AND from outlet 0 whenever autowatch triggers a reload.  By leaving
+// outlet 0 unconnected, that bang disappears into the void and never reaches
+// node.script inlet 0 (which would cause "Node script not ready" errors).
+//
+// All real data (session_data, delta, ack, error, device_params, track_clips)
+// is sent through outlet 1, which IS connected to node.script inlet 0.
+outlets = 2;
+inlets  = 1;
 
 /* ── Helpers ───────────────────────────────────────────────────────────── */
 
@@ -419,7 +426,7 @@ function scan() {
         overdub:              safeGet(rootApi, 'overdub', 0) ? true : false
     };
 
-    outlet(0, 'session_data', JSON.stringify(session));
+    outlet(1, 'session_data', JSON.stringify(session));
 }
 
 /* ── LOM parameter write ───────────────────────────────────────────────── */
@@ -439,9 +446,9 @@ function set_parameter(jsonStr) {
             api = new LiveAPI(null, cmd.lom_path);
         }
         api.set('value', cmd.value);
-        outlet(0, 'ack', JSON.stringify({ type: 'ack', lom_id: cmd.lom_id || 0, value: cmd.value }));
+        outlet(1, 'ack', JSON.stringify({ type: 'ack', lom_id: cmd.lom_id || 0, value: cmd.value }));
     } catch (e) {
-        outlet(0, 'error', JSON.stringify({ type: 'error', message: '' + e }));
+        outlet(1, 'error', JSON.stringify({ type: 'error', message: '' + e }));
     }
 }
 
@@ -460,9 +467,9 @@ function set_property(jsonStr) {
             api = new LiveAPI(null, cmd.lom_path);
         }
         api.set(cmd.property, cmd.value);
-        outlet(0, 'ack', JSON.stringify({ type: 'ack', lom_id: cmd.lom_id || 0, property: cmd.property, value: cmd.value }));
+        outlet(1, 'ack', JSON.stringify({ type: 'ack', lom_id: cmd.lom_id || 0, property: cmd.property, value: cmd.value }));
     } catch (e) {
-        outlet(0, 'error', JSON.stringify({ type: 'error', message: '' + e }));
+        outlet(1, 'error', JSON.stringify({ type: 'error', message: '' + e }));
     }
 }
 
@@ -486,9 +493,9 @@ function call_method(jsonStr) {
         } else {
             api.call(cmd.method);
         }
-        outlet(0, 'ack', JSON.stringify({ type: 'ack', lom_id: cmd.lom_id || 0, method: cmd.method }));
+        outlet(1, 'ack', JSON.stringify({ type: 'ack', lom_id: cmd.lom_id || 0, method: cmd.method }));
     } catch (e) {
-        outlet(0, 'error', JSON.stringify({ type: 'error', message: '' + e }));
+        outlet(1, 'error', JSON.stringify({ type: 'error', message: '' + e }));
     }
 }
 
@@ -531,7 +538,7 @@ function install_observers() {
                             value:    safeGet(pApi2, 'value', 0),
                             display:  safeGet(pApi2, 'str_for_value', '')
                         };
-                        outlet(0, 'delta', JSON.stringify(delta));
+                        outlet(1, 'delta', JSON.stringify(delta));
                     }, pIntId);
                     obs.property = 'value';
                     _observers.push(obs);
@@ -559,7 +566,7 @@ function scan_params_for_device(jsonStr) {
         var cmd = JSON.parse(jsonStr);
         var dApi = apiById(cmd.device_lom_id);
         var params = scanParameters(dApi, cmd.track_idx, cmd.dev_idx);
-        outlet(0, 'device_params', JSON.stringify({
+        outlet(1, 'device_params', JSON.stringify({
             type:          'device_params',
             device_lom_id: cmd.device_lom_id,
             track_idx:     cmd.track_idx,
@@ -567,7 +574,7 @@ function scan_params_for_device(jsonStr) {
             parameters:    params
         }));
     } catch (e) {
-        outlet(0, 'error', JSON.stringify({ type: 'error', message: '' + e }));
+        outlet(1, 'error', JSON.stringify({ type: 'error', message: '' + e }));
     }
 }
 
@@ -584,14 +591,14 @@ function scan_clips_for_track(jsonStr) {
         var cmd = JSON.parse(jsonStr);
         var tApi = apiById(cmd.track_lom_id);
         var clips = scanClips(tApi, cmd.track_idx);
-        outlet(0, 'track_clips', JSON.stringify({
+        outlet(1, 'track_clips', JSON.stringify({
             type:         'track_clips',
             track_lom_id: cmd.track_lom_id,
             track_idx:    cmd.track_idx,
             clips:        clips
         }));
     } catch (e) {
-        outlet(0, 'error', JSON.stringify({ type: 'error', message: '' + e }));
+        outlet(1, 'error', JSON.stringify({ type: 'error', message: '' + e }));
     }
 }
 
@@ -630,7 +637,7 @@ function scan_deep() {
         overdub:              safeGet(rootApi, 'overdub', 0) ? true : false
     };
 
-    outlet(0, 'session_data', JSON.stringify(session));
+    outlet(1, 'session_data', JSON.stringify(session));
     post('ALS Listener: deep scan complete (' + tracks.length + ' tracks)\n');
 }
 
