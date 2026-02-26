@@ -1,0 +1,68 @@
+# Deep House — Mix Bus Signal Chain
+#
+# Aesthetic: smooth, warm, soulful. Gentle low-mid body, natural dynamics,
+# very light saturation, relaxed transients. Never harsh or over-compressed.
+# References: Larry Heard, Kerri Chandler, Moodymann, Jon Hassell
+
+genre: deep house
+stage: mix_bus
+description: "Smooth and warm bus processing — soulful body with natural dynamics"
+
+processors:
+  - name: "Subsonic Filter"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency, "28 Hz"]
+      - [type, "high_pass"]
+      - [slope, "12 dB/oct"]
+
+  - name: "Low-Mid Body Boost"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency, "150 Hz"]
+      - [type, "bell"]
+      - [gain, "+1.5 dB"]
+      - [q, "0.8"]
+
+  - name: "Presence Dip"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency, "3500 Hz"]
+      - [type, "bell"]
+      - [gain, "-0.8 dB"]
+      - [q, "1.5"]
+
+  - name: "Gentle Glue Compression"
+    proc_type: compressor
+    plugin_primary: "Neve 33609"
+    plugin_fallback: "Ableton Glue Compressor"
+    params:
+      - [ratio, "2:1"]
+      - [attack, "50 ms"]
+      - [release, "200 ms"]
+      - [threshold, "-10 dBFS"]
+      - [makeup, "+1.5 dB"]
+      - [mix, "70%"]
+
+  - name: "Tape Saturation"
+    proc_type: saturation
+    plugin_primary: "Waves J37 Tape"
+    plugin_fallback: "Ableton Saturator"
+    params:
+      - [style, "tape"]
+      - [drive, "1 dB"]
+      - [mix, "15%"]
+
+  - name: "Bus Limiter"
+    proc_type: limiter
+    plugin_primary: "Weiss DS1-MK3"
+    plugin_fallback: "Ableton Limiter"
+    params:
+      - [ceiling, "-0.5 dBFS"]
+      - [release, "80 ms"]

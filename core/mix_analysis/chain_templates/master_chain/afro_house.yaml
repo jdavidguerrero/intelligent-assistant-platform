@@ -1,0 +1,63 @@
+# Afro House — Master Chain
+#
+# Target: -8 LUFS. Preserve percussion dynamics and rhythmic energy.
+# Mid-focused EQ to let talking drums and congas cut through clearly.
+# Gentle limiting maintains the natural groove feel.
+# References: Black Coffee, Enoo Napa, Themba, Da Capo
+
+genre: afro house
+stage: master
+description: "Percussion-dynamic mastering chain — rhythmic clarity preserved, -8 LUFS target"
+
+processors:
+  - name: "Linear Phase EQ"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3 (Linear Phase)"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency_hp, "25 Hz"]
+      - [type_hp, "high_pass"]
+      - [slope_hp, "12 dB/oct"]
+      - [frequency_mid, "2500 Hz"]
+      - [type_mid, "bell"]
+      - [gain_mid, "+0.8 dB"]
+      - [q_mid, "1.0"]
+      - [frequency_mud, "350 Hz"]
+      - [type_mud, "bell"]
+      - [gain_mud, "-1.0 dB"]
+      - [q_mud, "1.2"]
+
+  - name: "Multiband Compressor"
+    proc_type: multiband_comp
+    plugin_primary: "FabFilter Pro-MB"
+    plugin_fallback: "Ableton Multiband Dynamics"
+    params:
+      - [low_band_hz, "220 Hz"]
+      - [low_ratio, "1.8:1"]
+      - [low_attack, "80 ms"]
+      - [low_release, "300 ms"]
+      - [mid_band_hz, "2200 Hz"]
+      - [mid_ratio, "1.4:1"]
+      - [mid_attack, "25 ms"]
+      - [high_ratio, "1.2:1"]
+      - [high_attack, "15 ms"]
+
+  - name: "Stereo Imager"
+    proc_type: stereo_widener
+    plugin_primary: "iZotope Ozone Imager"
+    plugin_fallback: "Ableton Utility"
+    params:
+      - [low_width, "0%"]
+      - [mid_width, "100%"]
+      - [high_width, "125%"]
+      - [low_crossover, "160 Hz"]
+
+  - name: "Brickwall Limiter"
+    proc_type: limiter
+    plugin_primary: "iZotope Ozone Maximizer"
+    plugin_fallback: "Ableton Limiter"
+    params:
+      - [ceiling, "-1.0 dBTP"]
+      - [release, "60 ms"]
+      - [target_lufs, "-8 LUFS"]
+      - [character, "transparent"]

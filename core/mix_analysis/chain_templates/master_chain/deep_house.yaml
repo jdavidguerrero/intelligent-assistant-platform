@@ -1,0 +1,70 @@
+# Deep House — Master Chain
+#
+# Target: -9 LUFS. Warm, transparent mastering preserving soulful dynamics.
+# Gentle multiband work, natural stereo width, very soft limiting.
+# References: Larry Heard, Kerri Chandler, Moodymann, Ron Trent
+
+genre: deep house
+stage: master
+description: "Warm mastering chain — soulful dynamics preserved, -9 LUFS target"
+
+processors:
+  - name: "Linear Phase EQ"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3 (Linear Phase)"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency_hp, "18 Hz"]
+      - [type_hp, "high_pass"]
+      - [slope_hp, "6 dB/oct"]
+      - [frequency_body, "120 Hz"]
+      - [type_body, "bell"]
+      - [gain_body, "+0.8 dB"]
+      - [q_body, "0.7"]
+      - [frequency_air, "15000 Hz"]
+      - [type_air, "high_shelf"]
+      - [gain_air, "+0.3 dB"]
+
+  - name: "Multiband Compressor"
+    proc_type: multiband_comp
+    plugin_primary: "FabFilter Pro-MB"
+    plugin_fallback: "Ableton Multiband Dynamics"
+    params:
+      - [low_band_hz, "250 Hz"]
+      - [low_ratio, "1.5:1"]
+      - [low_attack, "100 ms"]
+      - [low_release, "400 ms"]
+      - [mid_band_hz, "2000 Hz"]
+      - [mid_ratio, "1.3:1"]
+      - [mid_attack, "60 ms"]
+      - [high_ratio, "1.2:1"]
+      - [high_attack, "30 ms"]
+
+  - name: "Tape Warmth"
+    proc_type: saturation
+    plugin_primary: "Waves J37 Tape"
+    plugin_fallback: "Ableton Saturator"
+    params:
+      - [style, "tape"]
+      - [drive, "0.5 dB"]
+      - [mix, "10%"]
+
+  - name: "Stereo Imager"
+    proc_type: stereo_widener
+    plugin_primary: "iZotope Ozone Imager"
+    plugin_fallback: "Ableton Utility"
+    params:
+      - [low_width, "0%"]
+      - [mid_width, "100%"]
+      - [high_width, "140%"]
+      - [low_crossover, "200 Hz"]
+
+  - name: "Brickwall Limiter"
+    proc_type: limiter
+    plugin_primary: "Weiss DS1-MK3"
+    plugin_fallback: "Ableton Limiter"
+    params:
+      - [ceiling, "-1.0 dBTP"]
+      - [release, "auto"]
+      - [target_lufs, "-9 LUFS"]
+      - [character, "transparent"]
