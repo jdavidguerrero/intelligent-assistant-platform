@@ -28,6 +28,15 @@ progressions:
 tonic_degrees: [0]
 avoid_penultimate: []
 
+# ---------------------------------------------------------------------------
+# Humanization configuration
+# Afro house is the most human: loose timing, rich dynamics, lots of ghost notes
+# ---------------------------------------------------------------------------
+humanize_config:
+  timing_jitter_ms: 8.0        # ±8ms — the loosest of all genres, tribal feel
+  velocity_variation: 15       # ±15 velocity units — maximum expressiveness
+  ghost_probability: 0.18      # 18% ghost notes — rich textural density
+
 moods:
   - euphoric
   - neutral
@@ -65,6 +74,32 @@ bass_patterns:
       - [12, 5,  2,  90]    # fourth
       - [14, 0,  2,  78]    # root, settle
 
+  - style: sub
+    base_octave: 1            # Sub bass: tribal low-end presence
+    notes:
+      - [0,  0, 6, 104]       # root, held (dotted quarter — mirrors syncopated kick)
+      - [6,  0, 2,  90]       # brief re-attack at offbeat (syncopated feel)
+      - [8,  0, 6, 100]       # root, beat 3 held
+      - [14, 0, 2,  85]       # pull into next bar
+
+  - style: driving
+    base_octave: 2
+    notes:
+      - [0,  0, 2, 108]       # beat 1
+      - [2,  0, 2,  88]       # offbeat 1 (quieter — afro syncopation)
+      - [4,  0, 2, 102]       # beat 2
+      - [6,  0, 2,  90]       # offbeat 2
+      - [8,  0, 2, 108]       # beat 3
+      - [10, 0, 2,  88]       # offbeat 3
+      - [12, 0, 2, 102]       # beat 4
+      - [14, 0, 2,  90]       # offbeat 4
+
+  - style: minimal
+    base_octave: 2
+    notes:
+      - [0,  0, 3, 100]       # root, dotted 8th (matches syncopated kick rhythm)
+      - [8,  0, 3,  96]       # root on beat 3
+
 # ---------------------------------------------------------------------------
 # Drum patterns — syncopated kick, strong percussion emphasis
 # NOT 4-on-the-floor — the defining contrast with house sub-genres
@@ -88,6 +123,21 @@ drum_patterns:
     hihat_c: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
     # Open hi-hat: syncopated offbeats
     hihat_o: [0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0]
+
+  probability:
+    kick:    [1.0, 0, 0, 0, 0, 0, 0.92, 0, 0, 0, 0, 0, 0.95, 0, 0, 0]
+    snare:   [0, 0, 0, 0, 0.90, 0, 0, 0, 0, 0, 0.90, 0, 0, 0, 0, 0]
+    clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0.88, 0, 0, 0, 0, 0, 0, 0]
+    hihat_c: [1.0, 0, 0.90, 0, 1.0, 0, 0.90, 0, 1.0, 0, 0.90, 0, 1.0, 0, 0.90, 0]
+    hihat_o: [0, 0, 0, 0, 0, 0.86, 0, 0, 0, 0, 0, 0, 0, 0.86, 0, 0]
+
+  # Afro house: hihat enters early, snare comes before clap
+  energy_layers:
+    1:  [kick]
+    3:  [hihat_c]
+    5:  [snare]
+    7:  [clap]
+    10: [hihat_o]
 
   fill:
     every_n_bars: 4

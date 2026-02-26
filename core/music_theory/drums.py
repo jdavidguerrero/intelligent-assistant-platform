@@ -100,6 +100,47 @@ def _apply_velocity(
     return max(1, min(127, v))
 
 
+def _get_active_instruments(
+    energy_layers: dict[int | str, list[str]],
+    energy: int,
+) -> frozenset[str] | None:
+    """Return the set of instruments active at the given energy level.
+
+    Each key in energy_layers is a minimum energy threshold; the value is the
+    list of instruments that activate at or above that threshold. Thresholds
+    are additive — instruments from lower thresholds remain active at higher
+    energy levels.
+
+    Returns None when energy_layers is empty, meaning all instruments in the
+    grid are active regardless of energy (backward-compatible with templates
+    that don't define energy_layers).
+
+    Args:
+        energy_layers: Dict of {threshold: [instruments]} from the YAML template.
+        energy:        Current energy level (0–10).
+
+    Returns:
+        frozenset of active instrument names, or None if no layers defined.
+
+    Examples:
+        >>> layers = {1: ["kick"], 3: ["snare"], 5: ["hihat_c"]}
+        >>> _get_active_instruments(layers, 4)
+        frozenset({'kick', 'snare'})
+        >>> _get_active_instruments({}, 7) is None
+        True
+    """
+    if not energy_layers:
+        return None  # No energy_layers defined → all instruments active
+
+    active: set[str] = set()
+    for threshold_raw, instruments in sorted(
+        energy_layers.items(), key=lambda kv: int(kv[0])
+    ):
+        if energy >= int(threshold_raw):
+            active.update(instruments)
+    return frozenset(active)
+
+
 def _grid_for_bar(
     bar_idx: int,
     every_n_bars: int,
@@ -186,27 +227,48 @@ def generate_pattern(
     velocity_base: dict[str, int] = drum_data.get("velocity_base", {})
     base_grid: dict[str, list[int]] = drum_data.get("grid", {})
     fill_data: dict[str, Any] = drum_data.get("fill", {})
+    prob_section: dict[str, list[float]] = drum_data.get("probability", {})
+    energy_layers: dict[int | str, list[str]] = drum_data.get("energy_layers", {})
 
     every_n_bars: int = int(fill_data.get("every_n_bars", 4))
     fill_grid: dict[str, list[int]] = {
         k: v for k, v in fill_data.items() if k != "every_n_bars" and isinstance(v, list)
     }
 
+    # Determine which instruments are active at this energy level
+    active_instruments = _get_active_instruments(energy_layers, energy)
+
     multiplier = _energy_to_multiplier(energy)
     rng = random.Random(seed)
     hits: list[DrumHit] = []
 
     for bar_idx in range(bars):
-        grid = _grid_for_bar(bar_idx, every_n_bars, base_grid, fill_grid)
+        # Track fill vs. base so probability only applies to base grid bars.
+        # Fills must always play as written — they are intentional phrase accents.
+        is_fill_bar = every_n_bars > 0 and (bar_idx + 1) % every_n_bars == 0
+        grid = fill_grid if is_fill_bar else base_grid
 
         for instrument, pattern in grid.items():
+            # Skip instruments that are not active at this energy level
+            if active_instruments is not None and instrument not in active_instruments:
+                continue
+
             base_vel = velocity_base.get(instrument, 90)
+            prob_list: list[float] = prob_section.get(instrument, [])
 
             for step, hit_flag in enumerate(pattern):
                 if step >= _STEPS_PER_BAR:
                     break
 
                 if hit_flag == 1:
+                    # Probability: only applied to base bars and only when humanize=True,
+                    # because probability-based skips are a form of humanization.
+                    # Fill bars and humanize=False always play every grid hit.
+                    if humanize and not is_fill_bar and prob_list and step < len(prob_list):
+                        prob = float(prob_list[step])
+                        if prob < 1.0 and rng.random() >= prob:
+                            continue
+
                     velocity = _apply_velocity(base_vel, multiplier, rng, humanize)
                     hits.append(
                         DrumHit(

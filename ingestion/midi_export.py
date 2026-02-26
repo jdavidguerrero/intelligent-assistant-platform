@@ -7,20 +7,32 @@ This module is the I/O output boundary for the full music generation pipeline:
     chords (core/music_theory/) → chords_to_midi
     bassline (core/music_theory/) → bassline_to_midi
     drum pattern (core/music_theory/) → pattern_to_midi
+    full arrangement → full_arrangement_to_midi (chords + bass + drums)
 
 Usage:
     from ingestion.midi_export import notes_to_midi, chords_to_midi, \
-        bassline_to_midi, pattern_to_midi
+        bassline_to_midi, pattern_to_midi, full_arrangement_to_midi
 
 MIDI structure:
-    notes_to_midi:      Type 1, Track 0=meta, Track 1=notes
-    chords_to_midi:     Type 1, Track 0=meta, Track 1=chords (all voices)
-    bassline_to_midi:   Type 1, Track 0=meta, Track 1=bass (channel 0)
-    pattern_to_midi:    Type 1, Track 0=meta, Track N=per-instrument drums
-                        Drum instruments use channel 9 (GM standard)
+    notes_to_midi:           Type 1, Track 0=meta, Track 1=notes (ch 0)
+    chords_to_midi:          Type 1, Track 0=meta, Track 1=chords (ch 0)
+    bassline_to_midi:        Type 1, Track 0=meta, Track 1=bass (ch 1 = DAW ch 2)
+    pattern_to_midi:         Type 1, Track 0=meta, Track 1=drums (ch 9 = DAW ch 10)
+    full_arrangement_to_midi: Type 1, Track 0=meta, Track 1=chords (ch 0),
+                              Track 2=bass (ch 1), Track 3=drums (ch 9)
+
+Channel assignments (0-indexed):
+    MIDI_CHANNEL = 0   → DAW channel 1 (chords, melodic notes)
+    BASS_CHANNEL = 1   → DAW channel 2 (bass lines, per GM convention)
+    DRUM_CHANNEL = 9   → DAW channel 10 (GM standard percussion)
 
 GM drum note mapping (channel 9):
     kick=36, snare=38, clap=39, hihat_c=42, hihat_o=46
+
+Tick offset (humanization support):
+    BassNote.tick_offset and DrumHit.tick_offset are added to the quantized
+    grid position when computing MIDI on_tick. This enables micro-timing
+    humanization from core/music_theory/humanize.py.
 
 Why step-based timing (chords/bass/drums):
     The 16-step grid maps cleanly to MIDI ticks via:
@@ -47,6 +59,13 @@ DEFAULT_TICKS_PER_BEAT: int = 480
 
 MIDI_CHANNEL: int = 0
 """MIDI channel for melodic/harmonic note events (0-indexed = channel 1 in DAW)."""
+
+BASS_CHANNEL: int = 1
+"""MIDI channel for bass line events (0-indexed = channel 2 in DAW).
+
+Using a dedicated channel for bass separates it from chord voicings in the
+DAW mixer and allows independent routing to bass instruments/plugins.
+"""
 
 DRUM_CHANNEL: int = 9
 """GM standard MIDI channel for percussion (0-indexed = channel 10 in DAW)."""
@@ -483,7 +502,8 @@ def bassline_to_midi(
 
     for note in bass_notes:
         bar_start_tick = note.bar * ticks_per_bar
-        on_tick = bar_start_tick + note.step * ticks_per_step
+        # tick_offset applies micro-timing humanization (populated by humanize_timing)
+        on_tick = max(0, bar_start_tick + note.step * ticks_per_step + note.tick_offset)
         off_tick = on_tick + note.duration_steps * ticks_per_step - 1
         off_tick = max(off_tick, on_tick + 1)  # minimum 1 tick duration
 
@@ -499,12 +519,12 @@ def bassline_to_midi(
         if event_type == 0:
             bass_track.append(
                 mido.Message(
-                    "note_on", channel=MIDI_CHANNEL, note=pitch, velocity=velocity, time=delta
+                    "note_on", channel=BASS_CHANNEL, note=pitch, velocity=velocity, time=delta
                 )
             )
         else:
             bass_track.append(
-                mido.Message("note_off", channel=MIDI_CHANNEL, note=pitch, velocity=0, time=delta)
+                mido.Message("note_off", channel=BASS_CHANNEL, note=pitch, velocity=0, time=delta)
             )
 
     bass_track.append(mido.MetaMessage("end_of_track", time=0))
@@ -583,7 +603,8 @@ def pattern_to_midi(
             continue  # skip unknown instruments
 
         bar_start_tick = hit.bar * ticks_per_bar
-        on_tick = bar_start_tick + hit.step * ticks_per_step
+        # tick_offset applies micro-timing humanization (populated by humanize_timing)
+        on_tick = max(0, bar_start_tick + hit.step * ticks_per_step + hit.tick_offset)
         off_tick = on_tick + note_duration_ticks
         off_tick = max(off_tick, on_tick + 1)
 
@@ -609,6 +630,192 @@ def pattern_to_midi(
                 )
             )
 
+    drum_track.append(mido.MetaMessage("end_of_track", time=0))
+
+    if output_path is not None:
+        midi.save(str(output_path))
+
+    return midi
+
+
+# ---------------------------------------------------------------------------
+# Full arrangement MIDI export (chords + bass + drums — single file)
+# ---------------------------------------------------------------------------
+
+
+def full_arrangement_to_midi(
+    voicing_result: VoicingResult,
+    bass_notes: Sequence[BassNote],
+    pattern: DrumPattern,
+    *,
+    bpm: float = 120.0,
+    bars_per_chord: int = 1,
+    output_path: str | Path | None = None,
+    ticks_per_beat: int = DEFAULT_TICKS_PER_BEAT,
+) -> mido.MidiFile:
+    """Export a full arrangement (chords + bass + drums) as a single multi-track MIDI file.
+
+    Creates a 4-track MIDI file that can be imported into Ableton or any DAW
+    as three separate, synchronized clips:
+
+        Track 0: Meta  — tempo and time signature
+        Track 1: Chords — MIDI channel 0 (DAW channel 1), all chord voices
+        Track 2: Bass  — MIDI channel 1 (DAW channel 2), bass line
+        Track 3: Drums — MIDI channel 9 (DAW channel 10), GM percussion
+
+    This is the single-file companion to the three individual export functions.
+    All three parts are time-aligned from tick 0.
+
+    Args:
+        voicing_result: Output of melody_to_chords() or suggest_progression().
+        bass_notes:     Output of generate_bassline(). May be humanized.
+        pattern:        Output of generate_pattern(). May be humanized.
+        bpm:            Tempo in BPM. All three parts share the same tempo.
+        bars_per_chord: How many bars each chord lasts (default 1).
+        output_path:    If provided, saves the file to this path.
+        ticks_per_beat: MIDI resolution (default 480).
+
+    Returns:
+        mido.MidiFile with 4 tracks.
+
+    Raises:
+        ValueError: If voicing_result has no chords.
+        ValueError: If bass_notes is empty.
+        ValueError: If pattern has no hits.
+
+    Examples:
+        >>> from core.music_theory import suggest_progression, generate_bassline, generate_pattern
+        >>> v = suggest_progression("A", genre="organic house", bars=4)
+        >>> bass = generate_bassline(v.chords, genre="organic house", seed=0)
+        >>> drums = generate_pattern(genre="organic house", bars=4, seed=0)
+        >>> mid = full_arrangement_to_midi(v, bass, drums, bpm=122.0)
+        >>> len(mid.tracks)
+        4
+    """
+    if not voicing_result.chords:
+        raise ValueError("voicing_result.chords must not be empty")
+    if not bass_notes:
+        raise ValueError("bass_notes must not be empty")
+    if not pattern.hits:
+        raise ValueError("pattern.hits must not be empty")
+
+    midi = mido.MidiFile(type=1, ticks_per_beat=ticks_per_beat)
+
+    # ---------------------------------------------------------------------------
+    # Track 0: Meta
+    # ---------------------------------------------------------------------------
+    meta_track = mido.MidiTrack()
+    midi.tracks.append(meta_track)
+    tempo_us = _bpm_to_tempo_us(bpm)
+    meta_track.append(mido.MetaMessage("set_tempo", tempo=tempo_us, time=0))
+    meta_track.append(
+        mido.MetaMessage(
+            "time_signature",
+            numerator=4,
+            denominator=4,
+            clocks_per_click=24,
+            notated_32nd_notes_per_beat=8,
+            time=0,
+        )
+    )
+    meta_track.append(mido.MetaMessage("end_of_track", time=0))
+
+    ticks_per_bar = ticks_per_beat * 4
+    ticks_per_step = ticks_per_beat // _STEPS_PER_BEAT
+
+    # ---------------------------------------------------------------------------
+    # Track 1: Chords (channel 0)
+    # ---------------------------------------------------------------------------
+    chord_track = mido.MidiTrack()
+    midi.tracks.append(chord_track)
+
+    chord_duration_ticks = bars_per_chord * ticks_per_bar
+    chord_events: list[tuple[int, int, int, int]] = []
+
+    for chord_idx, chord in enumerate(voicing_result.chords):
+        on_tick = chord_idx * chord_duration_ticks
+        off_tick = on_tick + chord_duration_ticks - 1
+        for pitch in chord.midi_notes:
+            chord_events.append((on_tick, 0, pitch, 80))
+            chord_events.append((off_tick, 1, pitch, 0))
+
+    chord_events.sort(key=lambda e: (e[0], e[1]))
+    current_tick = 0
+    for abs_tick, event_type, pitch, velocity in chord_events:
+        delta = abs_tick - current_tick
+        current_tick = abs_tick
+        if event_type == 0:
+            chord_track.append(
+                mido.Message("note_on", channel=MIDI_CHANNEL, note=pitch, velocity=velocity, time=delta)
+            )
+        else:
+            chord_track.append(
+                mido.Message("note_off", channel=MIDI_CHANNEL, note=pitch, velocity=0, time=delta)
+            )
+    chord_track.append(mido.MetaMessage("end_of_track", time=0))
+
+    # ---------------------------------------------------------------------------
+    # Track 2: Bass (channel 1 = DAW channel 2)
+    # ---------------------------------------------------------------------------
+    bass_track = mido.MidiTrack()
+    midi.tracks.append(bass_track)
+
+    bass_events: list[tuple[int, int, int, int]] = []
+    for note in bass_notes:
+        bar_start_tick = note.bar * ticks_per_bar
+        on_tick = max(0, bar_start_tick + note.step * ticks_per_step + note.tick_offset)
+        off_tick = on_tick + note.duration_steps * ticks_per_step - 1
+        off_tick = max(off_tick, on_tick + 1)
+        bass_events.append((on_tick, 0, note.pitch_midi, note.velocity))
+        bass_events.append((off_tick, 1, note.pitch_midi, 0))
+
+    bass_events.sort(key=lambda e: (e[0], e[1]))
+    current_tick = 0
+    for abs_tick, event_type, pitch, velocity in bass_events:
+        delta = abs_tick - current_tick
+        current_tick = abs_tick
+        if event_type == 0:
+            bass_track.append(
+                mido.Message("note_on", channel=BASS_CHANNEL, note=pitch, velocity=velocity, time=delta)
+            )
+        else:
+            bass_track.append(
+                mido.Message("note_off", channel=BASS_CHANNEL, note=pitch, velocity=0, time=delta)
+            )
+    bass_track.append(mido.MetaMessage("end_of_track", time=0))
+
+    # ---------------------------------------------------------------------------
+    # Track 3: Drums (channel 9 = DAW channel 10, GM standard)
+    # ---------------------------------------------------------------------------
+    drum_track = mido.MidiTrack()
+    midi.tracks.append(drum_track)
+
+    note_duration_ticks = ticks_per_step - 1  # short percussion notes
+    drum_events: list[tuple[int, int, int, int]] = []
+
+    for hit in pattern.hits:
+        midi_note = GM_DRUM_NOTES.get(hit.instrument)
+        if midi_note is None:
+            continue
+        bar_start_tick = hit.bar * ticks_per_bar
+        on_tick = max(0, bar_start_tick + hit.step * ticks_per_step + hit.tick_offset)
+        off_tick = max(on_tick + note_duration_ticks, on_tick + 1)
+        drum_events.append((on_tick, 0, midi_note, hit.velocity))
+        drum_events.append((off_tick, 1, midi_note, 0))
+
+    drum_events.sort(key=lambda e: (e[0], e[1]))
+    current_tick = 0
+    for abs_tick, event_type, midi_note, velocity in drum_events:
+        delta = abs_tick - current_tick
+        current_tick = abs_tick
+        if event_type == 0:
+            drum_track.append(
+                mido.Message("note_on", channel=DRUM_CHANNEL, note=midi_note, velocity=velocity, time=delta)
+            )
+        else:
+            drum_track.append(
+                mido.Message("note_off", channel=DRUM_CHANNEL, note=midi_note, velocity=0, time=delta)
+            )
     drum_track.append(mido.MetaMessage("end_of_track", time=0))
 
     if output_path is not None:

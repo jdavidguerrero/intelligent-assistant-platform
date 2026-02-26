@@ -27,6 +27,15 @@ progressions:
 tonic_degrees: [0]
 avoid_penultimate: []       # deep house allows any penultimate chord
 
+# ---------------------------------------------------------------------------
+# Humanization configuration
+# Deep house is the most human-feeling: loose timing, expressive velocity
+# ---------------------------------------------------------------------------
+humanize_config:
+  timing_jitter_ms: 7.0        # ±7ms — warm, swung, slightly loose
+  velocity_variation: 14       # ±14 velocity units — most expressive
+  ghost_probability: 0.15      # 15% ghost notes — lush hi-hat texture
+
 moods:
   - dreamy
   - neutral
@@ -64,6 +73,29 @@ bass_patterns:
       - [12, 7,  2,  88]    # fifth, descending
       - [14, 0,  2,  78]    # root, cadence
 
+  - style: sub
+    base_octave: 1            # Ultra-low sub bass register
+    notes:
+      - [0,  0, 8, 102]       # root, first half-bar
+      - [8,  0, 8,  95]       # root, second half-bar (breath)
+
+  - style: driving
+    base_octave: 2
+    notes:
+      - [0,  0, 2, 106]       # beat 1
+      - [2,  0, 2,  94]       # offbeat 1
+      - [4,  0, 2, 104]       # beat 2
+      - [6,  0, 2,  92]       # offbeat 2
+      - [8,  0, 2, 106]       # beat 3
+      - [10, 0, 2,  94]       # offbeat 3
+      - [12, 0, 2, 104]       # beat 4
+      - [14, 0, 2,  90]       # offbeat 4
+
+  - style: minimal
+    base_octave: 2
+    notes:
+      - [0, 0, 6, 98]         # root on beat 1, dotted-quarter sustain
+
 # ---------------------------------------------------------------------------
 # Drum patterns — deep house: groovier hi-hat, warm and less mechanical
 # ---------------------------------------------------------------------------
@@ -86,6 +118,20 @@ drum_patterns:
     hihat_c: [1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0]
     # Open hi-hat on beats 2 and 4 — creates that "airy" deep house feel
     hihat_o: [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+
+  probability:
+    kick:    [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0]
+    snare:   [0, 0, 0, 0, 0.92, 0, 0, 0, 0, 0, 0, 0, 0.92, 0, 0, 0]
+    clap:    [0, 0, 0, 0, 0.85, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    hihat_c: [1.0, 0, 0.90, 0, 0, 0, 0.90, 0, 1.0, 0, 0.90, 0, 0, 0, 0.90, 0]
+    hihat_o: [0, 0, 0, 0, 0.88, 0, 0, 0, 0, 0, 0, 0, 0.88, 0, 0, 0]
+
+  energy_layers:
+    1:  [kick]
+    3:  [snare]
+    5:  [hihat_c]
+    7:  [clap]
+    10: [hihat_o]
 
   fill:
     every_n_bars: 4

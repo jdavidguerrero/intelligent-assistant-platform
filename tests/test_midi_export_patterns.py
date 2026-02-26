@@ -165,11 +165,12 @@ class TestBasslineToMidi:
                 tempo = msg.tempo
         assert abs(60_000_000 / tempo - 128.0) < 1.0
 
-    def test_note_events_on_channel_0(self):
+    def test_note_events_on_bass_channel(self):
+        """Bass notes are on MIDI channel 1 (DAW channel 2, per GM convention)."""
         midi = bassline_to_midi(self._bass())
         for msg in midi.tracks[1]:
             if hasattr(msg, "channel"):
-                assert msg.channel == 0
+                assert msg.channel == 1  # BASS_CHANNEL = 1 (0-indexed = DAW ch 2)
 
     def test_note_on_events_present(self):
         midi = bassline_to_midi(self._bass())
