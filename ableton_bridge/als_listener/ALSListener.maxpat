@@ -9,7 +9,7 @@
 			"modernui" : 1
 		},
 		"classnamespace" : "dsp.midi",
-		"rect" : [100.0, 100.0, 600.0, 400.0],
+		"rect" : [100.0, 100.0, 600.0, 340.0],
 		"bglocked" : 0,
 		"openinpresentation" : 0,
 		"default_fontsize" : 12.0,
@@ -49,45 +49,6 @@
 					"fontname" : "Arial Bold",
 					"fontsize" : 13.0,
 					"textcolor" : [0.9, 0.5, 0.1, 1.0]
-				}
-			},
-			{
-				"box" : {
-					"id" : "obj-mfl",
-					"maxclass" : "newobj",
-					"text" : "live.thisdevice",
-					"patching_rect" : [310.0, 40.0, 110.0, 22.0],
-					"numoutlets" : 2,
-					"outlettype" : ["bang", "bang"],
-					"numinlets" : 1,
-					"fontname" : "Arial",
-					"fontsize" : 12.0
-				}
-			},
-			{
-				"box" : {
-					"id" : "obj-mfl-delay",
-					"maxclass" : "newobj",
-					"text" : "delay 5000",
-					"patching_rect" : [310.0, 78.0, 90.0, 22.0],
-					"numoutlets" : 1,
-					"outlettype" : ["bang"],
-					"numinlets" : 2,
-					"fontname" : "Arial",
-					"fontsize" : 12.0
-				}
-			},
-			{
-				"box" : {
-					"id" : "obj-mfl-label",
-					"maxclass" : "comment",
-					"text" : "MfL init → delayed start",
-					"patching_rect" : [430.0, 45.0, 150.0, 18.0],
-					"numoutlets" : 0,
-					"numinlets" : 1,
-					"fontname" : "Arial",
-					"fontsize" : 10.0,
-					"textcolor" : [0.5, 0.5, 0.5, 1.0]
 				}
 			},
 			{
@@ -133,7 +94,7 @@
 					"id" : "obj-node",
 					"maxclass" : "newobj",
 					"text" : "node.script als_listener.js",
-					"patching_rect" : [15.0, 130.0, 240.0, 22.0],
+					"patching_rect" : [15.0, 115.0, 240.0, 22.0],
 					"numoutlets" : 2,
 					"outlettype" : ["", ""],
 					"numinlets" : 2,
@@ -146,7 +107,7 @@
 					"id" : "obj-print-status",
 					"maxclass" : "newobj",
 					"text" : "print als-node",
-					"patching_rect" : [270.0, 130.0, 110.0, 22.0],
+					"patching_rect" : [270.0, 115.0, 110.0, 22.0],
 					"numoutlets" : 0,
 					"numinlets" : 1,
 					"fontname" : "Arial",
@@ -158,7 +119,7 @@
 					"id" : "obj-lom",
 					"maxclass" : "newobj",
 					"text" : "js lom_scanner.js",
-					"patching_rect" : [15.0, 175.0, 160.0, 22.0],
+					"patching_rect" : [15.0, 155.0, 160.0, 22.0],
 					"numoutlets" : 2,
 					"outlettype" : ["", ""],
 					"numinlets" : 1,
@@ -168,36 +129,10 @@
 			},
 			{
 				"box" : {
-					"id" : "obj-lom-outlet0-label",
-					"maxclass" : "comment",
-					"text" : "outlet 0: bang trap (unconnected)",
-					"patching_rect" : [185.0, 175.0, 220.0, 18.0],
-					"numoutlets" : 0,
-					"numinlets" : 1,
-					"fontname" : "Arial",
-					"fontsize" : 10.0,
-					"textcolor" : [0.5, 0.5, 0.5, 1.0]
-				}
-			},
-			{
-				"box" : {
-					"id" : "obj-lom-outlet1-label",
-					"maxclass" : "comment",
-					"text" : "outlet 1: session_data / delta / ack",
-					"patching_rect" : [185.0, 193.0, 220.0, 18.0],
-					"numoutlets" : 0,
-					"numinlets" : 1,
-					"fontname" : "Arial",
-					"fontsize" : 10.0,
-					"textcolor" : [0.5, 0.5, 0.5, 1.0]
-				}
-			},
-			{
-				"box" : {
 					"id" : "obj-hint1",
 					"maxclass" : "comment",
 					"text" : "Auto-starts on load. Button restarts if port 11005 in use.",
-					"patching_rect" : [15.0, 240.0, 500.0, 18.0],
+					"patching_rect" : [15.0, 205.0, 500.0, 18.0],
 					"numoutlets" : 0,
 					"numinlets" : 1,
 					"fontname" : "Arial",
@@ -210,28 +145,29 @@
 					"id" : "obj-hint2",
 					"maxclass" : "comment",
 					"text" : "Open Max console (cmd+M) to see connection status.",
-					"patching_rect" : [15.0, 258.0, 420.0, 18.0],
+					"patching_rect" : [15.0, 223.0, 420.0, 18.0],
 					"numoutlets" : 0,
 					"numinlets" : 1,
 					"fontname" : "Arial",
 					"fontsize" : 10.0,
 					"textcolor" : [0.5, 0.5, 0.5, 1.0]
 				}
+			},
+			{
+				"box" : {
+					"id" : "obj-hint3",
+					"maxclass" : "comment",
+					"text" : "Note: one 'not ready' warning at load is expected — device still works.",
+					"patching_rect" : [15.0, 241.0, 500.0, 18.0],
+					"numoutlets" : 0,
+					"numinlets" : 1,
+					"fontname" : "Arial",
+					"fontsize" : 10.0,
+					"textcolor" : [0.4, 0.4, 0.4, 1.0]
+				}
 			}
 		],
 		"lines" : [
-			{
-				"patchline" : {
-					"source" : ["obj-mfl", 0],
-					"destination" : ["obj-mfl-delay", 0]
-				}
-			},
-			{
-				"patchline" : {
-					"source" : ["obj-mfl-delay", 0],
-					"destination" : ["obj-node", 0]
-				}
-			},
 			{
 				"patchline" : {
 					"source" : ["obj-btn", 0],
