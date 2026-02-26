@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 
 from api.deps import get_response_cache
@@ -8,9 +9,23 @@ from api.routes.generate import router as generate_router
 from api.routes.memory import router as memory_router
 from api.routes.mix import router as mix_router
 from api.routes.search import router as search_router
+from api.routes.tools import router as tools_router
 from infrastructure.metrics import get_metrics_response
 
 app = FastAPI(title="Intelligent Assistant")
+
+# CORS — allow the Copilot UI (React dev server) to call the API
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://localhost:5174",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(search_router)
 app.include_router(ask_router)
@@ -18,6 +33,7 @@ app.include_router(memory_router)
 app.include_router(analyze_router)
 app.include_router(generate_router)
 app.include_router(mix_router)
+app.include_router(tools_router)
 
 
 @app.get("/health")
