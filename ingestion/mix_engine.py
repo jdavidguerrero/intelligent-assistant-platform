@@ -38,22 +38,28 @@ from dataclasses import dataclass
 
 import numpy as np
 
+from core.mix_analysis.calibration import calibrate_genre_targets
 from core.mix_analysis.chains import get_chain
 from core.mix_analysis.dynamics import analyze_dynamics
 from core.mix_analysis.mastering import analyze_master
 from core.mix_analysis.problems import detect_mix_problems
 from core.mix_analysis.recommendations import recommend_all
+from core.mix_analysis.reference import compare_to_references
+from core.mix_analysis.report import generate_full_report
 from core.mix_analysis.spectral import analyze_frequency_balance
 from core.mix_analysis.stereo import analyze_stereo_image
 from core.mix_analysis.transients import analyze_transients
 from core.mix_analysis.types import (
     DynamicProfile,
     FrequencyProfile,
+    FullMixReport,
+    GenreTarget,
     MasterAnalysis,
     MasterReport,
     MixProblem,
     MixReport,
     Recommendation,
+    ReferenceComparison,
     StereoImage,
     TransientProfile,
 )
@@ -211,6 +217,134 @@ class MixAnalysisEngine:
             List of Recommendation objects, optionally RAG-enhanced.
         """
         return self._build_recommendations(list(problems), freq, stereo, dynamics, genre)
+
+    def compare_to_reference(
+        self,
+        track_path: str,
+        reference_path: str,
+        genre: str = _DEFAULT_GENRE,
+        *,
+        duration: float = _DEFAULT_DURATION,
+    ) -> ReferenceComparison:
+        """Analyze a track and one reference, then compute A/B comparison.
+
+        Runs full_mix_analysis() on both files, then delegates to
+        core/mix_analysis/reference.compare_to_references().
+
+        Args:
+            track_path:     Absolute path to the track under review.
+            reference_path: Absolute path to the commercial reference.
+            genre:          Genre name for target context.
+            duration:       Max seconds to load from each file.
+
+        Returns:
+            ReferenceComparison with 6-dimension scores and MixDelta list.
+        """
+        track = self.full_mix_analysis(track_path, genre=genre, duration=duration)
+        reference = self.full_mix_analysis(reference_path, genre=genre, duration=duration)
+        return compare_to_references(track, [reference], genre=genre)
+
+    def compare_to_references_batch(
+        self,
+        track_path: str,
+        reference_paths: list[str],
+        genre: str = _DEFAULT_GENRE,
+        *,
+        duration: float = _DEFAULT_DURATION,
+    ) -> ReferenceComparison:
+        """Analyze a track vs N reference tracks (aggregate comparison).
+
+        Args:
+            track_path:       Absolute path to the track under review.
+            reference_paths:  Absolute paths to commercial reference tracks.
+            genre:            Genre name for target context.
+            duration:         Max seconds to load from each file.
+
+        Returns:
+            ReferenceComparison with averaged reference metrics.
+
+        Raises:
+            ValueError: If reference_paths is empty.
+        """
+        if not reference_paths:
+            raise ValueError("reference_paths must not be empty")
+        track = self.full_mix_analysis(track_path, genre=genre, duration=duration)
+        references = [
+            self.full_mix_analysis(rp, genre=genre, duration=duration) for rp in reference_paths
+        ]
+        return compare_to_references(track, references, genre=genre)
+
+    def full_mix_report(
+        self,
+        track_path: str,
+        genre: str = _DEFAULT_GENRE,
+        *,
+        reference_paths: list[str] | None = None,
+        include_master: bool = True,
+        duration: float = _DEFAULT_DURATION,
+    ) -> FullMixReport:
+        """Generate a complete diagnostic report for a track.
+
+        Runs mix analysis, optionally mastering analysis, and optionally
+        reference comparison, then delegates to report.generate_full_report().
+
+        Args:
+            track_path:       Absolute path to the audio file.
+            genre:            Genre name for target comparison.
+            reference_paths:  Optional list of reference file paths.
+                              If provided, adds a ReferenceComparison section.
+            include_master:   Run mastering analysis (adds Master Readiness section).
+            duration:         Max seconds to load.
+
+        Returns:
+            FullMixReport with all available sections populated.
+        """
+        mix = self.full_mix_analysis(track_path, genre=genre, duration=duration)
+
+        master: MasterReport | None = None
+        if include_master:
+            master = self.master_analysis(track_path, genre=genre, duration=duration)
+
+        ref_comparison: ReferenceComparison | None = None
+        if reference_paths:
+            # Reuse the already-computed `mix` to avoid re-analysing the track.
+            refs = [
+                self.full_mix_analysis(rp, genre=genre, duration=duration) for rp in reference_paths
+            ]
+            ref_comparison = compare_to_references(mix, refs, genre=genre)
+
+        return generate_full_report(mix, master_report=master, reference_comparison=ref_comparison)
+
+    def calibrate_targets(
+        self,
+        reference_paths: list[str],
+        genre: str = _DEFAULT_GENRE,
+        *,
+        duration: float = _DEFAULT_DURATION,
+    ) -> GenreTarget:
+        """Analyze N reference tracks and compute calibrated genre targets.
+
+        Args:
+            reference_paths: Absolute paths to commercial reference tracks.
+                             Minimum 2, recommended 10+.
+            genre:           Genre name for the output target.
+            duration:        Max seconds to load from each reference.
+
+        Returns:
+            GenreTarget with mean ± std for all 16 mix metrics.
+
+        Raises:
+            ValueError: If fewer than 2 paths are provided.
+        """
+        if len(reference_paths) < 2:
+            raise ValueError(
+                f"calibrate_targets() requires at least 2 reference paths, "
+                f"got {len(reference_paths)}"
+            )
+        analyses = [
+            self.full_mix_analysis(rp, genre=genre, duration=duration) for rp in reference_paths
+        ]
+        return calibrate_genre_targets(analyses, genre)
 
     # ------------------------------------------------------------------
     # Private helpers
