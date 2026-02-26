@@ -144,7 +144,7 @@
 				"box": {
 					"id": "obj-hint",
 					"maxclass": "comment",
-					"text": "Auto-starts on load. Click button to force-restart if EADDRINUSE.",
+					"text": "Auto-starts on load (no patch wiring needed). Click button to restart if EADDRINUSE.",
 					"patching_rect": [20.0, 210.0, 500.0, 22.0],
 					"numoutlets": 0,
 					"numinlets": 1,
@@ -168,12 +168,6 @@
 			}
 		],
 		"lines": [
-			{
-				"patchline": {
-					"source": ["obj-loadbang", 0],
-					"destination": ["obj-delay", 0]
-				}
-			},
 			{
 				"patchline": {
 					"source": ["obj-btn", 0],
