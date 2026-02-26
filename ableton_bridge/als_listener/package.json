@@ -1,0 +1,19 @@
+{
+  "name": "als-listener",
+  "version": "1.0.0",
+  "description": "ALS Listener — Ableton Live Session WebSocket bridge (Max for Live Node for Max)",
+  "main": "als_listener.js",
+  "private": true,
+  "dependencies": {
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "notes": [
+    "Install: cd ableton_bridge/als_listener && npm install",
+    "Do NOT install globally — Node for Max requires local node_modules.",
+    "The 'ws' package provides the WebSocket server on port 11005.",
+    "lom_scanner.js does NOT use npm — it runs in Max's built-in JS engine (LiveAPI)."
+  ]
+}
