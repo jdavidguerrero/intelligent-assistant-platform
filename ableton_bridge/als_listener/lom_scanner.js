@@ -108,8 +108,11 @@ function safeGet(api, prop, fallback) {
 
 /**
  * Get a child-object list from the LOM.
- * LiveAPI.get('tracks') returns [idStr, path, idStr, path, …] alternating.
- * Returns array of {intId, path} objects.  intId is the integer form of "id N".
+ *
+ * Max 9 returns:   ["id", 238, "id", 245, …]   — keyword + integer pairs
+ * Max 8 returns:   ["id 238", "live_set tracks 0", …] — combined idStr + path pairs
+ *
+ * Returns array of {intId} objects ready for apiById().
  */
 function getChildList(api, prop) {
     var raw;
@@ -121,21 +124,33 @@ function getChildList(api, prop) {
     }
     if (!raw || raw.length === 0) return [];
 
-    // Detect format: "id N" strings interleaved with path strings
-    // Each pair is [idStr, pathStr].  If raw.length is odd or first element
-    // doesn't look like "id N", fall back to treating every element as an id.
     var result = [];
-    var isInterleaved = (raw.length % 2 === 0) && (typeof raw[0] === 'string') && (raw[0].indexOf('id ') === 0);
-    if (isInterleaved) {
+
+    // ── Max 9: ["id", 238, "id", 245, …] ───────────────────────────────
+    // raw[0] === "id" (keyword string) and raw[1] is a number
+    if (raw[0] === 'id' && typeof raw[1] === 'number') {
         for (var i = 0; i + 1 < raw.length; i += 2) {
-            var intId = idStrToInt(raw[i]);
-            if (intId > 0) result.push({ intId: intId, path: raw[i + 1] });
+            if (raw[i] === 'id' && raw[i + 1] > 0) {
+                result.push({ intId: raw[i + 1] });
+            }
         }
-    } else {
-        // Possibly only IDs (no path column)
-        for (var j = 0; j < raw.length; j++) {
-            var intId2 = idStrToInt(raw[j]);
-            if (intId2 > 0) result.push({ intId: intId2, path: '' });
+        return result;
+    }
+
+    // ── Max 8: ["id 238", "live_set tracks 0", …] ───────────────────────
+    // raw[0] starts with "id " (combined string)
+    if (typeof raw[0] === 'string' && raw[0].indexOf('id ') === 0) {
+        for (var j = 0; j + 1 < raw.length; j += 2) {
+            var intId = idStrToInt(raw[j]);
+            if (intId > 0) result.push({ intId: intId });
+        }
+        return result;
+    }
+
+    // ── Fallback: plain integer array [238, 245, …] ─────────────────────
+    for (var k = 0; k < raw.length; k++) {
+        if (typeof raw[k] === 'number' && raw[k] > 0) {
+            result.push({ intId: raw[k] });
         }
     }
     return result;
@@ -305,20 +320,28 @@ function scanMasterTrack() {
 function scan() {
     var rootApi = new LiveAPI(null, 'live_set');
 
-    // ── Diagnostic: log first few raw values to confirm format ──────────
+    // ── Diagnostic: log raw format and test apiById on first track ───────
     try {
         var rawTracks = rootApi.get('tracks');
+        var fmt = rawTracks ? (rawTracks.length + ' elements: [' + rawTracks[0] + ', ' + rawTracks[1] + ', ...]') : 'null';
+        post('ALS diag: tracks raw fmt=' + fmt + '\n');
+        // Extract first track integer id depending on format
+        var firstIntId = 0;
         if (rawTracks && rawTracks.length >= 2) {
-            post('ALS diag: tracks[0]=' + rawTracks[0] + ' tracks[1]=' + rawTracks[1] + '\n');
-        }
-        // Test id setter: does apiById work for first track?
-        if (rawTracks && rawTracks.length >= 1) {
-            var testId = idStrToInt(rawTracks[0]);
-            if (testId > 0) {
-                var testApi = apiById(testId);
-                var testName = (testApi.id > 0) ? 'id_ok:' + testApi.id : 'id_zero';
-                post('ALS diag: apiById(' + testId + ') → ' + testName + ' name=' + JSON.stringify(testApi.get('name')) + '\n');
+            if (rawTracks[0] === 'id' && typeof rawTracks[1] === 'number') {
+                firstIntId = rawTracks[1]; // Max 9: ["id", 238, ...]
+            } else if (typeof rawTracks[0] === 'string' && rawTracks[0].indexOf('id ') === 0) {
+                firstIntId = idStrToInt(rawTracks[0]); // Max 8: ["id 238", ...]
+            } else if (typeof rawTracks[0] === 'number') {
+                firstIntId = rawTracks[0]; // plain int array
             }
+        }
+        if (firstIntId > 0) {
+            var testApi = apiById(firstIntId);
+            var nameArr = testApi.get('name');
+            post('ALS diag: apiById(' + firstIntId + ').id=' + testApi.id + ' name=' + JSON.stringify(nameArr) + '\n');
+        } else {
+            post('ALS diag: could not extract first track id from raw data\n');
         }
     } catch (e) {
         post('ALS diag error: ' + e + '\n');
