@@ -8,9 +8,15 @@ export function Header() {
   const { genre, setGenre } = useAnalysisStore()
 
   const tempo = session?.tempo ?? 0
-  const timeSig = session?.time_signature ?? '4/4'
+  // Support both Python API (time_signature string) and lom_scanner (separate numerator/denominator)
+  const timeSig =
+    session?.time_signature ??
+    (session
+      ? `${session.time_sig_numerator ?? 4}/${session.time_sig_denominator ?? 4}`
+      : '4/4')
   const isPlaying = session?.is_playing ?? false
-  const trackCount = session?.track_count ?? 0
+  // Support both Python API (track_count) and lom_scanner (tracks array length)
+  const trackCount = session?.track_count ?? session?.tracks.length ?? 0
 
   return (
     <header
@@ -68,7 +74,7 @@ export function Header() {
           style={{
             backgroundColor: '#222222',
             borderColor: '#2E2E2E',
-            color: '#D4D4D4',
+            color: '#FFFFFF',
             fontFamily: 'inherit',
           }}
         >

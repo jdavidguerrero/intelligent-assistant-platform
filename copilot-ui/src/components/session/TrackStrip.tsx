@@ -2,6 +2,7 @@ import clsx from 'clsx'
 import { Fader } from '../common/Fader'
 import type { Track, TrackType } from '../../types/ableton'
 import { abletonWs } from '../../services/abletonWs'
+import { useSessionStore } from '../../store/sessionStore'
 import { DevicePanel } from './DevicePanel'
 
 interface TrackStripProps {
@@ -38,25 +39,42 @@ function typeIcon(type: TrackType): string {
 }
 
 export function TrackStrip({ track, isSelected, onSelect }: TrackStripProps) {
+  const applyTrackProperty = useSessionStore((s) => s.applyTrackProperty)
   const color = typeColor(track.type)
-  const faderValue = dbToFader(track.volume_db)
+
+  // Support both lom_scanner (0-1 linear) and Python API (dB) volume formats
+  const faderValue =
+    track.volume != null
+      ? track.volume                          // lom_scanner: already 0-1
+      : track.volume_db != null
+        ? dbToFader(track.volume_db)          // Python API: convert dB → 0-1
+        : 0.85                                // fallback: 0 dB
+
+  // Support both device_count (Python API) and devices[] array (lom_scanner)
+  const deviceCount = track.device_count ?? track.devices?.length ?? 0
+
+  // Return tracks live in the return_tracks list
+  const isReturn = track.type === 'return'
 
   function toggleMute() {
-    if (track.lom_path) {
-      abletonWs.setProperty(track.lom_path, 'mute', track.mute ? 0 : 1)
-    }
+    if (!track.lom_path) return
+    const next = !track.mute
+    applyTrackProperty(track.index, isReturn, 'mute', next)
+    abletonWs.setProperty(track.lom_path, 'mute', next ? 1 : 0)
   }
 
   function toggleSolo() {
-    if (track.lom_path) {
-      abletonWs.setProperty(track.lom_path, 'solo', track.solo ? 0 : 1)
-    }
+    if (!track.lom_path) return
+    const next = !track.solo
+    applyTrackProperty(track.index, isReturn, 'solo', next)
+    abletonWs.setProperty(track.lom_path, 'solo', next ? 1 : 0)
   }
 
   function toggleArm() {
-    if (track.lom_path) {
-      abletonWs.setProperty(track.lom_path, 'arm', track.arm ? 0 : 1)
-    }
+    if (!track.lom_path) return
+    const next = !track.arm
+    applyTrackProperty(track.index, isReturn, 'arm', next)
+    abletonWs.setProperty(track.lom_path, 'arm', next ? 1 : 0)
   }
 
   return (
@@ -83,18 +101,18 @@ export function TrackStrip({ track, isSelected, onSelect }: TrackStripProps) {
         {/* Track name */}
         <span
           className="truncate flex-1 text-[12px]"
-          style={{ color: track.mute ? '#444' : '#D4D4D4' }}
+          style={{ color: track.mute ? '#555' : '#FFFFFF' }}
         >
           {track.name}
         </span>
 
         {/* Device count badge */}
-        {track.device_count > 0 && (
+        {deviceCount > 0 && (
           <span
             className="push-label shrink-0"
-            style={{ color: '#444', minWidth: 16, textAlign: 'right' }}
+            style={{ color: '#555', minWidth: 16, textAlign: 'right' }}
           >
-            {track.device_count}
+            {deviceCount}
           </span>
         )}
 

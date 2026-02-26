@@ -52,11 +52,11 @@ export function DevicePanel({ track }: DevicePanelProps) {
                   key={param.index}
                   value={param.value}
                   label={param.name.slice(0, 8)}
-                  displayValue={param.display_value}
+                  displayValue={param.display_value ?? param.display ?? ''}
                   size={44}
                   onChange={(newValue) => {
                     // Optimistic update
-                    applyParameterDelta(param.lom_path, newValue, param.display_value)
+                    applyParameterDelta(param.lom_path, newValue, param.display_value ?? param.display ?? '')
                     // Send to Ableton
                     abletonWs.setParameter(param.lom_path, newValue)
                   }}
