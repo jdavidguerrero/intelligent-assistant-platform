@@ -554,3 +554,298 @@ class MasterReport:
     genre: str
     duration_sec: float
     sample_rate: int
+
+
+# ---------------------------------------------------------------------------
+# Reference comparison types  (Week 18)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class BandDelta:
+    """Per-band spectral delta between a track and a reference track.
+
+    Positive delta_db means the track has more energy in this band than the
+    reference (i.e. the band is too loud relative to the reference style).
+    """
+
+    band: str
+    """Band name: one of BAND_NAMES ('sub', 'low', …, 'air')."""
+
+    track_db: float
+    """Track's band level in dB relative to overall RMS."""
+
+    reference_db: float
+    """Reference track's band level in dB relative to overall RMS."""
+
+    delta_db: float
+    """Signed difference: track_db − reference_db."""
+
+
+@dataclass(frozen=True)
+class DimensionScore:
+    """Similarity score for one of the six comparison dimensions.
+
+    `track_value` and `ref_value` hold the primary metric for the dimension
+    (e.g. width for 'stereo', LUFS for 'loudness') so that identify_deltas()
+    can generate directional recommendations without re-reading the original
+    analysis results.
+    """
+
+    name: str
+    """Dimension name: 'spectral', 'stereo', 'dynamics', 'tonal',
+    'transient', or 'loudness'."""
+
+    score: float
+    """Similarity score 0–100 (100 = identical to reference)."""
+
+    track_value: float
+    """Track's primary metric value for this dimension."""
+
+    ref_value: float
+    """Reference average primary metric value."""
+
+    unit: str
+    """Physical unit for track_value / ref_value (e.g. 'dB', 'width', 'LUFS')."""
+
+    description: str
+    """One-sentence human-readable comparison summary."""
+
+
+@dataclass(frozen=True)
+class MixDelta:
+    """A single actionable improvement derived from reference comparison.
+
+    Each MixDelta maps to a concrete processing action (EQ cut/boost,
+    compression, stereo widening, etc.) with signed direction and magnitude.
+
+    Invariants:
+        direction in {'increase', 'decrease'}
+        0.0 <= priority <= 10.0
+        magnitude >= 0.0
+    """
+
+    dimension: str
+    """Which dimension this delta addresses ('spectral', 'stereo', …)."""
+
+    direction: str
+    """'increase' or 'decrease' — which way to move the metric."""
+
+    magnitude: float
+    """How much to change (in the dimension's natural unit)."""
+
+    unit: str
+    """Unit for magnitude (e.g. 'dB', 'width units', 'LUFS')."""
+
+    recommendation: str
+    """Specific, actionable recommendation with concrete values."""
+
+    priority: float
+    """Priority 0–10 (10 = most impactful fix). Derived from dimension score."""
+
+
+@dataclass(frozen=True)
+class ReferenceComparison:
+    """A/B comparison of a track vs one or more commercial reference tracks.
+
+    Scores are 0–100 similarity (100 = identical to reference).
+    Deltas are signed: track − reference (positive = track is higher).
+
+    Produced by core/mix_analysis/reference.py and consumed by:
+        - ingestion/mix_engine.py (orchestration)
+        - core/mix_analysis/report.py (structured reporting)
+        - tools/music/compare_reference.py (MCP tool)
+    """
+
+    overall_similarity: float
+    """Weighted average of all six dimension scores (0–100)."""
+
+    dimensions: tuple[DimensionScore, ...]
+    """Six DimensionScore objects — one per comparison dimension."""
+
+    band_deltas: tuple[BandDelta, ...]
+    """Per-band deltas for all 7 spectral bands."""
+
+    # Convenience scalar deltas (track − reference averages)
+    width_delta: float
+    """Stereo width delta: track.width − ref.width."""
+
+    crest_factor_delta: float
+    """Crest factor delta in dB: track.crest_factor − ref.crest_factor."""
+
+    lra_delta: float
+    """LRA delta in LU: track.loudness_range − ref.loudness_range."""
+
+    centroid_delta_hz: float
+    """Spectral centroid delta in Hz: track.centroid − ref.centroid."""
+
+    tilt_delta: float
+    """Spectral tilt delta in dB/oct: track.tilt − ref.tilt."""
+
+    density_delta: float
+    """Transient density delta in onsets/s: track.density − ref.density."""
+
+    sharpness_delta: float
+    """Attack sharpness delta (0–1): track.sharpness − ref.sharpness."""
+
+    lufs_delta: float
+    """Integrated LUFS delta: track.lufs − ref.lufs."""
+
+    deltas: tuple[MixDelta, ...]
+    """Actionable improvements, sorted by priority (highest first)."""
+
+    genre: str
+    """Genre context used for the comparison."""
+
+    num_references: int
+    """Number of reference tracks used (1 for single, N for aggregate)."""
+
+    lufs_normalization_db: float
+    """dB gain needed to align track LUFS to reference average (informational)."""
+
+
+# ---------------------------------------------------------------------------
+# Calibration types  (Week 18)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class MetricStats:
+    """Mean and standard deviation for a single calibrated metric.
+
+    Used to define the acceptable range for a genre target:
+        acceptable = [mean − std, mean + std]
+    """
+
+    mean: float
+    """Mean value across all reference tracks."""
+
+    std: float
+    """Standard deviation across all reference tracks."""
+
+    @property
+    def low(self) -> float:
+        """Lower acceptance bound: mean − 1σ."""
+        return self.mean - self.std
+
+    @property
+    def high(self) -> float:
+        """Upper acceptance bound: mean + 1σ."""
+        return self.mean + self.std
+
+
+@dataclass(frozen=True)
+class GenreTarget:
+    """Genre target profile calibrated from real commercial reference analysis.
+
+    Replaces manually authored YAML targets with data-driven statistics.
+    Each field is a MetricStats with mean ± 1σ defining the acceptable range.
+
+    Produced by core/mix_analysis/calibration.calibrate_genre_targets().
+    """
+
+    genre: str
+    """Target genre (e.g. 'organic house')."""
+
+    num_references: int
+    """Number of reference tracks used for calibration."""
+
+    # Spectral targets (band levels relative to overall RMS)
+    sub_db: MetricStats
+    low_db: MetricStats
+    low_mid_db: MetricStats
+    mid_db: MetricStats
+    high_mid_db: MetricStats
+    high_db: MetricStats
+    air_db: MetricStats
+    centroid_hz: MetricStats
+    tilt_db_oct: MetricStats
+
+    # Stereo targets
+    width: MetricStats
+
+    # Dynamics targets
+    lufs: MetricStats
+    crest_factor_db: MetricStats
+    lra_lu: MetricStats
+
+    # Transient targets
+    density: MetricStats
+    sharpness: MetricStats
+
+
+# ---------------------------------------------------------------------------
+# Structured report types  (Week 18)
+# ---------------------------------------------------------------------------
+
+
+@dataclass(frozen=True)
+class ReportSection:
+    """One section of a full mix diagnostic report.
+
+    Severity indicates the overall health of this aspect of the mix:
+        'ok'       — meets genre targets
+        'warning'  — minor issues, not urgent
+        'critical' — significant problem needing immediate attention
+
+    Confidence reflects how certain the analysis is:
+        'high'   — clear technical issue measured from objective data
+        'medium' — likely issue but depends on artistic intent
+        'low'    — suggestion based on genre conventions
+    """
+
+    title: str
+    """Section heading, e.g. 'Frequency Analysis'."""
+
+    severity: str
+    """'ok', 'warning', or 'critical'."""
+
+    summary: str
+    """One-sentence overview of this section's findings."""
+
+    points: tuple[str, ...]
+    """Bullet-point findings (specific values, comparisons, actions)."""
+
+    confidence: str
+    """'high', 'medium', or 'low'."""
+
+
+@dataclass(frozen=True)
+class FullMixReport:
+    """Complete mix + master diagnostic report, optionally with reference comparison.
+
+    Produced by core/mix_analysis/report.generate_full_report() and consumed
+    by ingestion/mix_engine.py and tools/music/mix_master_report.py.
+
+    Invariants:
+        0.0 <= overall_health_score <= 100.0
+        len(top_priorities) <= 5
+    """
+
+    mix_report: MixReport
+    """The underlying mix analysis."""
+
+    master_report: MasterReport | None
+    """Optional mastering analysis (None if not requested)."""
+
+    reference_comparison: ReferenceComparison | None
+    """Optional A/B comparison vs commercial references."""
+
+    # Structured report sections
+    executive_summary: ReportSection
+    frequency_analysis: ReportSection
+    stereo_analysis: ReportSection
+    dynamics_analysis: ReportSection
+    problems_and_fixes: ReportSection
+    reference_section: ReportSection | None
+    signal_chain_section: ReportSection
+    master_readiness_section: ReportSection | None
+
+    overall_health_score: float
+    """Aggregate mix health 0–100. Combines problem severity and reference similarity."""
+
+    top_priorities: tuple[str, ...]
+    """Top 3–5 most impactful improvements, ordered by priority."""
+
+    genre: str
+    duration_sec: float
