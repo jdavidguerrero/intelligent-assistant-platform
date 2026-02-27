@@ -265,6 +265,8 @@ function scanTrack(trackIntId, idx, isReturn, deep) {
     // Mixer device for volume/pan
     var volRaw = 0.85; // default = 0 dB
     var panRaw = 0.5;
+    var volLomId = 0;  // integer LOM ID for the volume Parameter (0 = unknown)
+    var panLomId = 0;  // integer LOM ID for the panning Parameter (0 = unknown)
     try {
         var mixerChildren = getChildList(api, 'mixer_device');
         if (mixerChildren.length > 0) {
@@ -272,11 +274,13 @@ function scanTrack(trackIntId, idx, isReturn, deep) {
             var volChildren = getChildList(mApi, 'volume');
             var panChildren = getChildList(mApi, 'panning');
             if (volChildren.length > 0) {
-                var vApi = apiById(volChildren[0].intId);
+                volLomId = volChildren[0].intId;
+                var vApi = apiById(volLomId);
                 volRaw = safeGet(vApi, 'value', 0.85);
             }
             if (panChildren.length > 0) {
-                var pApi = apiById(panChildren[0].intId);
+                panLomId = panChildren[0].intId;
+                var pApi = apiById(panLomId);
                 panRaw = safeGet(pApi, 'value', 0.5);
             }
         }
@@ -304,19 +308,21 @@ function scanTrack(trackIntId, idx, isReturn, deep) {
     var prefix = isReturn ? 'live_set return_tracks ' : 'live_set tracks ';
 
     return {
-        name:     safeGet(api, 'name', 'Track ' + idx),
-        index:    idx,
-        type:     typeStr,
-        arm:      armVal,
-        solo:     safeGet(api, 'solo', 0) ? true : false,
-        mute:     safeGet(api, 'mute', 0) ? true : false,
-        volume:   volRaw,
-        pan:      panRaw,
-        color:    safeGet(api, 'color', 0),
-        lom_id:   trackIntId,
-        lom_path: prefix + idx,
-        devices:  isReturn ? [] : scanDevices(api, idx, deep),
-        clips:    (isReturn || !deep) ? [] : scanClips(api, idx)
+        name:          safeGet(api, 'name', 'Track ' + idx),
+        index:         idx,
+        type:          typeStr,
+        arm:           armVal,
+        solo:          safeGet(api, 'solo', 0) ? true : false,
+        mute:          safeGet(api, 'mute', 0) ? true : false,
+        volume:        volRaw,
+        pan:           panRaw,
+        volume_lom_id: volLomId,
+        pan_lom_id:    panLomId,
+        color:         safeGet(api, 'color', 0),
+        lom_id:        trackIntId,
+        lom_path:      prefix + idx,
+        devices:       isReturn ? [] : scanDevices(api, idx, deep),
+        clips:         (isReturn || !deep) ? [] : scanClips(api, idx)
     };
 }
 
@@ -326,6 +332,8 @@ function scanMasterTrack() {
     var api = new LiveAPI(null, 'live_set master_track');
     var volRaw = 0.85;
     var panRaw = 0.5;
+    var volLomId = 0;
+    var panLomId = 0;
     try {
         var mixerChildren = getChildList(api, 'mixer_device');
         if (mixerChildren.length > 0) {
@@ -333,29 +341,33 @@ function scanMasterTrack() {
             var volChildren = getChildList(mApi, 'volume');
             var panChildren = getChildList(mApi, 'panning');
             if (volChildren.length > 0) {
-                var vApi = apiById(volChildren[0].intId);
+                volLomId = volChildren[0].intId;
+                var vApi = apiById(volLomId);
                 volRaw = safeGet(vApi, 'value', 0.85);
             }
             if (panChildren.length > 0) {
-                var pApi = apiById(panChildren[0].intId);
+                panLomId = panChildren[0].intId;
+                var pApi = apiById(panLomId);
                 panRaw = safeGet(pApi, 'value', 0.5);
             }
         }
     } catch (e) { /* use defaults */ }
     return {
-        name:     'Master',
-        index:    0,
-        type:     'master',
-        arm:      false,
-        solo:     false,
-        mute:     false,
-        volume:   volRaw,
-        pan:      panRaw,
-        color:    safeGet(api, 'color', 0),
-        lom_id:   api.id,
-        lom_path: 'live_set master_track',
-        devices:  [],
-        clips:    []
+        name:          'Master',
+        index:         0,
+        type:          'master',
+        arm:           false,
+        solo:          false,
+        mute:          false,
+        volume:        volRaw,
+        pan:           panRaw,
+        volume_lom_id: volLomId,
+        pan_lom_id:    panLomId,
+        color:         safeGet(api, 'color', 0),
+        lom_id:        api.id,
+        lom_path:      'live_set master_track',
+        devices:       [],
+        clips:         []
     };
 }
 

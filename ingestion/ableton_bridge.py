@@ -189,6 +189,7 @@ def _parse_track(data: dict[str, Any], track_idx: int, is_return: bool = False) 
         clips=clips,
         lom_path=lom_path,
         color=int(data.get("color", 0)),
+        volume_lom_id=int(data.get("volume_lom_id", 0)),
     )
 
 

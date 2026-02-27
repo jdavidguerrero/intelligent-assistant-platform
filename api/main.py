@@ -9,18 +9,23 @@ from api.routes.generate import router as generate_router
 from api.routes.memory import router as memory_router
 from api.routes.mix import router as mix_router
 from api.routes.search import router as search_router
+from api.routes.session_intelligence import router as session_intelligence_router
 from api.routes.tools import router as tools_router
 from infrastructure.metrics import get_metrics_response
 
 app = FastAPI(title="Intelligent Assistant")
 
 # CORS — allow the Copilot UI (React dev server) to call the API
+# Include both localhost and 127.0.0.1 variants — browsers treat them as different origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
+        "http://127.0.0.1:3000",
         "http://localhost:5173",
+        "http://127.0.0.1:5173",
         "http://localhost:5174",
+        "http://127.0.0.1:5174",
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -33,6 +38,7 @@ app.include_router(memory_router)
 app.include_router(analyze_router)
 app.include_router(generate_router)
 app.include_router(mix_router)
+app.include_router(session_intelligence_router)
 app.include_router(tools_router)
 
 

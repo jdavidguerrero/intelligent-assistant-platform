@@ -1,0 +1,46 @@
+name: "Deep House"
+description: "Soulful, warm, introspective. 120-126 BPM. Lush chords, prominent bass."
+
+instruments:
+  kick:
+    width: 0
+    comp_ratio_range: [2.0, 3.5]
+    suggestion: "Softer transient than techno — warmth over punch"
+  sub_bass:
+    hp_freq_range: [20, 40]
+    width: 0
+    suggestion: "Let the sub breathe — gentle sidechain"
+  bass:
+    hp_freq_range: [40, 80]
+    width_range: [0, 60]
+    comp_ratio_range: [2.0, 4.0]
+    suggestion: "Groovy, prominent — bass carries the feel"
+  pad:
+    hp_freq_range: [80, 200]
+    width_range: [80, 130]
+    comp_ratio_range: [1.5, 2.5]
+    suggestion: "Lush and warm — moderate HP to preserve body"
+  chord:
+    hp_freq_range: [60, 180]
+    width_range: [80, 120]
+    comp_ratio_range: [2.0, 3.0]
+    suggestion: "Jazz-influenced voicings — preserve low-mid warmth"
+  lead:
+    hp_freq_range: [100, 250]
+    comp_ratio_range: [2.0, 4.0]
+    width_range: [60, 100]
+  percussion:
+    hp_freq_range: [150, 300]
+    width_range: [60, 120]
+  vocal:
+    hp_freq_range: [80, 120]
+    comp_ratio_range: [2.5, 4.0]
+    suggestion: "Soul vocal style — warm and present"
+  fx:
+    hp_freq_range: [150, 400]
+    width_range: [100, 150]
+
+buses:
+  drums: "Light glue compression — preserve groove feel"
+  bass: "Gentle bus compression, warmth over aggression"
+  master: "Target LUFS -9 to -11, dynamic and warm"

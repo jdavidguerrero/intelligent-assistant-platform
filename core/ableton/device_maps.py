@@ -226,6 +226,76 @@ def comp2_gain_to_raw(gain_db: float) -> float:
 
 
 # ---------------------------------------------------------------------------
+# Compressor 2 — reverse converters (raw → human-readable)
+# ---------------------------------------------------------------------------
+
+
+def comp2_raw_to_threshold_db(raw: float) -> float:
+    """Convert Compressor 2 raw (0–1) → dB threshold.
+
+    Inverse of :func:`comp2_threshold_to_raw` (linear mapping).
+
+    Args:
+        raw: Raw parameter value in [0.0, 1.0].
+
+    Returns:
+        Threshold in dB in range [COMP2_THRESHOLD_MIN, COMP2_THRESHOLD_MAX].
+    """
+    return _raw_to_lin(raw, COMP2_THRESHOLD_MIN, COMP2_THRESHOLD_MAX)
+
+
+def comp2_raw_to_ratio(raw: float) -> float:
+    """Convert Compressor 2 raw (0–1) → compression ratio.
+
+    Uses the quadratic encoding: ``ratio = 1 + 99 * raw²``, which gives a
+    smooth curve from 1:1 at raw=0 to ~100:1 at raw≈1.  Returns
+    ``math.inf`` for raw ≥ 1.0 (full limiter territory).
+
+    Args:
+        raw: Raw parameter value in [0.0, 1.0].
+
+    Returns:
+        Compression ratio (≥ 1.0), or ``math.inf`` for limiter territory.
+    """
+    if raw >= 1.0:
+        return math.inf
+    if raw <= 0.0:
+        return 1.0
+    return 1.0 + 99.0 * (raw * raw)
+
+
+def comp2_raw_to_attack_ms(raw: float) -> float:
+    """Convert Compressor 2 raw (0–1) → attack time in milliseconds.
+
+    Inverse of :func:`comp2_attack_to_raw` (log scale, 0.01–200 ms).
+    Returns 0.0 for raw == 0 (special case: instant attack).
+
+    Args:
+        raw: Raw parameter value in [0.0, 1.0].
+
+    Returns:
+        Attack time in ms in range [0.0, COMP2_ATTACK_MAX].
+    """
+    if raw <= 0.0:
+        return 0.0
+    return _raw_to_log(raw, 0.01, COMP2_ATTACK_MAX)
+
+
+def comp2_raw_to_release_ms(raw: float) -> float:
+    """Convert Compressor 2 raw (0–1) → release time in milliseconds.
+
+    Inverse of :func:`comp2_release_to_raw` (log scale, 1–10 000 ms).
+
+    Args:
+        raw: Raw parameter value in [0.0, 1.0].
+
+    Returns:
+        Release time in ms in range [COMP2_RELEASE_MIN, COMP2_RELEASE_MAX].
+    """
+    return _raw_to_log(raw, COMP2_RELEASE_MIN, COMP2_RELEASE_MAX)
+
+
+# ---------------------------------------------------------------------------
 # Glue Compressor (class_name: "GlueCompressor")
 # ---------------------------------------------------------------------------
 
