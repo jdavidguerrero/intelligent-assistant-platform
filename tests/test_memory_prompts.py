@@ -1,4 +1,5 @@
 """Tests for memory_context parameter in build_system_prompt()."""
+
 from __future__ import annotations
 
 from core.rag.prompts import build_system_prompt
@@ -38,9 +39,7 @@ class TestBuildSystemPromptMemoryContext:
         """Memory context is injected after focus areas when no genre recipe is set."""
         sub_domains = ["mixing", "mastering"]
         memory_ctx = "## Your Musical Memory\n- [growth] improving EQ skills"
-        result = build_system_prompt(
-            active_sub_domains=sub_domains, memory_context=memory_ctx
-        )
+        result = build_system_prompt(active_sub_domains=sub_domains, memory_context=memory_ctx)
         focus_pos = result.index("Focus Areas")
         memory_pos = result.index("Your Musical Memory")
         assert focus_pos < memory_pos

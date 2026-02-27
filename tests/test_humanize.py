@@ -227,8 +227,7 @@ class TestAddGhostNotes:
     def _hihat_bar(self) -> tuple[DrumHit, ...]:
         """Hi-hat only on even steps (0,2,4,...,14)."""
         return tuple(
-            DrumHit(instrument="hihat_c", step=s * 2, velocity=72, bar=0)
-            for s in range(8)
+            DrumHit(instrument="hihat_c", step=s * 2, velocity=72, bar=0) for s in range(8)
         )
 
     def test_returns_tuple_of_drum_hits(self) -> None:

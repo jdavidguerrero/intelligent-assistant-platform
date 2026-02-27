@@ -133,9 +133,7 @@ def _get_active_instruments(
         return None  # No energy_layers defined → all instruments active
 
     active: set[str] = set()
-    for threshold_raw, instruments in sorted(
-        energy_layers.items(), key=lambda kv: int(kv[0])
-    ):
+    for threshold_raw, instruments in sorted(energy_layers.items(), key=lambda kv: int(kv[0])):
         if energy >= int(threshold_raw):
             active.update(instruments)
     return frozenset(active)

@@ -1,4 +1,5 @@
 """REST endpoints for musical memory management."""
+
 from __future__ import annotations
 
 import logging

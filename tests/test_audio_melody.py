@@ -190,9 +190,7 @@ def _make_pyin_mock(
     mock = MagicMock()
 
     n_voiced = int(n_frames * voiced_fraction)
-    f0 = np.array(
-        [hz] * n_voiced + [np.nan] * (n_frames - n_voiced), dtype=np.float64
-    )
+    f0 = np.array([hz] * n_voiced + [np.nan] * (n_frames - n_voiced), dtype=np.float64)
     voiced_flag = np.array([True] * n_voiced + [False] * (n_frames - n_voiced))
     voiced_probs = np.where(voiced_flag, 0.9, 0.1)
 
@@ -323,9 +321,7 @@ class TestDetectMelody:
             [440.0] * n_voiced + [np.nan] * n_gap + [523.25] * n_voiced,
             dtype=np.float64,
         )
-        voiced_flag = np.array(
-            [True] * n_voiced + [False] * n_gap + [True] * n_voiced
-        )
+        voiced_flag = np.array([True] * n_voiced + [False] * n_gap + [True] * n_voiced)
         voiced_probs = np.where(voiced_flag, 0.9, 0.1)
 
         mock = MagicMock()
@@ -337,8 +333,8 @@ class TestDetectMelody:
 
         result = detect_melody(y, sr, librosa=mock)
         assert len(result) == 2
-        assert result[0].pitch_midi == 69   # A4 = 440 Hz
-        assert result[1].pitch_midi == 72   # C5 = 523.25 Hz
+        assert result[0].pitch_midi == 69  # A4 = 440 Hz
+        assert result[1].pitch_midi == 72  # C5 = 523.25 Hz
 
     def test_pitch_midi_in_valid_range(self):
         """All detected MIDI pitches are in [0, 127]."""

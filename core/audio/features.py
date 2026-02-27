@@ -37,18 +37,48 @@ from core.audio.types import Key, Note, SampleAnalysis, SpectralFeatures
 # ---------------------------------------------------------------------------
 
 _MAJOR_PROFILE: tuple[float, ...] = (
-    6.35, 2.23, 3.48, 2.33, 4.38, 4.09,
-    2.52, 5.19, 2.39, 3.66, 2.29, 2.88,
+    6.35,
+    2.23,
+    3.48,
+    2.33,
+    4.38,
+    4.09,
+    2.52,
+    5.19,
+    2.39,
+    3.66,
+    2.29,
+    2.88,
 )
 _MINOR_PROFILE: tuple[float, ...] = (
-    6.33, 2.68, 3.52, 5.38, 2.60, 3.53,
-    2.54, 4.75, 3.98, 2.69, 3.34, 3.17,
+    6.33,
+    2.68,
+    3.52,
+    5.38,
+    2.60,
+    3.53,
+    2.54,
+    4.75,
+    3.98,
+    2.69,
+    3.34,
+    3.17,
 )
 
 # Chromatic note names (sharps notation)
 _NOTE_NAMES: tuple[str, ...] = (
-    "C", "C#", "D", "D#", "E", "F",
-    "F#", "G", "G#", "A", "A#", "B",
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B",
 )
 
 # Preferred flat spellings for minor keys
@@ -59,8 +89,8 @@ _ENHARMONIC_MINOR: dict[str, str] = {
 }
 
 # RMS log-scale normalization bounds (same as tools/music/analyze_track.py)
-_LOG_MIN: float = -3.0   # log10(0.001) — very quiet
-_LOG_MAX: float = -0.3   # log10(0.5)   — loud club track
+_LOG_MIN: float = -3.0  # log10(0.001) — very quiet
+_LOG_MAX: float = -0.3  # log10(0.5)   — loud club track
 
 
 # ---------------------------------------------------------------------------
@@ -161,9 +191,7 @@ def extract_key(chroma_mean: np.ndarray) -> Key:
         ValueError: If chroma_mean is not shape (12,).
     """
     if chroma_mean.shape != (12,):
-        raise ValueError(
-            f"chroma_mean must have shape (12,), got {chroma_mean.shape}"
-        )
+        raise ValueError(f"chroma_mean must have shape (12,), got {chroma_mean.shape}")
 
     best_score: float = -2.0  # Pearson r ∈ [-1, 1]
     best_root: str = "C"
@@ -179,12 +207,8 @@ def extract_key(chroma_mean: np.ndarray) -> Key:
         # errstate suppresses RuntimeWarning when chroma has zero variance
         # (flat/silent input → NaN → nan_to_num → 0.0)
         with np.errstate(invalid="ignore"):
-            major_r = float(
-                np.nan_to_num(np.corrcoef(chroma_mean, major_profile)[0, 1])
-            )
-            minor_r = float(
-                np.nan_to_num(np.corrcoef(chroma_mean, minor_profile)[0, 1])
-            )
+            major_r = float(np.nan_to_num(np.corrcoef(chroma_mean, major_profile)[0, 1]))
+            minor_r = float(np.nan_to_num(np.corrcoef(chroma_mean, minor_profile)[0, 1]))
 
         if major_r > best_score:
             best_score = major_r
@@ -194,9 +218,7 @@ def extract_key(chroma_mean: np.ndarray) -> Key:
         if minor_r > best_score:
             best_score = minor_r
             # Prefer flat notation for certain minor keys
-            best_root = _ENHARMONIC_MINOR.get(
-                _NOTE_NAMES[root_idx], _NOTE_NAMES[root_idx]
-            )
+            best_root = _ENHARMONIC_MINOR.get(_NOTE_NAMES[root_idx], _NOTE_NAMES[root_idx])
             best_mode = "minor"
 
     confidence = max(0.0, min(1.0, best_score))

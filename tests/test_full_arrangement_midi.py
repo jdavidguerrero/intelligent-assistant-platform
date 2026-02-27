@@ -180,6 +180,7 @@ class TestValueErrors:
     def test_empty_voicing_raises(self) -> None:
         """full_arrangement_to_midi must raise ValueError when voicing has no chords."""
         from unittest.mock import MagicMock
+
         bass = _make_bass(_make_voicing())
         pattern = _make_pattern()
         # Use MagicMock to bypass VoicingResult's own validation and test the
@@ -217,6 +218,7 @@ class TestValueErrors:
 class TestOutputPath:
     def test_saves_file_to_path(self, tmp_path: object) -> None:
         import pathlib
+
         out = pathlib.Path(str(tmp_path)) / "arrangement.mid"  # type: ignore[arg-type]
         v = _make_voicing()
         full_arrangement_to_midi(v, _make_bass(v), _make_pattern(), output_path=out)
@@ -225,6 +227,7 @@ class TestOutputPath:
 
     def test_saved_file_is_valid_midi(self, tmp_path: object) -> None:
         import pathlib
+
         out = pathlib.Path(str(tmp_path)) / "arr.mid"  # type: ignore[arg-type]
         v = _make_voicing()
         full_arrangement_to_midi(v, _make_bass(v), _make_pattern(), output_path=out)
@@ -254,6 +257,7 @@ class TestContentCorrectness:
     def test_drum_notes_are_gm_percussion(self) -> None:
         """Drum MIDI notes must be from GM drum map (kick=36..hihat_o=46)."""
         from ingestion.midi_export import GM_DRUM_NOTES
+
         valid_gm = set(GM_DRUM_NOTES.values())
         v = _make_voicing()
         midi = full_arrangement_to_midi(v, _make_bass(v), _make_pattern())

@@ -1,4 +1,5 @@
 """Tests for /memory CRUD endpoints."""
+
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -68,7 +69,9 @@ class TestMemoryListEndpoint:
 
 class TestMemoryCreateEndpoint:
     def test_create_returns_201(self) -> None:
-        resp = client.post("/memory/", json={"memory_type": "preference", "content": "I prefer A minor"})
+        resp = client.post(
+            "/memory/", json={"memory_type": "preference", "content": "I prefer A minor"}
+        )
         assert resp.status_code == 201
 
     def test_create_response_has_correct_fields(self) -> None:
@@ -94,7 +97,11 @@ class TestMemoryCreateEndpoint:
     def test_create_with_tags(self) -> None:
         resp = client.post(
             "/memory/",
-            json={"memory_type": "creative", "content": "try granular reverb", "tags": ["reverb", "granular"]},
+            json={
+                "memory_type": "creative",
+                "content": "try granular reverb",
+                "tags": ["reverb", "granular"],
+            },
         )
         assert resp.status_code == 201
         data = resp.json()

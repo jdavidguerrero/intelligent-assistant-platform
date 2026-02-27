@@ -200,9 +200,7 @@ class BassNote:
 
     def __post_init__(self) -> None:
         if not (0 <= self.pitch_midi <= 127):
-            raise ValueError(
-                f"BassNote.pitch_midi must be in [0, 127], got {self.pitch_midi}"
-            )
+            raise ValueError(f"BassNote.pitch_midi must be in [0, 127], got {self.pitch_midi}")
         if not (0 <= self.step <= 15):
             raise ValueError(f"BassNote.step must be in [0, 15], got {self.step}")
         if not (1 <= self.duration_steps <= 16):
@@ -210,9 +208,7 @@ class BassNote:
                 f"BassNote.duration_steps must be in [1, 16], got {self.duration_steps}"
             )
         if not (0 <= self.velocity <= 127):
-            raise ValueError(
-                f"BassNote.velocity must be in [0, 127], got {self.velocity}"
-            )
+            raise ValueError(f"BassNote.velocity must be in [0, 127], got {self.velocity}")
         if self.bar < 0:
             raise ValueError(f"BassNote.bar must be >= 0, got {self.bar}")
 
@@ -222,9 +218,7 @@ class BassNote:
 # ---------------------------------------------------------------------------
 
 #: Canonical instrument names used in genre templates and GM MIDI mapping
-DRUM_INSTRUMENTS: frozenset[str] = frozenset(
-    {"kick", "snare", "clap", "hihat_c", "hihat_o"}
-)
+DRUM_INSTRUMENTS: frozenset[str] = frozenset({"kick", "snare", "clap", "hihat_c", "hihat_o"})
 
 
 @dataclass(frozen=True)
@@ -254,9 +248,7 @@ class DrumHit:
         if not (0 <= self.step <= 15):
             raise ValueError(f"DrumHit.step must be in [0, 15], got {self.step}")
         if not (0 <= self.velocity <= 127):
-            raise ValueError(
-                f"DrumHit.velocity must be in [0, 127], got {self.velocity}"
-            )
+            raise ValueError(f"DrumHit.velocity must be in [0, 127], got {self.velocity}")
         if self.bar < 0:
             raise ValueError(f"DrumHit.bar must be >= 0, got {self.bar}")
 
@@ -289,9 +281,7 @@ class DrumPattern:
 
     def __post_init__(self) -> None:
         if self.steps_per_bar <= 0:
-            raise ValueError(
-                f"DrumPattern.steps_per_bar must be > 0, got {self.steps_per_bar}"
-            )
+            raise ValueError(f"DrumPattern.steps_per_bar must be > 0, got {self.steps_per_bar}")
         if self.bars <= 0:
             raise ValueError(f"DrumPattern.bars must be > 0, got {self.bars}")
         if self.bpm <= 0:

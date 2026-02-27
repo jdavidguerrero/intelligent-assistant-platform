@@ -171,7 +171,8 @@ class TestNotesToMidi:
         midi = notes_to_midi(notes)
         note_track = midi.tracks[1]
         note_off_msgs = [
-            m for m in note_track
+            m
+            for m in note_track
             if m.type == "note_off" or (m.type == "note_on" and m.velocity == 0)
         ]
         assert len(note_off_msgs) == 1

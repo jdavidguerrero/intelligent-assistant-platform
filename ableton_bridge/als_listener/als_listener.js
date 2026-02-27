@@ -82,8 +82,13 @@ async function startServer() {
     wss.on('listening', () => {
         Max.post('ALS Listener: WebSocket server ready on ws://localhost:11005');
         isInitialized = true;
-        // Request initial session scan from lom_scanner
-        Max.outlet('scan');
+        // Do NOT call Max.outlet('scan') here.
+        // Max.outlet() delivers synchronously through the patch: the response
+        // from lom_scanner arrives back at node.script inlet 0 before the
+        // max-api IPC channel is fully ready, producing "not ready" errors.
+        // The initial scan is triggered by [live.thisdevice] → [delay 1500]
+        // in the patch, which fires ~1.5s after M4L init — well after the
+        // node.script subprocess is ready to receive.
     });
 
     wss.on('error', (err) => {
