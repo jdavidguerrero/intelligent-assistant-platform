@@ -1,0 +1,139 @@
+# Progressive House — harmonic template
+#
+# Aesthetic: euphoric, building, anthemic. Major and minor modes.
+# Clear functional harmony with dominant resolutions, but avoids being
+# overly "poppy". Often uses flat-VII (Aeolian borrowed chord) for lift.
+# Seventh chords throughout; occasional add9 for brightness.
+#
+# Reference artists: Eric Prydz, deadmau5, Chicane, Daft Punk
+
+genre: progressive house
+default_mode: natural minor
+voicing: seventh
+
+progressions:
+  - degrees: [0, 4, 5, 3]   # i - v - VI - iv  (building, euphoric)
+    label: "i - v - VI - iv"
+    weight: 4
+  - degrees: [0, 5, 3, 4]   # i - VI - iv - v  (anthemic)
+    label: "i - VI - iv - v"
+    weight: 4
+  - degrees: [0, 2, 5, 4]   # i - III - VI - v
+    label: "i - III - VI - v"
+    weight: 3
+  - degrees: [0, 5, 6, 4]   # i - VI - VII - v  (lift with flat-VII)
+    label: "i - VI - VII - v"
+    weight: 2
+
+tonic_degrees: [0]
+avoid_penultimate: []       # dominant preparation is OK in prog house
+
+# ---------------------------------------------------------------------------
+# Humanization configuration
+# Progressive house is clean but emotional — balanced humanization
+# ---------------------------------------------------------------------------
+humanize_config:
+  timing_jitter_ms: 4.0        # ±4ms — tight with slight feel
+  velocity_variation: 10       # ±10 velocity units — moderate dynamics
+  ghost_probability: 0.10      # 10% ghost notes
+
+moods:
+  - euphoric
+  - neutral
+
+extensions:
+  minor: min7
+  major: maj7
+  dim: dim7
+
+# ---------------------------------------------------------------------------
+# Bass patterns — energetic, octave jumps, building tension
+# ---------------------------------------------------------------------------
+bass_patterns:
+  - style: root
+    base_octave: 2
+    notes:
+      - [0,  0,  4, 105]    # root, beat 1 (full quarter)
+      - [4,  12, 2,  95]    # octave up — the lift that defines prog house
+      - [6,  0,  2,  90]    # root, return
+      - [8,  0,  4, 105]    # root, beat 3
+      - [12, 7,  2,  92]    # fifth, pre-bar anticipation
+      - [14, 12, 2,  86]    # octave, lift into next bar
+
+  - style: walk
+    base_octave: 2
+    notes:
+      - [0,  0,  2, 105]    # root
+      - [2,  5,  2,  90]    # fourth
+      - [4,  7,  2,  95]    # fifth
+      - [6,  12, 2,  85]    # octave
+      - [8,  0,  2, 100]    # root, re-ground
+      - [10, 5,  2,  90]    # fourth
+      - [12, 7,  2,  92]    # fifth
+      - [14, 10, 2,  82]    # flat-seventh, tension before resolve
+
+  - style: sub
+    base_octave: 1            # Sub bass: pure root, two hits per bar
+    notes:
+      - [0,  0, 8, 108]       # root, first half
+      - [8,  0, 8, 100]       # root, second half
+
+  - style: driving
+    base_octave: 2
+    notes:
+      - [0,  0,  2, 110]      # beat 1 (hardest — prog house energy)
+      - [2,  0,  2,  96]      # offbeat 1
+      - [4,  12, 2, 105]      # octave up on beat 2 — the prog house signature lift
+      - [6,  0,  2,  92]      # back to root
+      - [8,  0,  2, 108]      # beat 3
+      - [10, 0,  2,  96]      # offbeat 3
+      - [12, 0,  2, 105]      # beat 4
+      - [14, 0,  2,  92]      # offbeat 4
+
+  - style: minimal
+    base_octave: 2
+    notes:
+      - [0,  0, 4, 102]       # root on beat 1 (quarter note)
+
+# ---------------------------------------------------------------------------
+# Drum patterns — strong 4-on-the-floor, open hi-hat drive, anthem build
+# ---------------------------------------------------------------------------
+drum_patterns:
+  velocity_base:
+    kick:    112
+    snare:    95
+    clap:     90
+    hihat_c:  74
+    hihat_o:  82
+
+  grid:
+    # Kick: 4-on-the-floor with energy
+    kick:    [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
+    # Snare on 2 and 4 — anthemic clarity
+    snare:   [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+    # Clap doubles snare — adds air and euphoria
+    clap:    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+    # Hi-hat: 8th-note base with space
+    hihat_c: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0]
+    # Open hi-hat on offbeats — the "building" texture
+    hihat_o: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0]
+
+  probability:
+    kick:    [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0]
+    snare:   [0, 0, 0, 0, 0.95, 0, 0, 0, 0, 0, 0, 0, 0.95, 0, 0, 0]
+    clap:    [0, 0, 0, 0, 0.92, 0, 0, 0, 0, 0, 0, 0, 0.92, 0, 0, 0]
+    hihat_c: [1.0, 0, 0.92, 0, 1.0, 0, 0.92, 0, 1.0, 0, 0.92, 0, 1.0, 0, 0, 0]
+    hihat_o: [0, 0, 0, 0.88, 0, 0, 0, 0.88, 0, 0, 0, 0.88, 0, 0, 0.88, 0]
+
+  energy_layers:
+    1:  [kick]
+    3:  [snare]
+    5:  [hihat_c]
+    7:  [clap]
+    10: [hihat_o]
+
+  fill:
+    every_n_bars: 4
+    kick:    [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 1, 0, 0]
+    snare:   [0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 1, 1, 1, 1]
+    hihat_c: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]

@@ -1,0 +1,143 @@
+# Melodic Techno — harmonic template
+#
+# Aesthetic: cinematic, driving, emotional. Minor modes predominant.
+# Progressions are repetitive but emotionally charged — often 2-bar motifs
+# looped 4–8 times. Builds tension before a single harmonic resolution.
+# Extended and modal chords preferred; phrygian colour used occasionally.
+#
+# Reference artists: Tale Of Us, Recondite, Moderat, Stephan Bodzin
+
+genre: melodic techno
+default_mode: natural minor
+voicing: extended
+
+progressions:
+  - degrees: [0, 5, 2, 6]   # i - VI - III - VII  (shared with organic house)
+    label: "i - VI - III - VII"
+    weight: 4
+  - degrees: [0, 6, 5, 3]   # i - VII - VI - iv  (cinematic descent)
+    label: "i - VII - VI - iv"
+    weight: 4
+  - degrees: [0, 3, 0, 4]   # i - iv - i - v  (tension-building)
+    label: "i - iv - i - v"
+    weight: 3
+  - degrees: [0, 2, 6, 5]   # i - III - VII - VI
+    label: "i - III - VII - VI"
+    weight: 2
+
+tonic_degrees: [0]
+avoid_penultimate: []
+
+# ---------------------------------------------------------------------------
+# Humanization configuration
+# Melodic techno is the tightest: minimal jitter, controlled dynamics
+# ---------------------------------------------------------------------------
+humanize_config:
+  timing_jitter_ms: 2.0        # ±2ms — almost mechanical, techno precision
+  velocity_variation: 8        # ±8 velocity units — controlled dynamics
+  ghost_probability: 0.08      # 8% ghost notes — subtle texture
+
+moods:
+  - dark
+  - tense
+  - euphoric
+
+extensions:
+  minor: min7
+  major: maj7
+  dim: halfdim7
+
+# ---------------------------------------------------------------------------
+# Bass patterns — driving root + fifth, techno energy
+# ---------------------------------------------------------------------------
+bass_patterns:
+  - style: root
+    base_octave: 2
+    notes:
+      - [0,  0,  2, 105]    # root, beat 1 (staccato punch)
+      - [2,  0,  2,  92]    # root repeat, momentum
+      - [4,  7,  2,  90]    # fifth, beat 2 (tension)
+      - [6,  0,  2,  85]    # root, release
+      - [8,  0,  2, 105]    # root, beat 3 (re-anchor)
+      - [10, 0,  2,  92]    # root, drive
+      - [12, 7,  2,  90]    # fifth, beat 4
+      - [14, 12, 2,  80]    # octave, lift before bar change
+
+  - style: walk
+    base_octave: 2
+    notes:
+      - [0,  0,  2, 105]    # root
+      - [2,  3,  2,  88]    # minor third
+      - [4,  5,  2,  92]    # fourth
+      - [6,  7,  2,  88]    # fifth
+      - [8,  0,  2, 102]    # root, re-anchor
+      - [10, 10, 2,  85]    # flat-seventh (dark colour)
+      - [12, 7,  2,  90]    # fifth
+      - [14, 0,  2,  82]    # root, resolve
+
+  - style: sub
+    base_octave: 1            # Deep sub: pure sine-like root sustain
+    notes:
+      - [0,  0, 8, 108]       # root, first half (punchy attack)
+      - [8,  0, 8, 100]       # root, second half
+
+  - style: driving
+    base_octave: 2
+    notes:
+      - [0,  0, 2, 110]       # beat 1 (hardest hit — techno punch)
+      - [2,  0, 2,  98]       # offbeat 1
+      - [4,  0, 2, 108]       # beat 2
+      - [6,  0, 2,  96]       # offbeat 2
+      - [8,  0, 2, 110]       # beat 3
+      - [10, 0, 2,  98]       # offbeat 3
+      - [12, 0, 2, 108]       # beat 4
+      - [14, 0, 2,  96]       # offbeat 4
+
+  - style: minimal
+    base_octave: 2
+    notes:
+      - [0, 0, 4, 105]        # root on beat 1 (quarter note — clean and precise)
+
+# ---------------------------------------------------------------------------
+# Drum patterns — driving 16th hi-hats, punchy kick, minimal snare
+# ---------------------------------------------------------------------------
+drum_patterns:
+  velocity_base:
+    kick:    115
+    snare:    92
+    clap:     88
+    hihat_c:  76
+    hihat_o:  82
+
+  grid:
+    # Kick: 4-on-the-floor — the driving engine of melodic techno
+    kick:    [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
+    # Snare only on beat 4 — builds tension, avoids classic rock feel
+    snare:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+    # Clap on 2 and 4 — markers without disrupting the drive
+    clap:    [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+    # 16th-note hi-hats — the defining texture of melodic techno
+    hihat_c: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+    # Open hi-hat on 16th before each beat — forward momentum
+    hihat_o: [0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1]
+
+  probability:
+    kick:    [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0]
+    snare:   [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.98, 0, 0, 0]
+    clap:    [0, 0, 0, 0, 0.95, 0, 0, 0, 0, 0, 0, 0, 0.95, 0, 0, 0]
+    hihat_c: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+    hihat_o: [0, 0, 0, 0.90, 0, 0, 0, 0.90, 0, 0, 0, 0.90, 0, 0, 0, 0.90]
+
+  # Techno adds layers quickly — hihat enters early for that driving wall-of-sound
+  energy_layers:
+    1:  [kick]
+    2:  [hihat_c]
+    4:  [clap]
+    6:  [snare]
+    10: [hihat_o]
+
+  fill:
+    every_n_bars: 4
+    kick:    [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 0]
+    snare:   [0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 1, 1, 1, 1]
+    hihat_c: [1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0]

@@ -1,0 +1,40 @@
+# Organic House — mix target profile
+#
+# Aesthetic: earthy, warm, hypnotic. Deep sub-bass presence, natural mid range,
+# restrained top end. Not overly bright or compressed.
+# Reference artists: Fur Coat, Hoj, Patrice Bäumel, Âme
+
+genre: organic house
+
+# Frequency band targets (dB relative to overall RMS)
+# Positive = that band is louder than average, negative = quieter
+bands:
+  sub: -6.0        # 20-60 Hz: deep but not boomy
+  low: -4.0        # 60-200 Hz: warm bass presence
+  low_mid: -8.0    # 200-500 Hz: controlled, not muddy
+  mid: -10.0       # 500-2kHz: recessed (not mid-forward)
+  high_mid: -12.0  # 2-6kHz: smooth, not harsh
+  high: -16.0      # 6-12kHz: present but not bright
+  air: -22.0       # 12-20kHz: subtle air
+
+# Problem detection thresholds (how many dB above/below target triggers detection)
+thresholds:
+  muddiness_db: 3.0    # low_mid excess
+  harshness_db: 2.0    # high_mid excess
+  boominess_db: 4.0    # sub+low excess combined with low crest
+  thinness_db: 4.0     # low_mid deficit
+
+# Stereo image targets
+stereo:
+  overall_width_min: 0.30   # minimum acceptable stereo width
+  overall_width_max: 0.85   # above this = overly wide / phase risky
+  low_width_max: 0.15       # lows should be centered (< this)
+  high_width_min: 0.35      # highs should be reasonably wide
+
+# Dynamics targets
+dynamics:
+  lufs_min: -10.0     # minimum acceptable integrated loudness
+  lufs_max: -6.0      # maximum (louder than this = over-compressed)
+  crest_min: 8.0      # minimum crest factor in dB (more headroom = more dynamic)
+  crest_max: 16.0     # above this = very dynamic (may sound inconsistent in a mix)
+  peak_max_db: -0.5   # true peak ceiling (dBFS)

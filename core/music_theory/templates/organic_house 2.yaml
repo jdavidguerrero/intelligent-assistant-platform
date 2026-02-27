@@ -1,0 +1,153 @@
+# Organic House — harmonic template
+#
+# Aesthetic: earthy, hypnotic, rooted. Emphasis on minor keys and modal colour.
+# Avoids strong V→I cadences — the music "floats" without resolving sharply.
+# Extended chords (min7, maj7) preferred over raw triads.
+#
+# Reference artists: Fur Coat, Hoj, Patrice Bäumel, Âme
+
+genre: organic house
+default_mode: natural minor
+voicing: extended           # min7, maj7, halfdim7
+
+# Preferred scale degree sequences (0-based).
+# Listed in priority order — higher in list = preferred.
+progressions:
+  - degrees: [0, 5, 2, 6]   # i - VI - III - VII  (most hypnotic)
+    label: "i - VI - III - VII"
+    weight: 4
+  - degrees: [0, 3, 6, 2]   # i - iv - VII - III
+    label: "i - iv - VII - III"
+    weight: 3
+  - degrees: [0, 5, 3, 6]   # i - VI - iv - VII
+    label: "i - VI - iv - VII"
+    weight: 3
+  - degrees: [0, 2, 5, 3]   # i - III - VI - iv
+    label: "i - III - VI - iv"
+    weight: 2
+
+# Which degrees are "home" (stable resting points)
+tonic_degrees: [0]
+
+# ---------------------------------------------------------------------------
+# Humanization configuration — used by core/music_theory/humanize.py
+# Organic house is warm and groovy: moderate timing jitter, expressive dynamics
+# ---------------------------------------------------------------------------
+humanize_config:
+  timing_jitter_ms: 5.0        # ±5ms — tight but human
+  velocity_variation: 12       # ±12 velocity units — expressive
+  ghost_probability: 0.12      # 12% ghost hi-hat notes
+
+# Degrees to avoid as penultimate chord (avoid strong dominant resolution)
+avoid_penultimate: [4]   # degree iv (v in minor = weak, but degree 4 = v-chord)
+
+# Mood tags this genre suits
+moods:
+  - dark
+  - dreamy
+  - hypnotic
+
+# Preferred extensions when voicing_style = extended
+extensions:
+  minor: min7
+  major: maj7
+  dim: halfdim7
+
+# ---------------------------------------------------------------------------
+# Bass patterns — 16-step grid, one bar template, transposed per chord root
+# Format: [step, semitone_offset_from_root, duration_steps, velocity]
+#   step 0 = beat 1 | step 4 = beat 2 | step 8 = beat 3 | step 12 = beat 4
+# ---------------------------------------------------------------------------
+bass_patterns:
+  - style: root
+    base_octave: 2          # C2 = MIDI 36 (low sub-bass register)
+    notes:
+      - [0,  0,  4, 100]    # root, beat 1 (quarter note)
+      - [4,  0,  2,  85]    # root, beat 2 8th
+      - [6,  7,  2,  80]    # fifth, offbeat beat 2
+      - [8,  0,  4,  95]    # root, beat 3
+      - [12, 0,  2,  85]    # root, beat 4 8th
+      - [14, 12, 2,  75]    # octave, beat 4 16th (lift into next bar)
+
+  - style: walk
+    base_octave: 2
+    notes:
+      - [0,  0,  4, 100]    # root, beat 1
+      - [4,  5,  2,  85]    # fourth, beat 2
+      - [6,  7,  2,  80]    # fifth, offbeat 2
+      - [8,  10, 4,  90]    # flat-seventh, beat 3
+      - [12, 12, 2,  85]    # octave, beat 4
+      - [14, 7,  2,  75]    # fifth, back into root
+
+  - style: sub
+    base_octave: 1            # Ultra-low: A1=MIDI33, C1=MIDI24 — pure sub bass
+    notes:
+      - [0,  0, 8, 105]       # root, first half-bar (sustained sub hit)
+      - [8,  0, 8,  98]       # root, second half-bar (slight breath/drop)
+
+  - style: driving
+    base_octave: 2
+    notes:
+      - [0,  0, 2, 108]       # beat 1 (downbeat anchor)
+      - [2,  0, 2,  96]       # offbeat 1 (slightly softer)
+      - [4,  0, 2, 106]       # beat 2
+      - [6,  0, 2,  94]       # offbeat 2
+      - [8,  0, 2, 108]       # beat 3 (re-anchor)
+      - [10, 0, 2,  96]       # offbeat 3
+      - [12, 0, 2, 106]       # beat 4
+      - [14, 0, 2,  94]       # offbeat 4 (into next bar)
+
+  - style: minimal
+    base_octave: 2
+    notes:
+      - [0, 0, 6, 100]        # root only on beat 1 (dotted-quarter sustain)
+
+# ---------------------------------------------------------------------------
+# Drum patterns — 16-step grid (16th-note resolution)
+# grid values: 1 = hit, 0 = rest
+# velocity_base: base velocity before humanization per instrument
+# fill: override grid for the last bar of every 'every_n_bars' phrase
+# ---------------------------------------------------------------------------
+drum_patterns:
+  velocity_base:
+    kick:    110
+    snare:    90
+    clap:     82
+    hihat_c:  72
+    hihat_o:  78
+
+  grid:
+    # 4-on-the-floor — the hypnotic, rooted pulse of organic house
+    kick:    [1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]
+    # Snare on 2 and 4 (steps 4, 12)
+    snare:   [0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+    # Clap only on beat 4 — sparse, earthy
+    clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0]
+    # Closed hi-hat on 8th notes
+    hihat_c: [1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]
+    # Open hi-hat on offbeat of beats 2 and 4 — floating feel
+    hihat_o: [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0]
+
+  # Per-step probabilities for each instrument (only meaningful where grid=1)
+  # Values < 1.0 create occasional missed hits for a human/groove feel
+  probability:
+    kick:    [1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0, 1.0, 0, 0, 0]
+    snare:   [0, 0, 0, 0, 0.95, 0, 0, 0, 0, 0, 0, 0, 0.95, 0, 0, 0]
+    clap:    [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0.88, 0, 0, 0]
+    hihat_c: [1.0, 0, 0.92, 0, 1.0, 0, 0.92, 0, 1.0, 0, 0.92, 0, 1.0, 0, 0.92, 0]
+    hihat_o: [0, 0, 0, 0, 0, 0, 0.88, 0, 0, 0, 0, 0, 0, 0, 0.88, 0]
+
+  # Energy layers: each threshold adds instruments (additive / delta-based)
+  # energy=1 → kick only | energy=7 → full kit
+  energy_layers:
+    1:  [kick]
+    3:  [snare]
+    5:  [hihat_c]
+    7:  [clap]
+    10: [hihat_o]
+
+  fill:
+    every_n_bars: 4
+    kick:    [1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0]
+    snare:   [0, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 1, 1, 1, 0, 1]
+    hihat_c: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0]

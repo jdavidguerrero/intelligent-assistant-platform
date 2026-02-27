@@ -1,0 +1,35 @@
+# Deep House — mix target profile
+#
+# Aesthetic: warm, soulful, spacious. Balanced full-range sound with
+# emphasis on low frequencies and smooth, non-fatiguing top end.
+# Reference artists: Larry Heard, Kerri Chandler, Moodymann, dOP
+
+genre: deep house
+
+bands:
+  sub: -7.0        # 20-60 Hz: present but not excessive
+  low: -5.0        # 60-200 Hz: warm bass, prominent
+  low_mid: -7.0    # 200-500 Hz: warm body (slightly more than OH)
+  mid: -9.0        # 500-2kHz: vocal warmth
+  high_mid: -13.0  # 2-6kHz: smooth, never harsh
+  high: -16.0      # 6-12kHz: silky
+  air: -22.0       # 12-20kHz: gentle air
+
+thresholds:
+  muddiness_db: 3.5
+  harshness_db: 1.5    # deep house is very sensitive to harshness
+  boominess_db: 4.0
+  thinness_db: 3.5
+
+stereo:
+  overall_width_min: 0.25
+  overall_width_max: 0.80
+  low_width_max: 0.15
+  high_width_min: 0.30
+
+dynamics:
+  lufs_min: -11.0
+  lufs_max: -7.0
+  crest_min: 9.0     # deeper house has more dynamics
+  crest_max: 16.0
+  peak_max_db: -0.5

@@ -1,0 +1,57 @@
+# Organic House — Master Chain
+#
+# Target: -8 to -6 LUFS. Gentle, transparent mastering that preserves
+# the warm analog character of the mix. Minimal coloration.
+# References: Fur Coat, Hoj, Patrice Bäumel, Âme
+
+genre: organic house
+stage: master
+description: "Gentle mastering chain — warm, natural, -8 to -6 LUFS target"
+
+processors:
+  - name: "Linear Phase EQ"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3 (Linear Phase)"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency_hp, "20 Hz"]
+      - [type_hp, "high_pass"]
+      - [slope_hp, "6 dB/oct"]
+      - [frequency_air, "14000 Hz"]
+      - [type_air, "high_shelf"]
+      - [gain_air, "+0.5 dB"]
+
+  - name: "Multiband Compressor"
+    proc_type: multiband_comp
+    plugin_primary: "FabFilter Pro-MB"
+    plugin_fallback: "Ableton Multiband Dynamics"
+    params:
+      - [low_band_hz, "200 Hz"]
+      - [low_ratio, "2:1"]
+      - [low_attack, "80 ms"]
+      - [low_release, "300 ms"]
+      - [mid_band_hz, "2000 Hz"]
+      - [mid_ratio, "1.5:1"]
+      - [mid_attack, "40 ms"]
+      - [high_ratio, "1.2:1"]
+      - [high_attack, "20 ms"]
+
+  - name: "Stereo Imager"
+    proc_type: stereo_widener
+    plugin_primary: "iZotope Ozone Imager"
+    plugin_fallback: "Ableton Utility"
+    params:
+      - [low_width, "0%"]
+      - [mid_width, "100%"]
+      - [high_width, "130%"]
+      - [low_crossover, "150 Hz"]
+
+  - name: "Brickwall Limiter"
+    proc_type: limiter
+    plugin_primary: "iZotope Ozone Maximizer"
+    plugin_fallback: "Ableton Limiter"
+    params:
+      - [ceiling, "-1.0 dBTP"]
+      - [release, "auto"]
+      - [target_lufs, "-8 LUFS"]
+      - [character, "transparent"]
