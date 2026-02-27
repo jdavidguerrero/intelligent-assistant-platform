@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "copilot-ui",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "copilot-ui", "run", "dev"],
+      "port": 5173
+    }
+  ]
+}

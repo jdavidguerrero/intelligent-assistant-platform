@@ -1,0 +1,35 @@
+# Afro House — mix target profile
+#
+# Aesthetic: percussive, rhythmic, vocal-driven. Rich mid frequencies for
+# percussion and vocals, warm but controlled lows, natural dynamics.
+# Reference artists: Black Coffee, Themba, Da Capo, Enoo Napa
+
+genre: afro house
+
+bands:
+  sub: -8.0        # 20-60 Hz: restrained sub (clarity for percussion)
+  low: -6.0        # 60-200 Hz: warm kick body
+  low_mid: -7.0    # 200-500 Hz: important for percussion body and vocals
+  mid: -8.0        # 500-2kHz: forward (vocals, percussion attacks)
+  high_mid: -11.0  # 2-6kHz: present transients
+  high: -15.0      # 6-12kHz: natural air
+  air: -21.0       # 12-20kHz: gentle
+
+thresholds:
+  muddiness_db: 3.0
+  harshness_db: 2.0
+  boominess_db: 4.5   # afro house can tolerate more low-end
+  thinness_db: 3.5
+
+stereo:
+  overall_width_min: 0.28
+  overall_width_max: 0.82
+  low_width_max: 0.15
+  high_width_min: 0.32
+
+dynamics:
+  lufs_min: -10.0
+  lufs_max: -7.0
+  crest_min: 8.0
+  crest_max: 15.0
+  peak_max_db: -0.5

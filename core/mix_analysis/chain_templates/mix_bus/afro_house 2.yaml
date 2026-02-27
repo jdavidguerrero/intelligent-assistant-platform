@@ -1,0 +1,68 @@
+# Afro House — Mix Bus Signal Chain
+#
+# Aesthetic: percussion-forward, rhythmic, warm mid-range. Transparency in the
+# mids to let percussion breathe, gentle low-end glue, presence boost.
+# References: Black Coffee, Enoo Napa, Themba, Da Capo
+
+genre: afro house
+stage: mix_bus
+description: "Percussion-forward bus processing — rhythmic clarity with warm mid transparency"
+
+processors:
+  - name: "Subsonic Filter"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency, "32 Hz"]
+      - [type, "high_pass"]
+      - [slope, "24 dB/oct"]
+
+  - name: "Low-Mid Transparency"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency, "350 Hz"]
+      - [type, "bell"]
+      - [gain, "-1.5 dB"]
+      - [q, "1.2"]
+
+  - name: "Percussion Presence"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency, "2000 Hz"]
+      - [type, "bell"]
+      - [gain, "+1.0 dB"]
+      - [q, "1.0"]
+
+  - name: "Gentle Bus Compression"
+    proc_type: compressor
+    plugin_primary: "Neve 33609"
+    plugin_fallback: "Ableton Glue Compressor"
+    params:
+      - [ratio, "2:1"]
+      - [attack, "40 ms"]
+      - [release, "150 ms"]
+      - [threshold, "-9 dBFS"]
+      - [makeup, "+1.5 dB"]
+      - [mix, "75%"]
+
+  - name: "Warm Saturation"
+    proc_type: saturation
+    plugin_primary: "Soundtoys Decapitator"
+    plugin_fallback: "Ableton Saturator"
+    params:
+      - [style, "warm tube"]
+      - [drive, "1.5 dB"]
+      - [mix, "20%"]
+
+  - name: "Bus Limiter"
+    proc_type: limiter
+    plugin_primary: "iZotope Ozone Maximizer"
+    plugin_fallback: "Ableton Limiter"
+    params:
+      - [ceiling, "-0.5 dBFS"]
+      - [release, "60 ms"]

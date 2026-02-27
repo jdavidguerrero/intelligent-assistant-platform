@@ -1,0 +1,50 @@
+# Genre Preset Template — copy and customize for your genre
+# Save as: core/session_intelligence/genre_presets/<your_genre>.yaml
+# Then load via: SessionAuditor.run_audit(session, genre_preset="your_genre")
+
+name: "Your Genre Name"
+description: "Brief description. BPM range. Key characteristics."
+
+# Define rules for each instrument type you want checked.
+# Available instrument types: kick, snare, hihat, pad, bass, lead, vocal, fx, chord
+# All ranges are optional — omit any you don't want to enforce.
+instruments:
+  kick:
+    # width: 0 = must be mono
+    width: 0
+    # comp_ratio_range: [min, max] acceptable ratio
+    comp_ratio_range: [2.0, 4.0]
+    # suggestion: shown in the finding message
+    suggestion: "Description of why this matters for your genre"
+
+  bass:
+    # hp_freq_range: [min_hz, max_hz] expected highpass cutoff range
+    hp_freq_range: [30, 80]
+    width_range: [0, 50]
+    comp_ratio_range: [2.0, 4.0]
+
+  pad:
+    hp_freq_range: [100, 300]
+    width_range: [80, 150]
+    comp_ratio_range: [1.5, 4.0]
+    suggestion: ""
+
+  lead:
+    hp_freq_range: [100, 400]
+    comp_ratio_range: [2.0, 5.0]
+    width_range: [60, 120]
+
+  vocal:
+    hp_freq_range: [80, 150]
+    comp_ratio_range: [2.0, 6.0]
+    suggestion: ""
+
+  fx:
+    hp_freq_range: [150, 500]
+    width_range: [80, 160]
+
+# Bus-level suggestions (informational only — not currently checked automatically)
+buses:
+  drums: "Describe your drum bus approach"
+  bass: "Describe your bass bus approach"
+  master: "Target LUFS range and crest factor"

@@ -221,6 +221,8 @@ class Track:
     clips: tuple[Clip, ...]
     lom_path: str
     color: int = 0
+    volume_lom_id: int = 0
+    """Integer LOM ID for the mixer_device.volume Parameter. 0 = unknown (old scanner)."""
 
 
 # ---------------------------------------------------------------------------
@@ -293,11 +295,21 @@ class LOMCommand:
     description: str = ""
     """Human-readable description for logging and debugging."""
 
+    lom_id: int = 0
+    """Integer LOM ID for reliable navigation (preferred over lom_path when non-zero)."""
+
     def to_dict(self) -> dict:
-        """Serialise to the WebSocket wire format."""
-        return {
+        """Serialise to the WebSocket wire format.
+
+        Includes ``lom_id`` when non-zero so the ALS Listener can use integer-ID
+        navigation (reliable) instead of path-string navigation (may silently fail).
+        """
+        d: dict = {
             "type": self.type,
             "lom_path": self.lom_path,
             "property": self.property,
             "value": self.value,
         }
+        if self.lom_id:
+            d["lom_id"] = self.lom_id
+        return d

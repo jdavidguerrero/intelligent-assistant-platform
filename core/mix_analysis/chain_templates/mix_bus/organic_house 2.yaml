@@ -1,0 +1,57 @@
+# Organic House — Mix Bus Signal Chain
+#
+# Aesthetic: warm, analog, earthy. Gentle glue without killing dynamics.
+# References: Fur Coat, Hoj, Patrice Bäumel, Âme
+
+genre: organic house
+stage: mix_bus
+description: "Warm, analog-style bus processing — earthy and cohesive"
+
+processors:
+  - name: "Sub Rumble Filter"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency, "30 Hz"]
+      - [type, "high_pass"]
+      - [slope, "24 dB/oct"]
+
+  - name: "Low-Mid Clarity"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency, "280 Hz"]
+      - [type, "bell"]
+      - [gain, "-1.0 dB"]
+      - [q, "1.5"]
+
+  - name: "Glue Compression"
+    proc_type: compressor
+    plugin_primary: "SSL G-Bus Compressor"
+    plugin_fallback: "Ableton Glue Compressor"
+    params:
+      - [ratio, "4:1"]
+      - [attack, "30 ms"]
+      - [release, "auto"]
+      - [threshold, "-8 dBFS"]
+      - [makeup, "+2 dB"]
+      - [mix, "80%"]
+
+  - name: "Harmonic Saturation"
+    proc_type: saturation
+    plugin_primary: "Soundtoys Decapitator"
+    plugin_fallback: "Ableton Saturator"
+    params:
+      - [style, "warm tube"]
+      - [drive, "2 dB"]
+      - [mix, "25%"]
+
+  - name: "Bus Limiter"
+    proc_type: limiter
+    plugin_primary: "iZotope Ozone Maximizer"
+    plugin_fallback: "Ableton Limiter"
+    params:
+      - [ceiling, "-0.5 dBFS"]
+      - [release, "50 ms"]

@@ -1,0 +1,70 @@
+# Melodic Techno — Master Chain
+#
+# Target: -7 LUFS. More compressed and energetic for club playback.
+# Enhanced sub definition, crisper transients, harder limiting.
+# References: Tale Of Us, Anyma, Massano, Stephan Bodzin
+
+genre: melodic techno
+stage: master
+description: "Club-ready mastering chain — punchy, defined, -7 LUFS target"
+
+processors:
+  - name: "Linear Phase EQ"
+    proc_type: eq
+    plugin_primary: "FabFilter Pro-Q 3 (Linear Phase)"
+    plugin_fallback: "Ableton EQ Eight"
+    params:
+      - [frequency_hp, "22 Hz"]
+      - [type_hp, "high_pass"]
+      - [slope_hp, "12 dB/oct"]
+      - [frequency_sub, "50 Hz"]
+      - [type_sub, "bell"]
+      - [gain_sub, "+1.0 dB"]
+      - [q_sub, "1.4"]
+      - [frequency_air, "12000 Hz"]
+      - [type_air, "high_shelf"]
+      - [gain_air, "+1.0 dB"]
+
+  - name: "Multiband Compressor"
+    proc_type: multiband_comp
+    plugin_primary: "FabFilter Pro-MB"
+    plugin_fallback: "Ableton Multiband Dynamics"
+    params:
+      - [low_band_hz, "180 Hz"]
+      - [low_ratio, "2.5:1"]
+      - [low_attack, "60 ms"]
+      - [low_release, "200 ms"]
+      - [mid_band_hz, "2500 Hz"]
+      - [mid_ratio, "2:1"]
+      - [mid_attack, "20 ms"]
+      - [high_ratio, "1.5:1"]
+      - [high_attack, "10 ms"]
+
+  - name: "Transient Shaper"
+    proc_type: compressor
+    plugin_primary: "Waves Trans-X"
+    plugin_fallback: "Ableton Compressor"
+    params:
+      - [attack_gain, "+2 dB"]
+      - [sustain_gain, "-1 dB"]
+      - [sensitivity, "medium"]
+
+  - name: "Stereo Imager"
+    proc_type: stereo_widener
+    plugin_primary: "iZotope Ozone Imager"
+    plugin_fallback: "Ableton Utility"
+    params:
+      - [low_width, "0%"]
+      - [mid_width, "100%"]
+      - [high_width, "120%"]
+      - [low_crossover, "120 Hz"]
+
+  - name: "Brickwall Limiter"
+    proc_type: limiter
+    plugin_primary: "iZotope Ozone Maximizer"
+    plugin_fallback: "Ableton Limiter"
+    params:
+      - [ceiling, "-1.0 dBTP"]
+      - [release, "30 ms"]
+      - [target_lufs, "-7 LUFS"]
+      - [character, "modern"]

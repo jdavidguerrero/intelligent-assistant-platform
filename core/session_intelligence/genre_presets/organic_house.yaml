@@ -1,0 +1,43 @@
+name: "Organic House"
+description: "Warm, groove-driven. 118-124 BPM. Rich low-mids, wide pads."
+
+instruments:
+  kick:
+    width: 0
+    comp_ratio_range: [2.0, 4.0]
+    suggestion: "Keep mono and punchy — anchor of the groove"
+  sub_bass:
+    hp_freq_range: [20, 35]
+    width: 0
+    suggestion: "Consider sidechain from kick"
+  bass:
+    hp_freq_range: [30, 60]
+    width_range: [0, 50]
+    suggestion: "Consider sidechain from kick"
+  pad:
+    hp_freq_range: [100, 250]
+    width_range: [100, 150]
+    comp_ratio_range: [1.5, 3.0]
+    suggestion: "HP critical to avoid muddiness. Wide for atmosphere."
+  chord:
+    hp_freq_range: [80, 200]
+    width_range: [80, 130]
+  lead:
+    hp_freq_range: [100, 300]
+    comp_ratio_range: [2.0, 4.0]
+    width_range: [80, 120]
+  percussion:
+    hp_freq_range: [150, 300]
+    width_range: [80, 140]
+  vocal:
+    hp_freq_range: [80, 120]
+    comp_ratio_range: [3.0, 5.0]
+    suggestion: "De-esser recommended"
+  fx:
+    hp_freq_range: [150, 400]
+    width_range: [100, 160]
+
+buses:
+  drums: "Glue compression 2:1 for cohesion"
+  bass: "Gentle bus compression, watch sub buildup"
+  master: "Target LUFS -7 to -9, crest factor 8-12 dB"

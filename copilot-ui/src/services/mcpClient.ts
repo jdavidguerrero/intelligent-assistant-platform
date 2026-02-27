@@ -62,6 +62,116 @@ export interface ToolCallResponse {
   metadata: Record<string, unknown> | null
 }
 
+export interface AuditFinding {
+  layer: string
+  severity: string
+  icon: string
+  channel_name: string
+  channel_lom_path: string
+  device_name: string | null
+  rule_id: string
+  message: string
+  reason: string
+  confidence: number
+  fix_action: { lom_path: string; lom_id?: number; property: string; value: number | string } | null
+}
+
+export interface AuditReport {
+  generated_at: number
+  critical_count: number
+  warning_count: number
+  suggestion_count: number
+  info_count: number
+  findings: AuditFinding[]
+  session_map: {
+    buses: Array<{ name: string; bus_type: string; channel_count: number; channels: string[] }>
+    orphan_channel_count: number
+    return_channel_count: number
+    total_channels: number
+    mapped_at: number
+  }
+}
+
+export interface PatternsResponse {
+  sessions_saved: number
+  patterns: Record<string, {
+    sample_count: number
+    volume_db_values: number[]
+    has_hp_values: boolean[]
+    hp_freq_values: number[]
+    comp_ratio_values: number[]
+  }>
+}
+
+export interface SavePatternsResponse {
+  channels_learned: number
+  sessions_saved: number
+}
+
+export interface ApplyFixRequest {
+  lom_path: string
+  lom_id?: number
+  property: string
+  value: number | string
+  description?: string
+}
+
+// ── Master / Reference types ───────────────────────────────────────────────
+
+export interface MasterReport {
+  readiness_score: number
+  genre: string
+  loudness: {
+    lufs_integrated: number
+    true_peak_db: number
+    inter_sample_peaks: boolean
+  }
+  dynamics: {
+    crest_factor_db: number
+  }
+  issues: string[]
+  mastering_chain: {
+    genre: string
+    stage: string
+    description: string
+    processors: Array<{
+      name: string
+      proc_type: string
+      plugin_primary: string
+      plugin_fallback?: string
+      params: Array<{ name: string; value: string }>
+    }>
+  }
+}
+
+export interface ComparisonReport {
+  overall_similarity: number
+  lufs_delta: number
+  lufs_normalization_db: number
+  num_references: number
+  dimensions: Array<{
+    name: string
+    score: number
+    track_value: number | null
+    ref_value: number | null
+    unit?: string
+  }>
+  deltas: Array<{
+    dimension: string
+    direction: string
+    magnitude: number
+    unit?: string
+    priority: number
+    recommendation: string
+  }>
+  band_deltas?: Array<{
+    band: string
+    track_db: number
+    reference_db: number
+    delta_db: number
+  }>
+}
+
 export const mcpClient = {
   async health(): Promise<{ status: string }> {
     return request('/health')
@@ -134,6 +244,46 @@ export const mcpClient = {
 
   async callTool(req: { name: string; params: Record<string, unknown> }): Promise<ToolCallResponse> {
     return request('/tools/call', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    })
+  },
+
+  async auditSession(req: { genre_preset?: string | null; force_refresh?: boolean }): Promise<AuditReport> {
+    return request('/session/audit', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    })
+  },
+
+  async getPatterns(): Promise<PatternsResponse> {
+    return request('/session/patterns')
+  },
+
+  async savePatterns(): Promise<SavePatternsResponse> {
+    return request('/session/patterns/save', { method: 'POST', body: '{}' })
+  },
+
+  async applyFix(req: ApplyFixRequest): Promise<{ applied: boolean; lom_path: string; ack: unknown }> {
+    return request('/session/apply-fix', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    })
+  },
+
+  async analyzeMaster(req: { file_path: string; genre?: string }): Promise<MasterReport> {
+    return request('/mix/master', {
+      method: 'POST',
+      body: JSON.stringify(req),
+    })
+  },
+
+  async compareReference(req: {
+    file_path: string
+    reference_paths: string[]
+    genre?: string
+  }): Promise<ComparisonReport> {
+    return request('/mix/reference', {
       method: 'POST',
       body: JSON.stringify(req),
     })

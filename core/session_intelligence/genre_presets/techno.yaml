@@ -1,0 +1,47 @@
+name: "Techno"
+description: "Industrial, hypnotic, relentless. 132-150 BPM. Mono-heavy, aggressive compression."
+
+instruments:
+  kick:
+    width: 0
+    comp_ratio_range: [4.0, 8.0]
+    suggestion: "Hard mono kick — industrial punch essential"
+  sub_bass:
+    hp_freq_range: [25, 45]
+    width: 0
+    suggestion: "Tight sidechain from kick — aggressive ducking"
+  bass:
+    hp_freq_range: [50, 100]
+    width_range: [0, 20]
+    comp_ratio_range: [4.0, 8.0]
+    suggestion: "Keep very mono — phasing ruins mono playback"
+  pad:
+    hp_freq_range: [200, 400]
+    width_range: [80, 140]
+    comp_ratio_range: [3.0, 6.0]
+    suggestion: "Harsh, industrial — extreme HP keeps it out of the bass"
+  chord:
+    hp_freq_range: [150, 300]
+    width_range: [60, 120]
+    comp_ratio_range: [3.0, 6.0]
+  lead:
+    hp_freq_range: [200, 600]
+    comp_ratio_range: [4.0, 8.0]
+    width_range: [40, 80]
+    suggestion: "Distorted and aggressive — narrow stereo field"
+  percussion:
+    hp_freq_range: [200, 500]
+    width_range: [40, 100]
+    comp_ratio_range: [3.0, 6.0]
+  vocal:
+    hp_freq_range: [120, 300]
+    comp_ratio_range: [5.0, 10.0]
+    suggestion: "Heavily processed — often distorted or vocoded"
+  fx:
+    hp_freq_range: [200, 800]
+    width_range: [80, 160]
+
+buses:
+  drums: "Heavy parallel compression — pumping is a feature"
+  bass: "Hard sidechain bus, aggressive limiting"
+  master: "Target LUFS -7 to -9, loud and punchy"

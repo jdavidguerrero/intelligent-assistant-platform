@@ -3,6 +3,7 @@ import { Fader } from '../common/Fader'
 import type { Track, TrackType } from '../../types/ableton'
 import { abletonWs } from '../../services/abletonWs'
 import { useSessionStore } from '../../store/sessionStore'
+import { useAuditStore } from '../../store/auditStore'
 import { DevicePanel } from './DevicePanel'
 
 interface TrackStripProps {
@@ -50,8 +51,19 @@ function typeIcon(type: TrackType): string {
   }
 }
 
+function SeverityBadge({ sev }: { sev: string }) {
+  if (!sev) return null
+  const icon = sev === 'critical' ? '❌' : sev === 'warning' ? '⚠️' : sev === 'suggestion' ? '💡' : 'ℹ️'
+  return (
+    <span title={sev} className="text-[10px] leading-none flex-shrink-0">{icon}</span>
+  )
+}
+
 export function TrackStrip({ track, isSelected, onSelect }: TrackStripProps) {
   const applyTrackProperty = useSessionStore((s) => s.applyTrackProperty)
+  const channelSeverity = useAuditStore((s) => s.channelSeverity)
+  const severity = channelSeverity[track.name] ?? ''
+
   // Use Ableton's actual track color (packed int) — fallback to type-based color
   const typeFallback = typeColor(track.type)
   const color = abletonColor(track.color, typeFallback)
@@ -119,6 +131,9 @@ export function TrackStrip({ track, isSelected, onSelect }: TrackStripProps) {
         >
           {track.name}
         </span>
+
+        {/* Audit severity badge */}
+        <SeverityBadge sev={severity} />
 
         {/* Device count badge */}
         {deviceCount > 0 && (
