@@ -746,7 +746,9 @@ def full_arrangement_to_midi(
         current_tick = abs_tick
         if event_type == 0:
             chord_track.append(
-                mido.Message("note_on", channel=MIDI_CHANNEL, note=pitch, velocity=velocity, time=delta)
+                mido.Message(
+                    "note_on", channel=MIDI_CHANNEL, note=pitch, velocity=velocity, time=delta
+                )
             )
         else:
             chord_track.append(
@@ -776,7 +778,9 @@ def full_arrangement_to_midi(
         current_tick = abs_tick
         if event_type == 0:
             bass_track.append(
-                mido.Message("note_on", channel=BASS_CHANNEL, note=pitch, velocity=velocity, time=delta)
+                mido.Message(
+                    "note_on", channel=BASS_CHANNEL, note=pitch, velocity=velocity, time=delta
+                )
             )
         else:
             bass_track.append(
@@ -810,11 +814,15 @@ def full_arrangement_to_midi(
         current_tick = abs_tick
         if event_type == 0:
             drum_track.append(
-                mido.Message("note_on", channel=DRUM_CHANNEL, note=midi_note, velocity=velocity, time=delta)
+                mido.Message(
+                    "note_on", channel=DRUM_CHANNEL, note=midi_note, velocity=velocity, time=delta
+                )
             )
         else:
             drum_track.append(
-                mido.Message("note_off", channel=DRUM_CHANNEL, note=midi_note, velocity=0, time=delta)
+                mido.Message(
+                    "note_off", channel=DRUM_CHANNEL, note=midi_note, velocity=0, time=delta
+                )
             )
     drum_track.append(mido.MetaMessage("end_of_track", time=0))
 

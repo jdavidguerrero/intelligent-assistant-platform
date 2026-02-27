@@ -230,15 +230,13 @@ def add_ghost_notes(
 
     v_min, v_max = velocity_range
     if v_min > v_max:
-        raise ValueError(
-            f"velocity_range min must be <= max, got ({v_min}, {v_max})"
-        )
+        raise ValueError(f"velocity_range min must be <= max, got ({v_min}, {v_max})")
 
     if probability == 0.0:
         return tuple(hits)
 
-    target_instruments: frozenset[str] = instruments if instruments is not None else frozenset(
-        {"hihat_c", "hihat_o"}
+    target_instruments: frozenset[str] = (
+        instruments if instruments is not None else frozenset({"hihat_c", "hihat_o"})
     )
 
     # Build a set of already-occupied (instrument, bar, step) positions

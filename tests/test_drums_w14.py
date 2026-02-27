@@ -160,30 +160,24 @@ class TestProbabilityHits:
         """Fill bars (bar 3, 7, 11, ...) always play all grid hits regardless of probability."""
         # Use seed to get reproducible output; run multiple times with different seeds
         for seed in range(5):
-            p = generate_pattern(
-                genre="organic house", bars=4, energy=7, humanize=True, seed=seed
-            )
+            p = generate_pattern(genre="organic house", bars=4, energy=7, humanize=True, seed=seed)
             # Bar 3 is the fill bar (every_n_bars=4)
             fill_hits = [h for h in p.hits if h.bar == 3]
             fill_kick = [h for h in fill_hits if h.instrument == "kick"]
             # Fill kick grid has hits at steps {0,2,4,8,10,12} — at least some must play
-            assert len(fill_kick) >= 3, (
-                f"Fill bar kick should have ≥3 hits, got {len(fill_kick)} (seed={seed})"
-            )
+            assert (
+                len(fill_kick) >= 3
+            ), f"Fill bar kick should have ≥3 hits, got {len(fill_kick)} (seed={seed})"
 
     def test_base_bar_kick_always_plays(self) -> None:
         """Kick probability is 1.0 in all genres → kick always plays on base bars."""
         for seed in range(10):
-            p = generate_pattern(
-                genre="organic house", bars=4, energy=7, humanize=True, seed=seed
-            )
+            p = generate_pattern(genre="organic house", bars=4, energy=7, humanize=True, seed=seed)
             # Bar 0 is a base bar — kick step 0 has probability 1.0
             bar0_kick_step0 = [
                 h for h in p.hits if h.bar == 0 and h.instrument == "kick" and h.step == 0
             ]
-            assert len(bar0_kick_step0) == 1, (
-                f"Kick step 0 bar 0 should always play (seed={seed})"
-            )
+            assert len(bar0_kick_step0) == 1, f"Kick step 0 bar 0 should always play (seed={seed})"
 
     def test_probability_reduces_hihat_hits(self) -> None:
         """Offbeat hihat_c (probability < 1.0) sometimes misses with humanize=True."""
@@ -191,9 +185,7 @@ class TestProbabilityHits:
         offbeat_steps = {2, 6, 10}  # steps with probability 0.92 in organic house
         misses_found = False
         for seed in range(50):
-            p = generate_pattern(
-                genre="organic house", bars=4, energy=7, humanize=True, seed=seed
-            )
+            p = generate_pattern(genre="organic house", bars=4, energy=7, humanize=True, seed=seed)
             # In base bars (not bar 3), count offbeat hihat_c hits
             base_bar_hihat_offbeat = [
                 h

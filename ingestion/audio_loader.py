@@ -82,8 +82,6 @@ def load_audio(
             offset=0.0,
         )
     except Exception as exc:
-        raise RuntimeError(
-            f"Failed to decode audio file {file_path.name!r}: {exc}"
-        ) from exc
+        raise RuntimeError(f"Failed to decode audio file {file_path.name!r}: {exc}") from exc
 
     return y, int(loaded_sr)

@@ -53,8 +53,8 @@ from core.music_theory.types import BassNote, Chord
 
 _VELOCITY_HUMANIZE_RANGE: int = 8  # ±N velocity units per note
 _DEFAULT_BASE_OCTAVE: int = 2  # C2 = MIDI 36; A2 = MIDI 45
-_SLIDE_STEP: int = 14           # grid position for approach/slide note (2 steps before bar end)
-_SLIDE_DURATION: int = 2        # duration of slide note in 16th-note steps
+_SLIDE_STEP: int = 14  # grid position for approach/slide note (2 steps before bar end)
+_SLIDE_DURATION: int = 2  # duration of slide note in 16th-note steps
 _SLIDE_VELOCITY_RATIO: float = 0.70  # slide note velocity = 70% of bar's loudest note
 
 

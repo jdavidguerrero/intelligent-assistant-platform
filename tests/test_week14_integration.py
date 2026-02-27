@@ -157,12 +157,11 @@ class TestHumanizePipeline:
 
     def test_humanize_drums_pipeline(self) -> None:
         """humanize_velocity applied to DrumHit tuples → valid pattern_to_midi."""
-        drums = generate_pattern(
-            genre="organic house", bars=4, energy=7, humanize=False, seed=0
-        )
+        drums = generate_pattern(genre="organic house", bars=4, energy=7, humanize=False, seed=0)
         humanized_hits = humanize_velocity(drums.hits, variation=10, seed=42)
         # Rebuild DrumPattern with humanized hits
         from core.music_theory.types import DrumPattern
+
         new_pattern = DrumPattern(
             hits=humanized_hits,
             steps_per_bar=drums.steps_per_bar,
@@ -181,18 +180,16 @@ class TestHumanizePipeline:
 
 class TestGhostNotesPipeline:
     def test_add_ghost_notes_increases_hit_count(self) -> None:
-        drums = generate_pattern(
-            genre="organic house", bars=4, energy=7, humanize=False, seed=0
-        )
+        drums = generate_pattern(genre="organic house", bars=4, energy=7, humanize=False, seed=0)
         augmented = add_ghost_notes(drums.hits, probability=0.3, bars=4, seed=0)
         assert len(augmented) > len(drums.hits), "ghost notes should add hits"
 
     def test_ghost_notes_in_valid_velocity_range(self) -> None:
-        drums = generate_pattern(
-            genre="organic house", bars=4, energy=7, humanize=False, seed=0
-        )
+        drums = generate_pattern(genre="organic house", bars=4, energy=7, humanize=False, seed=0)
         original_positions = {(h.bar, h.step, h.instrument) for h in drums.hits}
-        augmented = add_ghost_notes(drums.hits, probability=1.0, velocity_range=(10, 25), bars=4, seed=0)
+        augmented = add_ghost_notes(
+            drums.hits, probability=1.0, velocity_range=(10, 25), bars=4, seed=0
+        )
         # Ghost notes (new ones) must be in velocity range
         for h in augmented:
             if (h.bar, h.step, h.instrument) not in original_positions:
@@ -201,9 +198,8 @@ class TestGhostNotesPipeline:
     def test_add_ghost_notes_pattern_to_midi(self) -> None:
         """Adding ghost notes then exporting to MIDI should work without error."""
         from core.music_theory.types import DrumPattern
-        drums = generate_pattern(
-            genre="organic house", bars=4, energy=7, humanize=False, seed=0
-        )
+
+        drums = generate_pattern(genre="organic house", bars=4, energy=7, humanize=False, seed=0)
         augmented = add_ghost_notes(drums.hits, probability=0.15, bars=4, seed=0)
         new_pattern = DrumPattern(
             hits=augmented,
@@ -248,12 +244,14 @@ class TestNewBassStyles:
     def test_sub_style_low_octave(self) -> None:
         """Sub style must use base_octave=1 — notes should be in MIDI range ~24–36."""
         v = suggest_progression("C", genre="organic house", bars=2)
-        bass = generate_bassline(v.chords, genre="organic house", style="sub", humanize=False, seed=0)
+        bass = generate_bassline(
+            v.chords, genre="organic house", style="sub", humanize=False, seed=0
+        )
         # C2 = MIDI 36; all sub bass notes should be below standard range
         # Sub uses base_octave=1: C1=24, A1=33, B1=35
-        assert all(n.pitch_midi <= 48 for n in bass), (
-            f"Sub style notes should be in low register, got max {max(n.pitch_midi for n in bass)}"
-        )
+        assert all(
+            n.pitch_midi <= 48 for n in bass
+        ), f"Sub style notes should be in low register, got max {max(n.pitch_midi for n in bass)}"
 
     def test_slides_add_notes(self) -> None:
         """slides=True should produce more notes when chord roots differ."""
@@ -341,12 +339,14 @@ class TestEdgeCaseBPMs:
         # At 80 BPM + 480 tpb: ticks_per_ms = 80/60000 * 480 = 0.64
         # jitter_ms=5 → max_ticks = round(5 * 0.64) = 3
         from core.music_theory.humanize import _bpm_to_ticks_per_ms
+
         tpm = _bpm_to_ticks_per_ms(80.0, 480)
         assert abs(tpm - (80.0 / 60_000.0 * 480)) < 0.001
 
     def test_bpm_150_humanize_timing_ticks(self) -> None:
         """At BPM=150, tick conversion must be correct."""
         from core.music_theory.humanize import _bpm_to_ticks_per_ms
+
         tpm = _bpm_to_ticks_per_ms(150.0, 480)
         assert abs(tpm - (150.0 / 60_000.0 * 480)) < 0.001
 
@@ -401,9 +401,9 @@ class TestEnergyLayersCrossGenre:
         high = generate_pattern(genre=genre, bars=4, energy=10, humanize=False, seed=0)
         instr_low = {h.instrument for h in low.hits}
         instr_high = {h.instrument for h in high.hits}
-        assert len(instr_high) >= len(instr_low), (
-            f"{genre}: energy=10 should have ≥ instrument types than energy=1"
-        )
+        assert len(instr_high) >= len(
+            instr_low
+        ), f"{genre}: energy=10 should have ≥ instrument types than energy=1"
 
     def test_melodic_techno_energy_progression(self) -> None:
         """Melodic techno specific: hihat enters at energy=2, snare later."""

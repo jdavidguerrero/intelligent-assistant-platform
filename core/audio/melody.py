@@ -48,8 +48,18 @@ FMAX_HZ: float = 2093.0
 
 # MIDI note name lookup (octaves 0–9)
 _NOTE_NAMES_CHROMATIC: tuple[str, ...] = (
-    "C", "C#", "D", "D#", "E", "F",
-    "F#", "G", "G#", "A", "A#", "B",
+    "C",
+    "C#",
+    "D",
+    "D#",
+    "E",
+    "F",
+    "F#",
+    "G",
+    "G#",
+    "A",
+    "A#",
+    "B",
 )
 
 _HOP_LENGTH: int = 512
@@ -187,7 +197,7 @@ def _estimate_velocity(
     Returns:
         Integer velocity in [20, 100].
     """
-    segment = y[max(0, onset_sample):min(len(y), offset_sample)]
+    segment = y[max(0, onset_sample) : min(len(y), offset_sample)]
     if len(segment) == 0:
         return 64  # default middle velocity
 

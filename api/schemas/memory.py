@@ -1,4 +1,5 @@
 """Pydantic schemas for /memory endpoints."""
+
 from __future__ import annotations
 
 from typing import Literal

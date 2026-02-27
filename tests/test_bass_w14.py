@@ -59,9 +59,9 @@ class TestSubStyle:
         chords = _chords_am(4)
         notes = generate_bassline(chords, genre="organic house", style="sub", seed=0)
         # sub style uses base_octave=1 → pitches in range 24-35 roughly (root region)
-        assert all(n.pitch_midi <= 48 for n in notes), (
-            f"Sub bass note too high: {max(n.pitch_midi for n in notes)}"
-        )
+        assert all(
+            n.pitch_midi <= 48 for n in notes
+        ), f"Sub bass note too high: {max(n.pitch_midi for n in notes)}"
 
     def test_sub_lower_than_root_style(self) -> None:
         """Sub style (octave 1) is lower than root style (octave 2)."""
@@ -200,9 +200,7 @@ class TestSlides:
     def test_slide_note_on_step_14(self) -> None:
         """Slide notes are placed at step 14 (2 steps before bar end)."""
         chords = _chords_am(4)
-        notes = generate_bassline(
-            chords, genre="organic house", style="root", slides=True, seed=0
-        )
+        notes = generate_bassline(chords, genre="organic house", style="root", slides=True, seed=0)
         step14_notes = [n for n in notes if n.step == 14]
         assert len(step14_notes) > 0
 
@@ -210,9 +208,7 @@ class TestSlides:
         """With 1 bar, no chord change → slides add nothing."""
         chords = _chords_am(1)
         without = generate_bassline(chords, genre="organic house", style="root", seed=0)
-        with_s = generate_bassline(
-            chords, genre="organic house", style="root", slides=True, seed=0
-        )
+        with_s = generate_bassline(chords, genre="organic house", style="root", slides=True, seed=0)
         assert len(without) == len(with_s)
 
     def test_slides_same_root_no_extra_notes(self) -> None:
@@ -237,17 +233,13 @@ class TestSlides:
 
     def test_slide_notes_are_bass_notes(self) -> None:
         chords = _chords_am(4)
-        notes = generate_bassline(
-            chords, genre="organic house", style="root", slides=True, seed=0
-        )
+        notes = generate_bassline(chords, genre="organic house", style="root", slides=True, seed=0)
         assert all(isinstance(n, BassNote) for n in notes)
 
     def test_slide_velocity_lower_than_main(self) -> None:
         """Slide notes (step 14) have lower velocity than main notes (step 0)."""
         chords = _chords_am(4)
-        notes = generate_bassline(
-            chords, genre="organic house", style="root", slides=True, seed=0
-        )
+        notes = generate_bassline(chords, genre="organic house", style="root", slides=True, seed=0)
         main_notes = [n for n in notes if n.step == 0]
         slide_notes = [n for n in notes if n.step == 14]
         if slide_notes and main_notes:
@@ -257,9 +249,7 @@ class TestSlides:
 
     def test_sorted_output_with_slides(self) -> None:
         chords = _chords_am(4)
-        notes = generate_bassline(
-            chords, genre="organic house", style="root", slides=True, seed=0
-        )
+        notes = generate_bassline(chords, genre="organic house", style="root", slides=True, seed=0)
         keys = [(n.bar, n.step) for n in notes]
         assert keys == sorted(keys)
 
